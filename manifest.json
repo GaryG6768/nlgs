@@ -1,0 +1,16 @@
+{
+  "name": "NLGS — Norwich Loco Golf Society",
+  "short_name": "NLGS",
+  "description": "Norwich Loco Golf Society golf app",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f6f3e8",
+  "theme_color": "#064b35",
+  "orientation": "portrait",
+  "prefer_related_applications": false,
+  "icons": [
+    {"src":"./icons/icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},
+    {"src":"./icons/icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"}
+  ]
+}
