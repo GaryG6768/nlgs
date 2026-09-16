@@ -1,5 +1,4 @@
-
-const CACHE = 'nlgs-shell-v3-scroll-fix';
+const CACHE = 'nlgs-shell-v4-scoring-position';
 
 self.addEventListener('install', event => {
   self.skipWaiting();
@@ -34,49 +33,212 @@ self.addEventListener('fetch', event => {
 
           const fix = `
 <script>
-/* NLGS competition scoring scroll fix.
-   The scoring screen must never call scrollIntoView automatically.
-   Users control the page position with their finger. */
+/* NLGS scoring scroll fix v4 */
+
 (function(){
-  try {
-    const originalScrollIntoView =
-      Element.prototype.scrollIntoView;
 
-    Element.prototype.scrollIntoView = function(){
-      const scoring =
-        document.getElementById('competitionScoringNLGS');
+  function scoringTop(){
 
-      if (
-        scoring &&
-        (this === scoring || scoring.contains(this))
-      ) {
+    const s =
+      document.getElementById('competitionScoringNLGS');
+
+    if(!s || !s.classList.contains('active'))
+      return null;
+
+    const header =
+      document.querySelector('.top');
+
+    const h =
+      header ? header.offsetHeight : 0;
+
+    return Math.max(
+      0,
+      s.getBoundingClientRect().top +
+      window.scrollY -
+      h
+    );
+  }
+
+
+  function goToScoringTop(){
+
+    const y = scoringTop();
+
+    if(y === null) return;
+
+    window.scrollTo({
+      top:y,
+      left:0,
+      behavior:'auto'
+    });
+  }
+
+
+  function install(){
+
+    let lastActive = false;
+
+
+    const observer =
+      new MutationObserver(function(){
+
+        const s =
+          document.getElementById(
+            'competitionScoringNLGS'
+          );
+
+        const active =
+          !!(
+            s &&
+            s.classList.contains('active')
+          );
+
+
+        if(active && !lastActive){
+
+          setTimeout(
+            goToScoringTop,
+            60
+          );
+
+          setTimeout(
+            goToScoringTop,
+            250
+          );
+        }
+
+
+        lastActive = active;
+
+      });
+
+
+    observer.observe(
+      document.documentElement,
+      {
+        subtree:true,
+        attributes:true,
+        attributeFilter:['class']
+      }
+    );
+
+
+    let tries = 0;
+
+
+    const wrap = function(){
+
+      if(
+        typeof window.csSelectHole ===
+        'function' &&
+        !window.csSelectHole.__nlgsV4
+      ){
+
+        const original =
+          window.csSelectHole;
+
+
+        function wrapped(holeNo){
+
+          const result =
+            original.apply(
+              this,
+              arguments
+            );
+
+
+          setTimeout(
+            goToScoringTop,
+            30
+          );
+
+
+          setTimeout(
+            goToScoringTop,
+            180
+          );
+
+
+          return result;
+        }
+
+
+        wrapped.__nlgsV4 = true;
+
+        window.csSelectHole =
+          wrapped;
+
         return;
       }
 
-      return originalScrollIntoView.apply(this, arguments);
+
+      if(++tries < 100){
+
+        setTimeout(
+          wrap,
+          50
+        );
+      }
+
     };
-  } catch(e) {}
+
+
+    wrap();
+
+  }
+
+
+  if(
+    document.readyState ===
+    'loading'
+  ){
+
+    document.addEventListener(
+      'DOMContentLoaded',
+      install,
+      {once:true}
+    );
+
+  }else{
+
+    install();
+
+  }
+
 })();
 </script>`;
 
+
           return new Response(
-            html.replace('</body>', fix + '</body>'),
+            html.replace(
+              '</body>',
+              fix + '</body>'
+            ),
             {
-              status: response.status,
-              statusText: response.statusText,
-              headers: response.headers
+              status:response.status,
+              statusText:response.statusText,
+              headers:response.headers
             }
           );
+
         })
-        .catch(() => caches.match('./index.html'))
+        .catch(() =>
+          caches.match('./index.html')
+        )
     );
 
     return;
   }
 
+
   event.respondWith(
+
     fetch(req)
       .then(response => response)
-      .catch(() => caches.match(req))
+      .catch(() =>
+        caches.match(req)
+      )
+
   );
+
 });
