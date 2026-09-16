@@ -1,4 +1,4 @@
-const CACHE = 'nlgs-shell-v4-scoring-position';
+const CACHE = 'nlgs-shell-v5-scoring-boundary';
 
 self.addEventListener('install', event => {
   self.skipWaiting();
@@ -9,7 +9,10 @@ self.addEventListener('activate', event => {
     caches.keys().then(keys =>
       Promise.all(
         keys
-          .filter(key => key.startsWith('nlgs-shell-') && key !== CACHE)
+          .filter(key =>
+            key.startsWith('nlgs-shell-') &&
+            key !== CACHE
+          )
           .map(key => caches.delete(key))
       )
     ).then(() => self.clients.claim())
@@ -25,37 +28,47 @@ self.addEventListener('fetch', event => {
     event.respondWith(
       fetch(req, { cache: 'no-store' })
         .then(async response => {
-          const type = response.headers.get('content-type') || '';
 
-          if (!type.includes('text/html')) return response;
+          const type =
+            response.headers.get('content-type') || '';
+
+          if (!type.includes('text/html')) {
+            return response;
+          }
 
           const html = await response.text();
 
           const fix = `
 <script>
-/* NLGS scoring scroll fix v4 */
+/* NLGS scoring scroll fix v5 */
 
 (function(){
 
   function scoringTop(){
 
     const s =
-      document.getElementById('competitionScoringNLGS');
+      document.getElementById(
+        'competitionScoringNLGS'
+      );
 
-    if(!s || !s.classList.contains('active'))
+    if(
+      !s ||
+      !s.classList.contains('active')
+    ){
       return null;
+    }
 
     const header =
       document.querySelector('.top');
 
-    const h =
+    const headerHeight =
       header ? header.offsetHeight : 0;
 
     return Math.max(
       0,
       s.getBoundingClientRect().top +
       window.scrollY -
-      h
+      headerHeight
     );
   }
 
@@ -67,50 +80,127 @@ self.addEventListener('fetch', event => {
     if(y === null) return;
 
     window.scrollTo({
-      top:y,
-      left:0,
-      behavior:'auto'
+      top: y,
+      left: 0,
+      behavior: 'auto'
     });
   }
 
+
+  /*
+   * Stop the user dragging above the
+   * Competition Scoring section.
+   *
+   * The old code only stopped this at
+   * scrollY = 0, which allowed the large
+   * blank area above scoring.
+   */
+
+  let startY = 0;
+
+  document.addEventListener(
+    'touchstart',
+    function(e){
+
+      if(
+        e.touches &&
+        e.touches.length
+      ){
+
+        startY =
+          e.touches[0].clientY;
+      }
+
+    },
+    {passive:true}
+  );
+
+
+  document.addEventListener(
+    'touchmove',
+    function(e){
+
+      const s =
+        document.getElementById(
+          'competitionScoringNLGS'
+        );
+
+      if(
+        !s ||
+        !s.classList.contains('active') ||
+        !e.touches ||
+        !e.touches.length
+      ){
+        return;
+      }
+
+      const y =
+        e.touches[0].clientY;
+
+      const pullingDown =
+        y - startY > 8;
+
+      const minY =
+        scoringTop();
+
+      if(
+        pullingDown &&
+        minY !== null &&
+        window.scrollY <= minY + 1
+      ){
+
+        e.preventDefault();
+      }
+
+    },
+    {passive:false}
+  );
+
+
+  /*
+   * Keep the correct position when
+   * Competition Scoring is opened.
+   */
 
   function install(){
 
     let lastActive = false;
 
-
     const observer =
-      new MutationObserver(function(){
+      new MutationObserver(
+        function(){
 
-        const s =
-          document.getElementById(
-            'competitionScoringNLGS'
-          );
+          const s =
+            document.getElementById(
+              'competitionScoringNLGS'
+            );
 
-        const active =
-          !!(
-            s &&
-            s.classList.contains('active')
-          );
+          const active =
+            !!(
+              s &&
+              s.classList.contains('active')
+            );
 
+          if(
+            active &&
+            !lastActive
+          ){
 
-        if(active && !lastActive){
+            setTimeout(
+              goToScoringTop,
+              60
+            );
 
-          setTimeout(
-            goToScoringTop,
-            60
-          );
+            setTimeout(
+              goToScoringTop,
+              250
+            );
+          }
 
-          setTimeout(
-            goToScoringTop,
-            250
-          );
+          lastActive = active;
+
         }
-
-
-        lastActive = active;
-
-      });
+      );
 
 
     observer.observe(
@@ -123,15 +213,20 @@ self.addEventListener('fetch', event => {
     );
 
 
-    let tries = 0;
+    /*
+     * Keep the existing working
+     * Hole 1 / Hole 2 / Hole 3 etc.
+     * behaviour.
+     */
 
+    let tries = 0;
 
     const wrap = function(){
 
       if(
         typeof window.csSelectHole ===
         'function' &&
-        !window.csSelectHole.__nlgsV4
+        !window.csSelectHole.__nlgsV5
       ){
 
         const original =
@@ -152,7 +247,6 @@ self.addEventListener('fetch', event => {
             30
           );
 
-
           setTimeout(
             goToScoringTop,
             180
@@ -163,7 +257,7 @@ self.addEventListener('fetch', event => {
         }
 
 
-        wrapped.__nlgsV4 = true;
+        wrapped.__nlgsV5 = true;
 
         window.csSelectHole =
           wrapped;
@@ -208,16 +302,15 @@ self.addEventListener('fetch', event => {
 })();
 </script>`;
 
-
           return new Response(
             html.replace(
               '</body>',
               fix + '</body>'
             ),
             {
-              status:response.status,
-              statusText:response.statusText,
-              headers:response.headers
+              status: response.status,
+              statusText: response.statusText,
+              headers: response.headers
             }
           );
 
@@ -232,13 +325,10 @@ self.addEventListener('fetch', event => {
 
 
   event.respondWith(
-
     fetch(req)
       .then(response => response)
       .catch(() =>
         caches.match(req)
       )
-
   );
-
 });
