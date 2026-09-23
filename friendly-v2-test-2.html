@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#064b35">
+<title>NLGS Friendly Game V2 Test</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--green:#064b35;--line:#dfe5df;--ink:#193127;--muted:#68736c;--cream:#f6f3e8}
+*{box-sizing:border-box}body{margin:0;background:#e9ece5;color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+.app{max-width:520px;margin:auto;min-height:100vh;background:var(--cream);padding:16px 14px 50px}
+h1,h2,h3{color:var(--green)}h1{font:30px Georgia,serif;margin:5px 0}.sub,.small{color:var(--muted);font-size:13px}
+.card{background:#fff;border-radius:16px;padding:15px;margin:12px 0;box-shadow:0 3px 14px #19312710}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pill{background:#e8f2ed;color:var(--green);padding:6px 10px;border-radius:99px;font-size:12px;font-weight:800}
+.btn{border:0;border-radius:11px;padding:13px 14px;background:var(--green);color:#fff;font-weight:800;font-size:14px;width:100%;margin-top:10px}
+.btn.secondary{background:#edf1ec;color:var(--green)}.btn:disabled{opacity:.6}
+select,.input{width:100%;padding:12px;border:1px solid var(--line);border-radius:10px;background:#fff;font-size:16px}
+label{display:block;font-size:12px;font-weight:800;margin:10px 0 5px}
+.holegrid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}.holebtn{border:1px solid var(--line);border-radius:10px;background:#fff;padding:10px 3px;font-weight:800;font-size:15px}
+.score-card{border:1px solid var(--line);border-radius:14px;padding:12px;margin:10px 0;background:#fff}
+.score-card.saved{background:#f0f8f3;border-color:#a6c9b6}
+.score-controls{display:flex;justify-content:center;align-items:center;gap:8px;margin-top:10px}
+.step{width:46px;height:46px;border:0;border-radius:12px;background:#edf1ec;color:var(--green);font-size:28px;font-weight:800}
+.score-box{width:100px;height:52px;border:1px solid #a6c9b6;border-radius:12px;background:#f0f8f3;text-align:center;font-size:28px;font-weight:800;line-height:52px}
+.warn{background:#fff6df;border:1px solid #e2c56c;border-radius:11px;padding:10px;margin-top:8px}
+.ok{background:#edf8ef;border:1px solid #9bc4b1;border-radius:11px;padding:10px;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="sub">NLGS • FRIENDLY GAME V2 SAFE TEST</div>
+<h1>Friendly Game</h1>
+<div class="card"><b>This is a test version.</b><div class="small" style="margin-top:6px">Your normal NLGS scoring style is retained: the expected handicap score is already in each score box. Use − / + to change it. This page tests independent four-ball scoring.</div></div>
+
+<div class="card">
+<h3 style="margin-top:0">Choose Friendly Game</h3>
+<button class="btn secondary" id="gamesBtn" onclick="loadGames()">REFRESH FRIENDLY GAMES</button>
+<label>GAME</label><select id="game"></select>
+<div id="gameInfo" class="small" style="margin-top:8px"></div>
+</div>
+
+<div class="card">
+<h3 style="margin-top:0">Your login</h3>
+<label>MEMBER NAME</label><input id="name" class="input" placeholder="Your NLGS member name">
+<label>4-DIGIT PIN</label><input id="pin" class="input" type="password" inputmode="numeric" maxlength="4" placeholder="••••">
+<button class="btn" onclick="login()">LOAD MY GROUP</button>
+<div id="loginMsg" class="small" style="margin-top:8px"></div>
+</div>
+
+<div id="work" style="display:none">
+<div class="card">
+<div class="row"><h3 style="margin:0">Friendly Game</h3><span id="loginPill" class="pill"></span></div>
+<div id="groupPlayers" class="small" style="margin-top:8px"></div>
+</div>
+
+<div class="card">
+<div class="row"><div><h2 style="margin:0">Hole <span id="holeNo">1</span></h2><div id="holeInfo" class="small"></div></div><span id="holeStatus" class="pill">No submissions</span></div>
+<div id="holes" class="holegrid" style="margin-top:12px"></div>
+<div id="scores" style="margin-top:12px"></div>
+<button class="btn" id="saveBtn" onclick="saveHole()">SAVE GROUP SCORES</button>
+<button class="btn secondary" id="refreshBtn" onclick="refreshStatus()">REFRESH OTHER SCORERS</button>
+<div id="saveMsg" class="small" style="margin-top:8px"></div>
+</div>
+
+<div class="card">
+<h3 style="margin-top:0">Score agreement</h3>
+<div class="small">A score is agreed only when every submission for that player and hole is the same.</div>
+<div id="discrepancies"></div>
+</div>
+</div>
+</div>
+
+<script>
+const sb=supabase.createClient('https://ifjsjksskaknuqjboxsl.supabase.co','sb_publishable_sM00u7HKZ06m9XFFG2pBug_ypzkbnZp');
+let games=[],game=null,statusData=null,hole=1;
+
+const esc=v=>String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+const players=()=>statusData?.players||game?.players||[];
+const subs=()=>statusData?.submissions||[];
+function gameLabel(g){return `${g.game_date||''} • ${g.course_name||'Course'} • ${g.tee_name||'Tees'} • ${g.format||''} • ${g.status||''}`;}
+
+async function loadGames(){
+ const b=document.getElementById('gamesBtn');b.disabled=true;b.textContent='LOADING…';
+ const {data,error}=await sb.rpc('list_friendly_games');
+ b.disabled=false;b.textContent='REFRESH FRIENDLY GAMES';
+ if(error){document.getElementById('game').innerHTML='<option>Error loading games</option>';document.getElementById('gameInfo').textContent=error.message;return}
+ games=Array.isArray(data)?data:[];
+ const s=document.getElementById('game');
+ s.innerHTML=games.length?games.map(g=>`<option value="${g.id}">${esc(gameLabel(g))}</option>`).join(''):'<option value="">No Friendly Games found</option>';
+ showGameInfo();
+}
+document.getElementById('game').addEventListener('change',showGameInfo);
+function showGameInfo(){const g=games.find(x=>String(x.id)===String(document.getElementById('game').value));document.getElementById('gameInfo').textContent=g?`Players: ${(g.players||[]).join(' • ')}`:'';}
+
+async function login(){
+ const name=document.getElementById('name').value.trim(),pin=document.getElementById('pin').value.trim(),id=document.getElementById('game').value,msg=document.getElementById('loginMsg');
+ if(!id){msg.textContent='Choose a Friendly Game first.';return}
+ if(!name||!/^\d{4}$/.test(pin)){msg.textContent='Enter your member name and 4-digit PIN.';return}
+ msg.textContent='Loading…';
+ const {data,error}=await sb.rpc('get_friendly_submission_status',{p_friendly_game_id:id,p_member_name:name,p_member_pin:pin});
+ if(error){msg.textContent=error.message;return}
+ if(data?.error){msg.textContent=data.error;return}
+ game=games.find(x=>String(x.id)===String(id))||{id,players:data.players||[]};
+ statusData=data;hole=firstIncompleteHole();
+ document.getElementById('work').style.display='block';
+ document.getElementById('loginPill').textContent='Logged in: '+(data.scorer_name||name);
+ msg.textContent='Loaded successfully.';
+ render();
+}
+
+function firstIncompleteHole(){
+ for(let h=1;h<=18;h++){
+  if(!players().every((p,i)=>mySubmission(i,h)))return h;
+ }
+ return 1;
+}
+function submissionsFor(i,h){return subs().filter(x=>Number(x.player_index??x.competition_player_id)===i&&Number(x.hole_no)===h);}
+function mySubmission(i,h){return submissionsFor(i,h).find(x=>String(x.scorer_member_id)===String(statusData?.scorer_member_id));}
+
+function shotsFor(i,h){
+ const pd=(game?.player_data||[])[i]||{},hd=(game?.hole_data||[]).find(x=>Number(x.hole_no)===h)||{};
+ const ph=Number(pd.playingHandicap||0),si=Number(hd.stroke_index||0);
+ if(ph>=0)return Math.floor(ph/18)+(si>0&&si<=ph%18?1:0);
+ const abs=Math.abs(ph);return -Math.floor(abs/18)-(si>18-(abs%18)?1:0);
+}
+function holeData(h){return (game?.hole_data||[]).find(x=>Number(x.hole_no)===h)||{par:4,stroke_index:h};}
+function expectedScore(i,h){const hd=holeData(h),shots=shotsFor(i,h);return Math.max(1,Math.min(15,Number(hd.par||4)+shots));}
+
+function render(){
+ const ps=players(),hd=holeData(hole);
+ document.getElementById('holeNo').textContent=hole;
+ document.getElementById('holeInfo').textContent=`Par ${hd.par||'—'} • SI ${hd.stroke_index||'—'}${hd.yards?` • ${hd.yards} yds`:''}`;
+ document.getElementById('groupPlayers').textContent=ps.join(' • ');
+ renderHoles();renderScores();renderDiscrepancies();
+}
+function renderHoles(){
+ const wrap=document.getElementById('holes');wrap.innerHTML='';
+ for(let h=1;h<=18;h++){
+  const b=document.createElement('button');b.className='holebtn';b.textContent=h;
+  const complete=players().every((p,i)=>submissionsFor(i,h).length>0);
+  b.style.background=h===hole?'var(--green)':(complete?'#e8f2ed':'#fff');b.style.color=h===hole?'#fff':'var(--ink)';
+  if(complete)b.textContent=h+' ✓';
+  b.onclick=()=>{hole=h;render();};
+  wrap.appendChild(b);
+ }
+}
+function renderScores(){
+ const ps=players(),wrap=document.getElementById('scores');wrap.innerHTML='';
+ let any=false;
+ ps.forEach((p,i)=>{
+  const mine=mySubmission(i,hole),all=submissionsFor(i,hole),vals=[...new Set(all.map(x=>Number(x.strokes)))];
+  if(all.length)any=true;
+  const value=mine?Number(mine.strokes):expectedScore(i,hole);
+  const div=document.createElement('div');div.className='score-card'+(mine?' saved':'');
+  div.innerHTML=`<div class="row"><div><b>${esc(p)}</b><div class="small">Playing HCP ${(game?.player_data||[])[i]?.playingHandicap??'—'} • ${shotsFor(i,hole)} shot${shotsFor(i,hole)===1?'':'s'} • ${mine?'My saved score':'Expected handicap score'}</div></div><span class="pill">${mine?'Saved':'Not entered'}</span></div><div class="score-controls"><button class="step" onclick="changeScore(${i},-1)">−</button><div id="score_${i}" class="score-box">${value}</div><button class="step" onclick="changeScore(${i},1)">+</button></div>${vals.length>1?`<div class="warn">⚠️ Score discrepancy: ${vals.join(' / ')}</div>`:''}`;
+  wrap.appendChild(div);
+ });
+ document.getElementById('holeStatus').textContent=any?'Submissions saved':'No submissions';
+}
+function changeScore(i,d){const el=document.getElementById('score_'+i);let v=Number(el.textContent)||expectedScore(i,hole);v=Math.max(1,Math.min(15,v+d));el.textContent=v;}
+
+async function saveHole(){
+ const savedHole=hole;
+ const name=document.getElementById('name').value.trim(),pin=document.getElementById('pin').value.trim();
+ const scores=players().map((p,i)=>({player_index:i,strokes:Number(document.getElementById('score_'+i).textContent)}));
+ if(scores.some(x=>!Number.isInteger(x.strokes)||x.strokes<1||x.strokes>15)){document.getElementById('saveMsg').textContent='Invalid score.';return}
+ const b=document.getElementById('saveBtn');b.disabled=true;b.textContent='SAVING…';
+ try{
+  const {data,error}=await sb.rpc('save_friendly_hole_submission',{p_friendly_game_id:game.id,p_member_name:name,p_member_pin:pin,p_hole_no:savedHole,p_scores:scores});
+  if(error)throw error;
+  await refreshStatus(false);
+  if(savedHole<18){
+   hole=savedHole+1;
+   render();
+   window.scrollTo({top:0,behavior:'auto'});
+   document.getElementById('saveMsg').textContent=`Hole ${savedHole} saved • Now scoring Hole ${hole}.`;
+  }else{
+   render();
+   document.getElementById('saveMsg').textContent=`Hole ${savedHole} saved.`;
+  }
+ }catch(e){
+  document.getElementById('saveMsg').textContent='Save error: '+(e?.message||e);
+ }finally{
+  b.disabled=false;b.textContent='SAVE GROUP SCORES';
+ }
+}
+
+async function refreshStatus(showMessage=true){
+ if(!game?.id)return;
+ const b=document.getElementById('refreshBtn'),out=document.getElementById('saveMsg');
+ const name=document.getElementById('name').value.trim(),pin=document.getElementById('pin').value.trim();
+ b.disabled=true;b.textContent='REFRESHING…';
+ if(showMessage)out.textContent='Refreshing other scorers…';
+ try{
+  const {data,error}=await sb.rpc('get_friendly_submission_status',{p_friendly_game_id:game.id,p_member_name:name,p_member_pin:pin});
+  if(error){out.textContent='Refresh error: '+error.message;return}
+  if(data?.error){out.textContent='Refresh error: '+data.error;return}
+  statusData=data;render();
+  if(showMessage)out.textContent=`Refreshed successfully • ${(statusData.submissions||[]).length} submission(s) returned.`;
+ }catch(e){out.textContent='Refresh error: '+(e?.message||e)}
+ finally{b.disabled=false;b.textContent='REFRESH OTHER SCORERS'}
+}
+loadGames();
+</script>
+</body>
+</html>
