@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+
 <title>NLGS Friendly Game Test</title>
 
 <style>
@@ -63,245 +64,856 @@ html,body{
 
 <script>
 
-const frame = document.getElementById('appFrame');
-const loading = document.getElementById('loading');
+const frame=document.getElementById('appFrame');
+const loading=document.getElementById('loading');
 
-frame.addEventListener('load', function(){
+frame.addEventListener('load',function(){
 
   try{
 
-    const win = frame.contentWindow;
-    const doc = frame.contentDocument;
-
-    /*
-      Wait for the existing NLGS application
-      to finish loading.
-    */
+    const win=frame.contentWindow;
+    const doc=frame.contentDocument;
 
     setTimeout(function(){
 
-      const script = doc.createElement('script');
+      const script=doc.createElement('script');
 
-      script.textContent = `
+      script.textContent=`
 
 (function(){
 
-  console.log(
-    'NLGS FRIENDLY MULTI-SCORER TEST ACTIVE'
-  );
-
-  const originalRenderFriendlyScore =
-    window.renderFriendlyScore;
-
-  let multiStatus = null;
-  let multiFinalising = false;
+console.log('NLGS FRIENDLY MULTI-SCORER TEST ACTIVE');
 
 
-  function credentials(){
+/* =====================================================
+   LOGIN / CREDENTIALS
+   ===================================================== */
 
-    return window.nlgsLoginCredentials || {};
+function credentials(){
 
-  }
+  if(
+    window.nlgsLoginCredentials &&
+    window.nlgsLoginCredentials.name &&
+    window.nlgsLoginCredentials.pin
+  ){
 
-
-  function round(){
-
-    return typeof getFriendlyRound === 'function'
-      ? getFriendlyRound()
-      : null;
+    return window.nlgsLoginCredentials;
 
   }
 
+  try{
 
-  /*
-    --------------------------------------------------
-    SCORE AGREEMENT PANEL
-    --------------------------------------------------
-  */
-
-  function ensureAgreementPanel(){
-
-    const section =
-      document.getElementById('friendlyScore');
-
-    if(!section) return;
-
-    if(
-      document.getElementById(
-        'friendlyAgreementCard'
-      )
-    ){
-      return;
-    }
-
-    const saveButton =
-      document.getElementById(
-        'friendlySaveAllBtn'
+    const member=
+      JSON.parse(
+        sessionStorage.getItem('nlgsMember') || 'null'
       );
 
-    if(!saveButton) return;
+    const pinInput=
+      document.getElementById('loginPin');
 
+    const nameInput=
+      document.getElementById('loginName');
 
-    const card =
-      document.createElement('div');
+    const pin=
+      pinInput ? pinInput.value.trim() : '';
 
-    card.className='card';
+    const name=
+      member?.full_name ||
+      nameInput?.value.trim() ||
+      '';
 
-    card.id='friendlyAgreementCard';
+    if(name && pin){
 
+      window.nlgsLoginCredentials={
+        name:name,
+        pin:pin
+      };
 
-    card.innerHTML =
-      '<div class="row">'+
-        '<h3 style="margin:0">'+
-          'SCORE AGREEMENT'+
-        '</h3>'+
-        '<span class="pill" '+
-          'id="friendlyAgreementPill">'+
-          'Checking…'+
-        '</span>'+
-      '</div>'+
-      '<div id="friendlyAgreementBody" '+
-        'class="small" '+
-        'style="margin-top:8px">'+
-      '</div>'+
-      '<button '+
-        'id="friendlyFinaliseBtn" '+
-        'class="btn" '+
-        'style="display:none;margin-top:12px" '+
-        'onclick="nlgsFinaliseFriendlyRound()">'+
-        'FINALISE ROUND'+
-      '</button>';
+      return window.nlgsLoginCredentials;
 
+    }
 
-    const parent =
-      saveButton.parentNode.parentNode;
+  }catch(error){
 
-
-    parent.insertBefore(
-      card,
-      parent.children[1] || null
+    console.warn(
+      'Could not restore login credentials:',
+      error
     );
 
   }
 
+  return {};
 
-  /*
-    Get submissions for a player and hole.
-  */
+}
 
-  function submissionsFor(
-    playerIndex,
-    hole
-  ){
 
-    return (
-      multiStatus &&
-      Array.isArray(
-        multiStatus.submissions
-      )
-        ? multiStatus.submissions
-        : []
-    ).filter(function(row){
+/*
+  Capture the login details when the user
+  logs in through the normal NLGS login screen.
+*/
 
-      return Number(
-        row.player_index ??
-        row.competition_player_id
-      ) === Number(playerIndex)
+function captureLogin(){
 
-      &&
-      
-      Number(row.hole_no)
-        === Number(hole);
+  try{
 
-    });
+    const nameInput=
+      document.getElementById('loginName');
+
+    const pinInput=
+      document.getElementById('loginPin');
+
+    if(nameInput && pinInput){
+
+      const name=
+        nameInput.value.trim();
+
+      const pin=
+        pinInput.value.trim();
+
+      if(name && pin){
+
+        window.nlgsLoginCredentials={
+          name:name,
+          pin:pin
+        };
+
+        console.log(
+          'NLGS test login captured'
+        );
+
+      }
+
+    }
+
+  }catch(error){
+
+    console.warn(error);
 
   }
 
+}
 
-  /*
-    Check one hole.
-  */
 
-  function checkHole(
-    game,
-    hole
+document.addEventListener(
+  'click',
+  function(event){
+
+    if(
+      event.target &&
+      (
+        event.target.id==='loginBtn' ||
+        event.target.closest('#loginBtn')
+      )
+    ){
+
+      setTimeout(
+        captureLogin,
+        500
+      );
+
+    }
+
+  },
+  true
+);
+
+
+/* =====================================================
+   ROUND
+   ===================================================== */
+
+function round(){
+
+  return typeof getFriendlyRound==='function'
+    ? getFriendlyRound()
+    : null;
+
+}
+
+
+let multiStatus=null;
+let multiFinalising=false;
+
+
+/* =====================================================
+   AGREEMENT PANEL
+   ===================================================== */
+
+function ensureAgreementPanel(){
+
+  const section=
+    document.getElementById('friendlyScore');
+
+  if(!section)return;
+
+  if(
+    document.getElementById(
+      'friendlyAgreementCard'
+    )
   ){
 
-    const missing=[];
-    const conflicts=[];
+    return;
+
+  }
+
+  const saveButton=
+    document.getElementById(
+      'friendlySaveAllBtn'
+    );
+
+  if(!saveButton)return;
+
+  const card=
+    document.createElement('div');
+
+  card.className='card';
+
+  card.id='friendlyAgreementCard';
+
+  card.innerHTML=
+    '<div class="row">'+
+      '<h3 style="margin:0">'+
+        'SCORE AGREEMENT'+
+      '</h3>'+
+      '<span class="pill" '+
+        'id="friendlyAgreementPill">'+
+        'Checking…'+
+      '</span>'+
+    '</div>'+
+    '<div id="friendlyAgreementBody" '+
+      'class="small" '+
+      'style="margin-top:8px">'+
+    '</div>'+
+    '<button '+
+      'id="friendlyFinaliseBtn" '+
+      'class="btn" '+
+      'style="display:none;margin-top:12px" '+
+      'onclick="nlgsFinaliseFriendlyRound()">'+
+      'FINALISE ROUND'+
+    '</button>';
+
+  const parent=
+    saveButton.parentNode.parentNode;
+
+  parent.insertBefore(
+    card,
+    parent.children[1] || null
+  );
+
+}
 
 
-    game.players.forEach(
-      function(player,index){
+/* =====================================================
+   SUBMISSIONS
+   ===================================================== */
 
-        const rows =
-          submissionsFor(
-            index,
-            hole
+function submissionsFor(
+  playerIndex,
+  hole
+){
+
+  return(
+    multiStatus &&
+    Array.isArray(
+      multiStatus.submissions
+    )
+      ? multiStatus.submissions
+      : []
+  ).filter(function(row){
+
+    return(
+      Number(
+        row.player_index ??
+        row.competition_player_id
+      )===
+      Number(playerIndex)
+      &&
+      Number(row.hole_no)===
+      Number(hole)
+    );
+
+  });
+
+}
+
+
+/* =====================================================
+   CHECK HOLE
+   ===================================================== */
+
+function checkHole(
+  game,
+  hole
+){
+
+  const missing=[];
+  const conflicts=[];
+
+  game.players.forEach(
+    function(player,index){
+
+      const rows=
+        submissionsFor(
+          index,
+          hole
+        );
+
+      if(!rows.length){
+
+        missing.push(player);
+
+        return;
+
+      }
+
+      const values=[
+        ...new Set(
+          rows.map(function(row){
+
+            return Number(
+              row.strokes
+            );
+
+          })
+        )
+      ];
+
+      if(values.length>1){
+
+        conflicts.push({
+
+          player:player,
+          values:values
+
+        });
+
+      }
+
+    }
+  );
+
+  return{
+
+    missing:missing,
+
+    conflicts:conflicts,
+
+    agreed:
+      missing.length===0 &&
+      conflicts.length===0
+
+  };
+
+}
+
+
+/* =====================================================
+   RENDER AGREEMENT
+   ===================================================== */
+
+function renderAgreement(){
+
+  ensureAgreementPanel();
+
+  const game=round();
+
+  if(
+    !game ||
+    !game.dbId
+  ){
+
+    return;
+
+  }
+
+  const pill=
+    document.getElementById(
+      'friendlyAgreementPill'
+    );
+
+  const body=
+    document.getElementById(
+      'friendlyAgreementBody'
+    );
+
+  const finalise=
+    document.getElementById(
+      'friendlyFinaliseBtn'
+    );
+
+  if(!pill || !body)return;
+
+  let agreed=0;
+  let missing=0;
+  let conflicts=0;
+
+  for(
+    let hole=1;
+    hole<=18;
+    hole++
+  ){
+
+    const result=
+      checkHole(
+        game,
+        hole
+      );
+
+    if(result.agreed)
+      agreed++;
+
+    missing+=
+      result.missing.length;
+
+    conflicts+=
+      result.conflicts.length;
+
+  }
+
+  const current=
+    checkHole(
+      game,
+      game.currentHole
+    );
+
+  if(
+    current.conflicts.length
+  ){
+
+    pill.textContent=
+      '⚠️ DISCREPANCY';
+
+    body.innerHTML=
+      '<b>Hole '+
+      game.currentHole+
+      ' has a score discrepancy.</b><br>'+
+      current.conflicts.map(
+        function(item){
+
+          return(
+            item.player+
+            ': '+
+            item.values.join(' / ')
           );
 
-
-        if(!rows.length){
-
-          missing.push(player);
-
-          return;
-
         }
+      ).join('<br>')+
+      '<br><br>'+
+      'Both scores are retained until the scorers agree.';
+
+  }else if(
+    current.missing.length
+  ){
+
+    pill.textContent=
+      'AWAITING SCORES';
+
+    body.innerHTML=
+      'Hole '+
+      game.currentHole+
+      ': waiting for '+
+      current.missing.join(', ')+
+      '.';
+
+  }else{
+
+    pill.textContent=
+      '✓ AGREED';
+
+    body.innerHTML=
+      'Hole '+
+      game.currentHole+
+      ' is agreed.';
+
+  }
+
+  if(
+    agreed===18 &&
+    missing===0 &&
+    conflicts===0
+  ){
+
+    body.innerHTML+=
+      '<br><br>'+
+      '<b>18 / 18 holes agreed ✓</b><br>'+
+      'All agreed scores are ready for the final leaderboard.';
+
+  }else{
+
+    body.innerHTML+=
+      '<br><br>'+
+      '<b>'+
+      agreed+
+      ' / 18 holes agreed</b><br>'+
+      missing+
+      ' missing player/hole score(s) • '+
+      conflicts+
+      ' disputed hole(s).';
+
+  }
+
+  if(finalise){
+
+    finalise.style.display=
+      agreed===18 &&
+      missing===0 &&
+      conflicts===0 &&
+      Number(game.currentHole)>=18
+        ?'block'
+        :'none';
+
+  }
+
+}
 
 
-        const values =
-          [
-            ...new Set(
-              rows.map(function(row){
+/* =====================================================
+   REFRESH DATABASE STATUS
+   ===================================================== */
 
-                return Number(
-                  row.strokes
-                );
+async function refreshStatus(){
 
-              })
-            )
-          ];
+  const game=round();
+  const login=credentials();
 
+  if(
+    !game ||
+    !game.dbId ||
+    !login.name ||
+    !login.pin
+  ){
 
-        if(values.length>1){
+    console.log(
+      'Friendly test credentials not available yet'
+    );
 
-          conflicts.push({
+    return null;
 
-            player:player,
-            values:values
+  }
 
-          });
+  const result=
+    await sb.rpc(
+      'get_friendly_submission_status',
+      {
 
-        }
+        p_friendly_game_id:
+          game.dbId,
+
+        p_member_name:
+          login.name,
+
+        p_member_pin:
+          login.pin
 
       }
     );
 
+  if(result.error)
+    throw result.error;
 
-    return {
+  if(
+    result.data &&
+    result.data.error
+  ){
 
-      missing:missing,
+    throw new Error(
+      result.data.error
+    );
 
-      conflicts:conflicts,
+  }
 
-      agreed:
-        missing.length===0 &&
-        conflicts.length===0
+  multiStatus=
+    result.data;
 
-    };
+  renderAgreement();
+
+  return result.data;
+
+}
+
+
+/* =====================================================
+   SAVE CURRENT HOLE
+   ===================================================== */
+
+async function saveMultiScores(){
+
+  const game=round();
+  const login=credentials();
+
+  if(
+    !game ||
+    !game.dbId
+  ){
+
+    throw new Error(
+      'Friendly game database record not found.'
+    );
+
+  }
+
+  if(
+    !login.name ||
+    !login.pin
+  ){
+
+    throw new Error(
+      'Please log in before scoring.'
+    );
+
+  }
+
+  const inputs=[
+    ...document.querySelectorAll(
+      '.friendly-hole-score'
+    )
+  ];
+
+  if(!inputs.length){
+
+    throw new Error(
+      'Enter a score for every player.'
+    );
+
+  }
+
+  const scores=
+    inputs.map(
+      function(input,index){
+
+        return{
+
+          player_index:index,
+
+          strokes:Number(
+            input.value
+          )
+
+        };
+
+      }
+    );
+
+  if(
+    scores.some(
+      function(score){
+
+        return(
+          !Number.isInteger(
+            score.strokes
+          ) ||
+          score.strokes<1 ||
+          score.strokes>15
+        );
+
+      }
+    )
+  ){
+
+    throw new Error(
+      'Enter a valid score for every player.'
+    );
+
+  }
+
+  const hole=
+    Number(game.currentHole);
+
+  const result=
+    await sb.rpc(
+      'save_friendly_hole_submission',
+      {
+
+        p_friendly_game_id:
+          game.dbId,
+
+        p_member_name:
+          login.name,
+
+        p_member_pin:
+          login.pin,
+
+        p_hole_no:
+          hole,
+
+        p_scores:
+          scores
+
+      }
+    );
+
+  if(result.error)
+    throw result.error;
+
+  if(
+    result.data &&
+    result.data.error
+  ){
+
+    throw new Error(
+      result.data.error
+    );
 
   }
 
 
   /*
-    Display agreement information.
+    Keep the existing local scorecard
+    updated too.
   */
 
-  function renderAgreement(){
+  game.players.forEach(
+    function(player,index){
 
-    ensureAgreementPanel();
+      if(!game.scores[player])
+        game.scores[player]={};
 
+      game.scores[player][hole]=
+        scores[index].strokes;
+
+    }
+  );
+
+  if(
+    typeof saveFriendlyState===
+    'function'
+  ){
+
+    saveFriendlyState();
+
+  }
+
+
+  /*
+    Automatically move to next hole.
+  */
+
+  if(hole<18){
+
+    game.currentHole=
+      hole+1;
+
+    if(
+      typeof saveFriendlyState===
+      'function'
+    ){
+
+      saveFriendlyState();
+
+    }
+
+    if(
+      typeof originalRenderFriendlyScore===
+      'function'
+    ){
+
+      originalRenderFriendlyScore();
+
+    }
+
+    refreshStatus()
+      .catch(function(error){
+
+        console.warn(
+          'Agreement refresh:',
+          error
+        );
+
+      });
+
+  }else{
+
+    if(
+      typeof originalRenderFriendlyScore===
+      'function'
+    ){
+
+      originalRenderFriendlyScore();
+
+    }
+
+    await refreshStatus();
+
+    renderAgreement();
+
+  }
+
+  return result.data;
+
+}
+
+
+/* =====================================================
+   SAVE BUTTON REPLACEMENT
+   ===================================================== */
+
+window.saveFriendlyScore=
+  async function(){
+
+    const button=
+      document.getElementById(
+        'friendlySaveAllBtn'
+      );
+
+    if(button)
+      button.disabled=true;
+
+    try{
+
+      await saveMultiScores();
+
+      if(typeof toast==='function'){
+
+        toast(
+          'Scores saved'
+        );
+
+      }
+
+    }catch(error){
+
+      console.error(
+        'Multi-scorer save failed:',
+        error
+      );
+
+      if(typeof toast==='function'){
+
+        toast(
+          error.message ||
+          'Could not save scores'
+        );
+
+      }
+
+    }finally{
+
+      if(button)
+        button.disabled=false;
+
+      if(
+        typeof updateFriendlySaveButton===
+        'function'
+      ){
+
+        updateFriendlySaveButton();
+
+      }
+
+    }
+
+  };
+
+
+/* =====================================================
+   FINALISE ROUND
+   ===================================================== */
+
+window.nlgsFinaliseFriendlyRound=
+  async function(){
+
+    if(multiFinalising)
+      return;
 
     const game=round();
 
@@ -314,545 +926,84 @@ frame.addEventListener('load', function(){
 
     }
 
+    multiFinalising=true;
 
-    const pill =
-      document.getElementById(
-        'friendlyAgreementPill'
-      );
-
-    const body =
-      document.getElementById(
-        'friendlyAgreementBody'
-      );
-
-    const finalise =
+    const button=
       document.getElementById(
         'friendlyFinaliseBtn'
       );
 
+    if(button){
 
-    if(!pill || !body)
-      return;
+      button.disabled=true;
 
-
-    let agreed=0;
-    let missing=0;
-    let conflicts=0;
-
-
-    for(
-      let hole=1;
-      hole<=18;
-      hole++
-    ){
-
-      const result =
-        checkHole(
-          game,
-          hole
-        );
-
-
-      if(result.agreed)
-        agreed++;
-
-
-      missing +=
-        result.missing.length;
-
-
-      conflicts +=
-        result.conflicts.length;
+      button.textContent=
+        'CHECKING SCORES…';
 
     }
 
-
-    const current =
-      checkHole(
-        game,
-        game.currentHole
-      );
-
-
-    if(
-      current.conflicts.length
-    ){
-
-      pill.textContent =
-        '⚠️ DISCREPANCY';
-
-
-      body.innerHTML =
-        '<b>Hole '+
-        game.currentHole+
-        ' has a score discrepancy.</b><br>'+
-        current.conflicts.map(
-          function(item){
-
-            return (
-              item.player+
-              ': '+
-              item.values.join(' / ')
-            );
-
-          }
-        ).join('<br>')+
-        '<br><br>'+
-        'Both scores are retained until the scorers agree.';
-
-
-    }else if(
-      current.missing.length
-    ){
-
-      pill.textContent =
-        'AWAITING SCORES';
-
-
-      body.innerHTML =
-        'Hole '+
-        game.currentHole+
-        ': waiting for '+
-        current.missing.join(', ')+
-        '.';
-
-
-    }else{
-
-      pill.textContent =
-        '✓ AGREED';
-
-
-      body.innerHTML =
-        'Hole '+
-        game.currentHole+
-        ' is agreed.';
-
-    }
-
-
-    if(
-      agreed===18 &&
-      missing===0 &&
-      conflicts===0
-    ){
-
-      body.innerHTML +=
-        '<br><br>'+
-        '<b>18 / 18 holes agreed ✓</b><br>'+
-        'All agreed scores are ready for the final leaderboard.';
-
-
-    }else{
-
-      body.innerHTML +=
-        '<br><br>'+
-        '<b>'+
-        agreed+
-        ' / 18 holes agreed</b><br>'+
-        missing+
-        ' missing player/hole score(s) • '+
-        conflicts+
-        ' disputed hole(s).';
-
-    }
-
-
-    if(finalise){
-
-      finalise.style.display =
-        agreed===18 &&
-        missing===0 &&
-        conflicts===0 &&
-        Number(game.currentHole)>=18
-          ? 'block'
-          : 'none';
-
-    }
-
-  }
-
-
-  /*
-    Read submissions from Supabase.
-  */
-
-  async function refreshStatus(){
-
-    const game=round();
-    const login=credentials();
-
-
-    if(
-      !game ||
-      !game.dbId ||
-      !login.name ||
-      !login.pin
-    ){
-
-      return null;
-
-    }
-
-
-    const result =
-      await sb.rpc(
-        'get_friendly_submission_status',
-        {
-
-          p_friendly_game_id:
-            game.dbId,
-
-          p_member_name:
-            login.name,
-
-          p_member_pin:
-            login.pin
-
-        }
-      );
-
-
-    if(result.error)
-      throw result.error;
-
-
-    if(
-      result.data &&
-      result.data.error
-    ){
-
-      throw new Error(
-        result.data.error
-      );
-
-    }
-
-
-    multiStatus =
-      result.data;
-
-
-    renderAgreement();
-
-
-    return result.data;
-
-  }
-
-
-  /*
-    Save the current hole using the
-    new multi-scorer database function.
-  */
-
-  async function saveMultiScores(){
-
-    const game=round();
-    const login=credentials();
-
-
-    if(
-      !game ||
-      !game.dbId ||
-      !login.name ||
-      !login.pin
-    ){
-
-      throw new Error(
-        'Please log in before scoring.'
-      );
-
-    }
-
-
-    const inputs =
-      [
-        ...document.querySelectorAll(
-          '.friendly-hole-score'
-        )
-      ];
-
-
-    if(!inputs.length){
-
-      throw new Error(
-        'Enter a score for every player.'
-      );
-
-    }
-
-
-    const scores =
-      inputs.map(
-        function(input,index){
-
-          return {
-
-            player_index:index,
-
-            strokes:Number(
-              input.value
-            )
-
-          };
-
-        }
-      );
-
-
-    if(
-      scores.some(
-        function(score){
-
-          return (
-            !Number.isInteger(
-              score.strokes
-            ) ||
-            score.strokes<1 ||
-            score.strokes>15
-          );
-
-        }
-      )
-    ){
-
-      throw new Error(
-        'Enter a valid score for every player.'
-      );
-
-    }
-
-
-    const hole =
-      Number(game.currentHole);
-
-
-    const result =
-      await sb.rpc(
-        'save_friendly_hole_submission',
-        {
-
-          p_friendly_game_id:
-            game.dbId,
-
-          p_member_name:
-            login.name,
-
-          p_member_pin:
-            login.pin,
-
-          p_hole_no:
-            hole,
-
-          p_scores:
-            scores
-
-        }
-      );
-
-
-    if(result.error)
-      throw result.error;
-
-
-    if(
-      result.data &&
-      result.data.error
-    ){
-
-      throw new Error(
-        result.data.error
-      );
-
-    }
-
-
-    /*
-      Keep the existing local scorecard
-      updated as well.
-    */
-
-    game.players.forEach(
-      function(player,index){
-
-        if(!game.scores[player])
-          game.scores[player]={};
-
-
-        game.scores[player][hole] =
-          scores[index].strokes;
-
-      }
-    );
-
-
-    saveFriendlyState();
-
-
-    /*
-      MOVE TO NEXT HOLE IMMEDIATELY.
-    */
-
-    if(hole<18){
-
-      game.currentHole =
-        hole+1;
-
-
-      saveFriendlyState();
-
-
-      originalRenderFriendlyScore();
-
-
-      /*
-        Refresh agreement status without
-        holding up the screen.
-      */
-
-      refreshStatus()
-        .catch(function(error){
-
-          console.warn(
-            'Agreement refresh:',
-            error
-          );
-
-        });
-
-
-    }else{
-
-      originalRenderFriendlyScore();
+    try{
 
       await refreshStatus();
 
-      renderAgreement();
+      let missing=0;
+      let conflicts=0;
 
-    }
+      for(
+        let hole=1;
+        hole<=18;
+        hole++
+      ){
 
+        const result=
+          checkHole(
+            game,
+            hole
+          );
 
-    return result.data;
+        missing+=
+          result.missing.length;
 
-  }
+        conflicts+=
+          result.conflicts.length;
 
+      }
 
-  /*
-    Replace the existing save function.
-  */
-
-  window.saveFriendlyScore =
-    async function(){
-
-      const button =
-        document.getElementById(
-          'friendlySaveAllBtn'
-        );
-
-
-      if(button)
-        button.disabled=true;
-
-
-      try{
-
-        await saveMultiScores();
-
-
-        if(typeof toast==='function')
-          toast('Scores saved');
-
-
-      }catch(error){
-
-        console.error(
-          'Multi-scorer save failed:',
-          error
-        );
-
+      if(
+        missing ||
+        conflicts
+      ){
 
         if(typeof toast==='function'){
 
           toast(
-            error.message ||
-            'Could not save scores'
+            'Round cannot be finalised. '+
+            'Resolve missing scores and discrepancies first.'
           );
 
         }
 
+        renderAgreement();
 
-      }finally{
-
-        if(button)
-          button.disabled=false;
-
-
-        if(
-          typeof updateFriendlySaveButton===
-          'function'
-        ){
-
-          updateFriendlySaveButton();
-
-        }
+        return;
 
       }
 
-    };
 
+      /*
+        Build final agreed scorecard.
+      */
 
-  /*
-    Finalise the round.
-  */
-
-  window.nlgsFinaliseFriendlyRound =
-    async function(){
-
-      if(multiFinalising)
-        return;
-
-
-      const game=round();
-
-
-      if(
-        !game ||
-        !game.dbId
+      for(
+        let playerIndex=0;
+        playerIndex<game.players.length;
+        playerIndex++
       ){
 
-        return;
+        const player=
+          game.players[playerIndex];
 
-      }
-
-
-      multiFinalising=true;
-
-
-      const button =
-        document.getElementById(
-          'friendlyFinaliseBtn'
-        );
-
-
-      if(button){
-
-        button.disabled=true;
-
-        button.textContent=
-          'CHECKING SCORES…';
-
-      }
-
-
-      try{
-
-        await refreshStatus();
-
-
-        let missing=0;
-        let conflicts=0;
-
+        game.scores[player]={};
 
         for(
           let hole=1;
@@ -860,228 +1011,184 @@ frame.addEventListener('load', function(){
           hole++
         ){
 
-          const result =
-            checkHole(
-              game,
+          const rows=
+            submissionsFor(
+              playerIndex,
               hole
             );
 
+          const values=[
+            ...new Set(
+              rows.map(function(row){
 
-          missing +=
-            result.missing.length;
+                return Number(
+                  row.strokes
+                );
 
+              })
+            )
+          ];
 
-          conflicts +=
-            result.conflicts.length;
+          if(values.length!==1){
 
-        }
-
-
-        if(
-          missing ||
-          conflicts
-        ){
-
-          if(typeof toast==='function'){
-
-            toast(
-              'Round cannot be finalised. '+
-              'Resolve missing scores and discrepancies first.'
+            throw new Error(
+              'A final agreed score could not be established.'
             );
 
           }
 
-
-          renderAgreement();
-
-          return;
+          game.scores[player][hole]=
+            values[0];
 
         }
 
-
-        /*
-          Build the final agreed scorecard.
-        */
-
-        for(
-          let playerIndex=0;
-          playerIndex<game.players.length;
-          playerIndex++
-        ){
-
-          const player =
-            game.players[playerIndex];
+      }
 
 
-          game.scores[player]={};
-
-
-          for(
-            let hole=1;
-            hole<=18;
-            hole++
-          ){
-
-            const rows =
-              submissionsFor(
-                playerIndex,
-                hole
-              );
-
-
-            const values =
-              [
-                ...new Set(
-                  rows.map(function(row){
-
-                    return Number(
-                      row.strokes
-                    );
-
-                  })
-                )
-              ];
-
-
-            if(values.length!==1){
-
-              throw new Error(
-                'A final agreed score could not be established.'
-              );
-
-            }
-
-
-            game.scores[player][hole] =
-              values[0];
-
-          }
-
-        }
-
+      if(
+        typeof saveFriendlyState===
+        'function'
+      ){
 
         saveFriendlyState();
 
-
-        /*
-          Preserve the existing NLGS
-          database save routine if present.
-        */
-
-        if(
-          typeof saveFriendlyToDatabase===
-          'function'
-        ){
-
-          try{
-
-            await saveFriendlyToDatabase();
-
-          }catch(error){
-
-            console.warn(
-              'Final database save:',
-              error
-            );
-
-          }
-
-        }
+      }
 
 
-        /*
-          Existing NLGS final scoring.
-        */
+      /*
+        Preserve existing NLGS database save.
+      */
 
-        if(
-          typeof finishFriendlyRound===
-          'function'
-        ){
+      if(
+        typeof saveFriendlyToDatabase===
+        'function'
+      ){
 
-          finishFriendlyRound();
+        try{
 
-        }
+          await saveFriendlyToDatabase();
 
+        }catch(error){
 
-      }catch(error){
-
-        console.error(
-          'Finalisation failed:',
-          error
-        );
-
-
-        if(typeof toast==='function'){
-
-          toast(
-            error.message ||
-            'Could not finalise the round'
+          console.warn(
+            'Final database save:',
+            error
           );
 
         }
 
-      }finally{
-
-        multiFinalising=false;
+      }
 
 
-        if(button){
+      /*
+        Run existing NLGS final scoring.
+      */
 
-          button.disabled=false;
+      if(
+        typeof finishFriendlyRound===
+        'function'
+      ){
 
-          button.textContent=
-            'FINALISE ROUND';
-
-        }
+        finishFriendlyRound();
 
       }
 
-    };
+    }catch(error){
+
+      console.error(
+        'Finalisation failed:',
+        error
+      );
+
+      if(typeof toast==='function'){
+
+        toast(
+          error.message ||
+          'Could not finalise the round'
+        );
+
+      }
+
+    }finally{
+
+      multiFinalising=false;
+
+      if(button){
+
+        button.disabled=false;
+
+        button.textContent=
+          'FINALISE ROUND';
+
+      }
+
+    }
+
+  };
 
 
-  /*
-    Add the agreement panel every time
-    the Friendly scoring screen renders.
-  */
+/* =====================================================
+   HOOK INTO EXISTING RENDER
+   ===================================================== */
 
-  window.renderFriendlyScore =
-    function(){
+const originalRenderFriendlyScore=
+  window.renderFriendlyScore;
+
+window.renderFriendlyScore=
+  function(){
+
+    if(
+      typeof originalRenderFriendlyScore===
+      'function'
+    ){
 
       originalRenderFriendlyScore();
 
+    }
+
+    ensureAgreementPanel();
+
+    renderAgreement();
+
+  };
+
+
+/* =====================================================
+   INITIAL SETUP
+   ===================================================== */
+
+setTimeout(
+  function(){
+
+    try{
+
+      captureLogin();
+
       ensureAgreementPanel();
 
-      renderAgreement();
+      refreshStatus()
+        .catch(function(error){
 
-    };
+          console.warn(
+            'Initial agreement check:',
+            error
+          );
 
+        });
 
-  /*
-    Initial setup.
-  */
+    }catch(error){
 
-  setTimeout(
-    function(){
+      console.warn(error);
 
-      try{
+    }
 
-        ensureAgreementPanel();
-
-        refreshStatus()
-          .catch(function(){});
-
-      }catch(error){
-
-        console.warn(error);
-
-      }
-
-    },
-    700
-  );
+  },
+  1000
+);
 
 
 })();
+
 `;
 
       win.eval(script.textContent);
@@ -1092,11 +1199,13 @@ frame.addEventListener('load', function(){
 
   }catch(error){
 
-    loading.innerHTML =
+    loading.innerHTML=
       '<div>'+
       '<b>NLGS</b>'+
       'The test could not start.<br><br>'+
-      String(error.message || error)+
+      String(
+        error.message || error
+      )+
       '</div>';
 
     console.error(error);
