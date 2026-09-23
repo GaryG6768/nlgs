@@ -4,64 +4,91 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>NLGS Friendly Game Test</title>
+
 <style>
 html,body{
   margin:0;
   padding:0;
-  min-height:100%;
-  background:#064b35;
+  width:100%;
+  height:100%;
+  overflow:hidden;
 }
-#loader{
-  min-height:100vh;
+
+#appFrame{
+  width:100%;
+  height:100%;
+  border:0;
+  display:block;
+}
+
+#loading{
+  position:fixed;
+  inset:0;
+  background:#064b35;
+  color:white;
   display:flex;
   align-items:center;
   justify-content:center;
-  color:#fff;
-  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
   text-align:center;
+  font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+  z-index:9999;
 }
-#loader div{
-  padding:25px;
+
+#loading div{
+  font-size:16px;
+}
+
+#loading b{
+  display:block;
+  font-size:30px;
+  margin-bottom:8px;
 }
 </style>
 </head>
 
 <body>
 
-<div id="loader">
+<div id="loading">
   <div>
-    <div style="font-size:30px;font-weight:800">NLGS</div>
-    <div style="margin-top:8px">Loading Friendly Game test…</div>
+    <b>NLGS</b>
+    Loading Friendly Game test…
   </div>
 </div>
 
-<script>
-(async function(){
+<iframe
+  id="appFrame"
+  src="./index.html?friendly-test=1"
+  title="NLGS Friendly Game Test">
+</iframe>
 
-  try {
+<script>
+
+const frame = document.getElementById('appFrame');
+const loading = document.getElementById('loading');
+
+frame.addEventListener('load', function(){
+
+  try{
+
+    const win = frame.contentWindow;
+    const doc = frame.contentDocument;
 
     /*
-      Load the REAL current NLGS application.
-      Nothing in index.html is changed.
+      Wait for the existing NLGS application
+      to finish loading.
     */
 
-    const response = await fetch('./index.html?friendlytest=' + Date.now());
+    setTimeout(function(){
 
-    if(!response.ok){
-      throw new Error('Could not load the current NLGS app.');
-    }
+      const script = doc.createElement('script');
 
-    let html = await response.text();
+      script.textContent = `
 
-    /*
-      Friendly Game multi-scorer system
-    */
-
-    const patch = `
-<script>
 (function(){
 
-  console.log('NLGS Friendly Multi-Scorer Test loaded');
+  console.log(
+    'NLGS FRIENDLY MULTI-SCORER TEST ACTIVE'
+  );
 
   const originalRenderFriendlyScore =
     window.renderFriendlyScore;
@@ -69,148 +96,224 @@ html,body{
   let multiStatus = null;
   let multiFinalising = false;
 
-  function getCreds(){
+
+  function credentials(){
+
     return window.nlgsLoginCredentials || {};
+
   }
 
-  function getRound(){
+
+  function round(){
+
     return typeof getFriendlyRound === 'function'
       ? getFriendlyRound()
       : null;
+
   }
 
+
   /*
-    Create the SCORE AGREEMENT panel.
+    --------------------------------------------------
+    SCORE AGREEMENT PANEL
+    --------------------------------------------------
   */
 
   function ensureAgreementPanel(){
 
-    const scoreSection =
+    const section =
       document.getElementById('friendlyScore');
 
-    if(!scoreSection) return;
+    if(!section) return;
 
-    if(document.getElementById('friendlyAgreementCard'))
+    if(
+      document.getElementById(
+        'friendlyAgreementCard'
+      )
+    ){
       return;
+    }
 
-    const save =
-      document.getElementById('friendlySaveAllBtn');
+    const saveButton =
+      document.getElementById(
+        'friendlySaveAllBtn'
+      );
 
-    if(!save) return;
+    if(!saveButton) return;
+
 
     const card =
       document.createElement('div');
 
     card.className='card';
+
     card.id='friendlyAgreementCard';
 
-    card.innerHTML=
+
+    card.innerHTML =
       '<div class="row">'+
-        '<h3 style="margin:0">SCORE AGREEMENT</h3>'+
-        '<span class="pill" id="friendlyAgreementPill">Checking…</span>'+
+        '<h3 style="margin:0">'+
+          'SCORE AGREEMENT'+
+        '</h3>'+
+        '<span class="pill" '+
+          'id="friendlyAgreementPill">'+
+          'Checking…'+
+        '</span>'+
       '</div>'+
-      '<div id="friendlyAgreementBody" class="small" '+
-        'style="margin-top:8px"></div>'+
-      '<button id="friendlyFinaliseBtn" '+
+      '<div id="friendlyAgreementBody" '+
+        'class="small" '+
+        'style="margin-top:8px">'+
+      '</div>'+
+      '<button '+
+        'id="friendlyFinaliseBtn" '+
         'class="btn" '+
         'style="display:none;margin-top:12px" '+
         'onclick="nlgsFinaliseFriendlyRound()">'+
         'FINALISE ROUND'+
       '</button>';
 
+
     const parent =
-      save.parentNode.parentNode;
+      saveButton.parentNode.parentNode;
+
 
     parent.insertBefore(
       card,
       parent.children[1] || null
     );
+
   }
 
+
   /*
-    Find submissions for one player/hole.
+    Get submissions for a player and hole.
   */
 
-  function submissionsFor(playerIndex,hole){
+  function submissionsFor(
+    playerIndex,
+    hole
+  ){
 
-    return (multiStatus &&
-            multiStatus.submissions
-              ? multiStatus.submissions
-              : [])
-      .filter(function(row){
+    return (
+      multiStatus &&
+      Array.isArray(
+        multiStatus.submissions
+      )
+        ? multiStatus.submissions
+        : []
+    ).filter(function(row){
 
-        return Number(
-          row.player_index ??
-          row.competition_player_id
-        ) === Number(playerIndex)
+      return Number(
+        row.player_index ??
+        row.competition_player_id
+      ) === Number(playerIndex)
 
-        &&
+      &&
+      
+      Number(row.hole_no)
+        === Number(hole);
 
-        Number(row.hole_no) === Number(hole);
+    });
 
-      });
   }
 
+
   /*
-    Determine whether one hole is agreed.
+    Check one hole.
   */
 
-  function holeAgreement(round,hole){
+  function checkHole(
+    game,
+    hole
+  ){
 
     const missing=[];
     const conflicts=[];
 
-    round.players.forEach(function(player,index){
 
-      const rows =
-        submissionsFor(index,hole);
+    game.players.forEach(
+      function(player,index){
 
-      if(!rows.length){
+        const rows =
+          submissionsFor(
+            index,
+            hole
+          );
 
-        missing.push(player);
 
-        return;
+        if(!rows.length){
+
+          missing.push(player);
+
+          return;
+
+        }
+
+
+        const values =
+          [
+            ...new Set(
+              rows.map(function(row){
+
+                return Number(
+                  row.strokes
+                );
+
+              })
+            )
+          ];
+
+
+        if(values.length>1){
+
+          conflicts.push({
+
+            player:player,
+            values:values
+
+          });
+
+        }
+
       }
+    );
 
-      const values =
-        [...new Set(
-          rows.map(function(row){
-            return Number(row.strokes);
-          })
-        )];
-
-      if(values.length>1){
-
-        conflicts.push({
-          player:player,
-          values:values
-        });
-
-      }
-
-    });
 
     return {
+
       missing:missing,
+
       conflicts:conflicts,
+
       agreed:
         missing.length===0 &&
         conflicts.length===0
+
     };
+
   }
 
+
   /*
-    Display the agreement status.
+    Display agreement information.
   */
 
   function renderAgreement(){
 
     ensureAgreementPanel();
 
-    const round=getRound();
 
-    if(!round || !round.dbId)
+    const game=round();
+
+    if(
+      !game ||
+      !game.dbId
+    ){
+
       return;
+
+    }
+
 
     const pill =
       document.getElementById(
@@ -222,87 +325,123 @@ html,body{
         'friendlyAgreementBody'
       );
 
-    const finish =
+    const finalise =
       document.getElementById(
         'friendlyFinaliseBtn'
       );
 
+
     if(!pill || !body)
       return;
+
 
     let agreed=0;
     let missing=0;
     let conflicts=0;
 
-    for(let hole=1;hole<=18;hole++){
+
+    for(
+      let hole=1;
+      hole<=18;
+      hole++
+    ){
 
       const result =
-        holeAgreement(round,hole);
+        checkHole(
+          game,
+          hole
+        );
+
 
       if(result.agreed)
         agreed++;
 
-      missing += result.missing.length;
-      conflicts += result.conflicts.length;
+
+      missing +=
+        result.missing.length;
+
+
+      conflicts +=
+        result.conflicts.length;
+
     }
 
+
     const current =
-      holeAgreement(
-        round,
-        round.currentHole
+      checkHole(
+        game,
+        game.currentHole
       );
 
-    if(current.conflicts.length){
 
-      pill.textContent='⚠️ DISCREPANCY';
+    if(
+      current.conflicts.length
+    ){
 
-      body.innerHTML=
+      pill.textContent =
+        '⚠️ DISCREPANCY';
+
+
+      body.innerHTML =
         '<b>Hole '+
-        round.currentHole+
+        game.currentHole+
         ' has a score discrepancy.</b><br>'+
-        current.conflicts.map(function(item){
+        current.conflicts.map(
+          function(item){
 
-          return item.player+
-            ': '+
-            item.values.join(' / ');
+            return (
+              item.player+
+              ': '+
+              item.values.join(' / ')
+            );
 
-        }).join('<br>')+
+          }
+        ).join('<br>')+
         '<br><br>'+
         'Both scores are retained until the scorers agree.';
 
-    }else if(current.missing.length){
 
-      pill.textContent='AWAITING SCORES';
+    }else if(
+      current.missing.length
+    ){
 
-      body.innerHTML=
+      pill.textContent =
+        'AWAITING SCORES';
+
+
+      body.innerHTML =
         'Hole '+
-        round.currentHole+
+        game.currentHole+
         ': waiting for '+
         current.missing.join(', ')+
         '.';
 
+
     }else{
 
-      pill.textContent='✓ AGREED';
+      pill.textContent =
+        '✓ AGREED';
 
-      body.innerHTML=
+
+      body.innerHTML =
         'Hole '+
-        round.currentHole+
+        game.currentHole+
         ' is agreed.';
 
     }
 
-    const complete =
+
+    if(
       agreed===18 &&
       missing===0 &&
-      conflicts===0;
-
-    if(complete){
+      conflicts===0
+    ){
 
       body.innerHTML +=
         '<br><br>'+
         '<b>18 / 18 holes agreed ✓</b><br>'+
         'All agreed scores are ready for the final leaderboard.';
+
 
     }else{
 
@@ -318,93 +457,114 @@ html,body{
 
     }
 
-    if(finish){
 
-      finish.style.display =
-        complete &&
-        Number(round.currentHole)>=18
+    if(finalise){
+
+      finalise.style.display =
+        agreed===18 &&
+        missing===0 &&
+        conflicts===0 &&
+        Number(game.currentHole)>=18
           ? 'block'
           : 'none';
 
     }
+
   }
 
+
   /*
-    Read all stored submissions.
+    Read submissions from Supabase.
   */
 
-  async function refreshMultiStatus(){
+  async function refreshStatus(){
 
-    const round=getRound();
-    const credentials=getCreds();
+    const game=round();
+    const login=credentials();
+
 
     if(
-      !round ||
-      !round.dbId ||
-      !credentials.name ||
-      !credentials.pin
+      !game ||
+      !game.dbId ||
+      !login.name ||
+      !login.pin
     ){
 
       return null;
+
     }
+
 
     const result =
       await sb.rpc(
         'get_friendly_submission_status',
         {
+
           p_friendly_game_id:
-            round.dbId,
+            game.dbId,
 
           p_member_name:
-            credentials.name,
+            login.name,
 
           p_member_pin:
-            credentials.pin
+            login.pin
+
         }
       );
+
 
     if(result.error)
       throw result.error;
 
-    if(result.data &&
-       result.data.error){
+
+    if(
+      result.data &&
+      result.data.error
+    ){
 
       throw new Error(
         result.data.error
       );
+
     }
 
-    multiStatus=result.data;
+
+    multiStatus =
+      result.data;
+
 
     renderAgreement();
 
+
     return result.data;
+
   }
 
-  /*
-    Save the current hole.
 
-    IMPORTANT:
-    The screen moves to the next hole immediately
-    after the database save succeeds.
+  /*
+    Save the current hole using the
+    new multi-scorer database function.
   */
 
   async function saveMultiScores(){
 
-    const round=getRound();
-    const credentials=getCreds();
+    const game=round();
+    const login=credentials();
+
 
     if(
-      !round ||
-      !round.dbId ||
-      !credentials.name ||
-      !credentials.pin
+      !game ||
+      !game.dbId ||
+      !login.name ||
+      !login.pin
     ){
 
       throw new Error(
         'Please log in before scoring.'
       );
+
     }
+
 
     const inputs =
       [
@@ -413,111 +573,145 @@ html,body{
         )
       ];
 
+
     if(!inputs.length){
 
       throw new Error(
         'Enter a score for every player.'
       );
+
     }
 
+
     const scores =
-      inputs.map(function(input,index){
+      inputs.map(
+        function(input,index){
 
-        return {
-          player_index:index,
-          strokes:Number(input.value)
-        };
+          return {
 
-      });
+            player_index:index,
+
+            strokes:Number(
+              input.value
+            )
+
+          };
+
+        }
+      );
+
 
     if(
-      scores.some(function(score){
+      scores.some(
+        function(score){
 
-        return !Number.isInteger(
-          score.strokes
-        ) ||
-        score.strokes<1 ||
-        score.strokes>15;
+          return (
+            !Number.isInteger(
+              score.strokes
+            ) ||
+            score.strokes<1 ||
+            score.strokes>15
+          );
 
-      })
+        }
+      )
     ){
 
       throw new Error(
         'Enter a valid score for every player.'
       );
+
     }
 
-    const savedHole =
-      Number(round.currentHole);
+
+    const hole =
+      Number(game.currentHole);
+
 
     const result =
       await sb.rpc(
         'save_friendly_hole_submission',
         {
+
           p_friendly_game_id:
-            round.dbId,
+            game.dbId,
 
           p_member_name:
-            credentials.name,
+            login.name,
 
           p_member_pin:
-            credentials.pin,
+            login.pin,
 
           p_hole_no:
-            savedHole,
+            hole,
 
           p_scores:
             scores
+
         }
       );
+
 
     if(result.error)
       throw result.error;
 
-    if(result.data &&
-       result.data.error){
+
+    if(
+      result.data &&
+      result.data.error
+    ){
 
       throw new Error(
         result.data.error
       );
+
     }
 
+
     /*
-      Keep the existing local round scores updated.
+      Keep the existing local scorecard
+      updated as well.
     */
 
-    round.players.forEach(
+    game.players.forEach(
       function(player,index){
 
-        if(!round.scores[player])
-          round.scores[player]={};
+        if(!game.scores[player])
+          game.scores[player]={};
 
-        round.scores[player][savedHole] =
+
+        game.scores[player][hole] =
           scores[index].strokes;
 
       }
     );
 
+
     saveFriendlyState();
 
+
     /*
-      Move immediately to the next hole.
+      MOVE TO NEXT HOLE IMMEDIATELY.
     */
 
-    if(savedHole<18){
+    if(hole<18){
 
-      round.currentHole =
-        savedHole+1;
+      game.currentHole =
+        hole+1;
+
 
       saveFriendlyState();
 
+
       originalRenderFriendlyScore();
 
+
       /*
-        Refresh agreement status in background.
+        Refresh agreement status without
+        holding up the screen.
       */
 
-      refreshMultiStatus()
+      refreshStatus()
         .catch(function(error){
 
           console.warn(
@@ -527,31 +721,25 @@ html,body{
 
         });
 
-      window.scrollTo({
-        top:
-          Math.max(
-            0,
-            document.getElementById(
-              'friendlyScore'
-            )?.offsetTop || 0
-          ),
-        behavior:'auto'
-      });
 
     }else{
 
       originalRenderFriendlyScore();
 
-      await refreshMultiStatus();
+      await refreshStatus();
 
-      nlgsShowFriendlyFinishCheck();
+      renderAgreement();
+
     }
 
+
     return result.data;
+
   }
 
+
   /*
-    Replace the existing Friendly save button action.
+    Replace the existing save function.
   */
 
   window.saveFriendlyScore =
@@ -562,33 +750,43 @@ html,body{
           'friendlySaveAllBtn'
         );
 
+
       if(button)
         button.disabled=true;
+
 
       try{
 
         await saveMultiScores();
 
+
         if(typeof toast==='function')
           toast('Scores saved');
+
 
       }catch(error){
 
         console.error(
-          'Multi-scorer save failed',
+          'Multi-scorer save failed:',
           error
         );
 
-        if(typeof toast==='function')
+
+        if(typeof toast==='function'){
+
           toast(
             error.message ||
             'Could not save scores'
           );
 
+        }
+
+
       }finally{
 
         if(button)
           button.disabled=false;
+
 
         if(
           typeof updateFriendlySaveButton===
@@ -600,33 +798,12 @@ html,body{
         }
 
       }
+
     };
 
-  function nlgsShowFriendlyFinishCheck(){
-
-    renderAgreement();
-
-    const card =
-      document.getElementById(
-        'friendlyAgreementCard'
-      );
-
-    if(!card)
-      return;
-
-    card.scrollIntoView({
-      behavior:'smooth',
-      block:'center'
-    });
-  }
 
   /*
-    FINALISE ROUND
-
-    This rebuilds the existing r.scores object
-    from the agreed database submissions.
-
-    Existing NLGS calculations are then used.
+    Finalise the round.
   */
 
   window.nlgsFinaliseFriendlyRound =
@@ -635,17 +812,28 @@ html,body{
       if(multiFinalising)
         return;
 
-      const round=getRound();
 
-      if(!round || !round.dbId)
+      const game=round();
+
+
+      if(
+        !game ||
+        !game.dbId
+      ){
+
         return;
 
+      }
+
+
       multiFinalising=true;
+
 
       const button =
         document.getElementById(
           'friendlyFinaliseBtn'
         );
+
 
       if(button){
 
@@ -656,45 +844,60 @@ html,body{
 
       }
 
+
       try{
 
-        await refreshMultiStatus();
+        await refreshStatus();
+
 
         let missing=0;
         let conflicts=0;
 
-        for(let hole=1;hole<=18;hole++){
+
+        for(
+          let hole=1;
+          hole<=18;
+          hole++
+        ){
 
           const result =
-            holeAgreement(
-              round,
+            checkHole(
+              game,
               hole
             );
 
+
           missing +=
             result.missing.length;
+
 
           conflicts +=
             result.conflicts.length;
 
         }
 
-        if(missing || conflicts){
+
+        if(
+          missing ||
+          conflicts
+        ){
 
           if(typeof toast==='function'){
 
             toast(
-              'Round cannot be finalised: '+
-              'resolve all score discrepancies '+
-              'and missing scores first.'
+              'Round cannot be finalised. '+
+              'Resolve missing scores and discrepancies first.'
             );
 
           }
 
+
           renderAgreement();
 
           return;
+
         }
+
 
         /*
           Build the final agreed scorecard.
@@ -702,16 +905,22 @@ html,body{
 
         for(
           let playerIndex=0;
-          playerIndex<round.players.length;
+          playerIndex<game.players.length;
           playerIndex++
         ){
 
           const player =
-            round.players[playerIndex];
+            game.players[playerIndex];
 
-          round.scores[player]={};
 
-          for(let hole=1;hole<=18;hole++){
+          game.scores[player]={};
+
+
+          for(
+            let hole=1;
+            hole<=18;
+            hole++
+          ){
 
             const rows =
               submissionsFor(
@@ -719,35 +928,44 @@ html,body{
                 hole
               );
 
+
             const values =
               [
                 ...new Set(
                   rows.map(function(row){
+
                     return Number(
                       row.strokes
                     );
+
                   })
                 )
               ];
 
+
             if(values.length!==1){
 
               throw new Error(
-                'A final score agreement '+
-                'could not be established.'
+                'A final agreed score could not be established.'
               );
+
             }
 
-            round.scores[player][hole]=
+
+            game.scores[player][hole] =
               values[0];
+
           }
+
         }
+
 
         saveFriendlyState();
 
+
         /*
-          Use the existing database save routine
-          if the current app provides it.
+          Preserve the existing NLGS
+          database save routine if present.
         */
 
         if(
@@ -762,7 +980,7 @@ html,body{
           }catch(error){
 
             console.warn(
-              'Final DB state save:',
+              'Final database save:',
               error
             );
 
@@ -770,10 +988,9 @@ html,body{
 
         }
 
+
         /*
-          IMPORTANT:
-          Existing NLGS final calculations are
-          still used here.
+          Existing NLGS final scoring.
         */
 
         if(
@@ -783,20 +1000,16 @@ html,body{
 
           finishFriendlyRound();
 
-        }else if(
-          typeof show==='function'
-        ){
-
-          show('friendlySummary');
-
         }
+
 
       }catch(error){
 
         console.error(
-          'Friendly finalisation failed',
+          'Finalisation failed:',
           error
         );
+
 
         if(typeof toast==='function'){
 
@@ -811,6 +1024,7 @@ html,body{
 
         multiFinalising=false;
 
+
         if(button){
 
           button.disabled=false;
@@ -821,11 +1035,13 @@ html,body{
         }
 
       }
+
     };
 
+
   /*
-    Add agreement panel whenever the Friendly
-    scoring screen is rendered.
+    Add the agreement panel every time
+    the Friendly scoring screen renders.
   */
 
   window.renderFriendlyScore =
@@ -839,59 +1055,56 @@ html,body{
 
     };
 
+
   /*
-    Initial check.
+    Initial setup.
   */
 
-  setTimeout(function(){
+  setTimeout(
+    function(){
 
-    try{
+      try{
 
-      ensureAgreementPanel();
+        ensureAgreementPanel();
 
-      refreshMultiStatus()
-        .catch(function(){});
+        refreshStatus()
+          .catch(function(){});
 
-    }catch(error){}
+      }catch(error){
 
-  },500);
+        console.warn(error);
+
+      }
+
+    },
+    700
+  );
+
 
 })();
-<\/script>
 `;
 
-    /*
-      Inject the test code into the real application.
-    */
+      win.eval(script.textContent);
 
-    html = html.replace(
-      '</body>',
-      patch + '</body>'
-    );
+      loading.style.display='none';
 
-    /*
-      Replace this test page with the modified copy.
-    */
+    },1200);
 
-    document.open();
-    document.write(html);
-    document.close();
+  }catch(error){
 
-  } catch(error){
-
-    document.body.innerHTML =
-      '<div style="font-family:system-ui;color:white;padding:30px;text-align:center">'+
-      '<h2>NLGS Test could not load</h2>'+
-      '<p>'+
+    loading.innerHTML =
+      '<div>'+
+      '<b>NLGS</b>'+
+      'The test could not start.<br><br>'+
       String(error.message || error)+
-      '</p>'+
-      '<p>Please check that index.html is in the same GitHub folder.</p>'+
       '</div>';
 
     console.error(error);
+
   }
 
-})();
+});
+
 </script>
 
 </body>
