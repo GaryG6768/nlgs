@@ -3,7 +3,6 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-
 <title>NLGS Friendly Game Test</title>
 
 <style>
@@ -82,14 +81,16 @@ frame.addEventListener('load',function(){
 
 (function(){
 
-console.log('NLGS FRIENDLY MULTI-SCORER TEST ACTIVE');
+console.log(
+  'NLGS FRIENDLY MULTI-SCORER TEST ACTIVE'
+);
 
 
-/* =====================================================
-   LOGIN / CREDENTIALS
-   ===================================================== */
+/* =========================================================
+   LOGIN
+   ========================================================= */
 
-function credentials(){
+function getCredentials(){
 
   if(
     window.nlgsLoginCredentials &&
@@ -108,18 +109,19 @@ function credentials(){
         sessionStorage.getItem('nlgsMember') || 'null'
       );
 
-    const pinInput=
-      document.getElementById('loginPin');
-
     const nameInput=
       document.getElementById('loginName');
 
-    const pin=
-      pinInput ? pinInput.value.trim() : '';
+    const pinInput=
+      document.getElementById('loginPin');
 
     const name=
       member?.full_name ||
-      nameInput?.value.trim() ||
+      nameInput?.value?.trim() ||
+      '';
+
+    const pin=
+      pinInput?.value?.trim() ||
       '';
 
     if(name && pin){
@@ -133,11 +135,11 @@ function credentials(){
 
     }
 
-  }catch(error){
+  }catch(e){
 
     console.warn(
-      'Could not restore login credentials:',
-      error
+      'Login restore failed',
+      e
     );
 
   }
@@ -148,68 +150,47 @@ function credentials(){
 
 
 /*
-  Capture the login details when the user
-  logs in through the normal NLGS login screen.
+ Capture login button.
 */
-
-function captureLogin(){
-
-  try{
-
-    const nameInput=
-      document.getElementById('loginName');
-
-    const pinInput=
-      document.getElementById('loginPin');
-
-    if(nameInput && pinInput){
-
-      const name=
-        nameInput.value.trim();
-
-      const pin=
-        pinInput.value.trim();
-
-      if(name && pin){
-
-        window.nlgsLoginCredentials={
-          name:name,
-          pin:pin
-        };
-
-        console.log(
-          'NLGS test login captured'
-        );
-
-      }
-
-    }
-
-  }catch(error){
-
-    console.warn(error);
-
-  }
-
-}
-
 
 document.addEventListener(
   'click',
-  function(event){
+  function(e){
 
     if(
-      event.target &&
+      e.target &&
       (
-        event.target.id==='loginBtn' ||
-        event.target.closest('#loginBtn')
+        e.target.id==='loginBtn' ||
+        e.target.closest('#loginBtn')
       )
     ){
 
-      setTimeout(
-        captureLogin,
-        500
-      );
+      setTimeout(function(){
+
+        const name=
+          document.getElementById(
+            'loginName'
+          )?.value?.trim() || '';
+
+        const pin=
+          document.getElementById(
+            'loginPin'
+          )?.value?.trim() || '';
+
+        if(name && pin){
+
+          window.nlgsLoginCredentials={
+            name:name,
+            pin:pin
+          };
+
+          console.log(
+            'NLGS test login captured'
+          );
+
+        }
+
+      },700);
 
     }
 
@@ -218,11 +199,11 @@ document.addEventListener(
 );
 
 
-/* =====================================================
-   ROUND
-   ===================================================== */
+/* =========================================================
+   ROUND / STATE
+   ========================================================= */
 
-function round(){
+function getRound(){
 
   return typeof getFriendlyRound==='function'
     ? getFriendlyRound()
@@ -230,21 +211,370 @@ function round(){
 
 }
 
-
 let multiStatus=null;
-let multiFinalising=false;
+let finalising=false;
 
 
-/* =====================================================
+/* =========================================================
+   FIND CURRENT MEMBER'S OWN SUBMISSION
+   ========================================================= */
+
+function mySubmission(
+  playerIndex,
+  hole
+){
+
+  if(
+    !multiStatus ||
+    !Array.isArray(
+      multiStatus.submissions
+    )
+  ){
+
+    return null;
+
+  }
+
+  const login=getCredentials();
+
+  const scorerId=
+    multiStatus.scorer_member_id ||
+    multiStatus.scorer_id ||
+    multiStatus.member_id ||
+    null;
+
+  const rows=
+    multiStatus.submissions.filter(
+      function(row){
+
+        const playerOK=
+          Number(
+            row.player_index ??
+            row.competition_player_id
+          )===
+          Number(playerIndex);
+
+        const holeOK=
+          Number(row.hole_no)===
+          Number(hole);
+
+        if(!playerOK || !holeOK)
+          return false;
+
+        /*
+          Prefer the actual scorer/member ID.
+        */
+
+        if(scorerId){
+
+          return String(
+            row.scorer_member_id ||
+            row.scorer_id ||
+            ''
+          )===
+          String(scorerId);
+
+        }
+
+        /*
+          Fallback to scorer name if supplied.
+        */
+
+        const rowName=
+          row.scorer_name ||
+          row.member_name ||
+          row.full_name ||
+          '';
+
+        if(
+          rowName &&
+          login.name
+        ){
+
+          return(
+            rowName.toLowerCase()===
+            login.name.toLowerCase()
+          );
+
+        }
+
+        return false;
+
+      }
+    );
+
+  return rows.length
+    ? rows[0]
+    : null;
+
+}
+
+
+/* =========================================================
+   ALL SUBMISSIONS FOR PLAYER / HOLE
+   ========================================================= */
+
+function allSubmissions(
+  playerIndex,
+  hole
+){
+
+  if(
+    !multiStatus ||
+    !Array.isArray(
+      multiStatus.submissions
+    )
+  ){
+
+    return [];
+
+  }
+
+  return multiStatus.submissions.filter(
+    function(row){
+
+      return(
+        Number(
+          row.player_index ??
+          row.competition_player_id
+        )===
+        Number(playerIndex)
+        &&
+        Number(row.hole_no)===
+        Number(hole)
+      );
+
+    }
+  );
+
+}
+
+
+/* =========================================================
+   EXPECTED SCORE
+   ========================================================= */
+
+function expectedScore(
+  game,
+  playerIndex,
+  hole
+){
+
+  try{
+
+    const hd=
+      typeof friendlyHoleData==='function'
+        ? friendlyHoleData(
+            game,
+            hole
+          )
+        : null;
+
+    const pd=
+      (game.playerData || [])
+        [playerIndex] || {};
+
+    if(!hd)
+      return '';
+
+    const shots=
+      typeof friendlyShotsOnHole==='function'
+        ? friendlyShotsOnHole(
+            pd.playingHandicap,
+            hd.stroke_index
+          )
+        : 0;
+
+    return Math.max(
+      1,
+      Math.min(
+        15,
+        Number(hd.par || 0)+
+        Number(shots || 0)
+      )
+    );
+
+  }catch(e){
+
+    return '';
+
+  }
+
+}
+
+
+/* =========================================================
+   MAKE THE DISPLAY BELONG TO THE CURRENT SCORER
+   ========================================================= */
+
+function syncScorerDisplay(){
+
+  const game=getRound();
+
+  if(
+    !game ||
+    !game.dbId
+  ){
+
+    return;
+
+  }
+
+  const hole=
+    Number(game.currentHole || 1);
+
+  const cards=[
+    ...document.querySelectorAll(
+      '#friendlyHolePlayers .card, #friendlyHolePlayers > div'
+    )
+  ];
+
+  cards.forEach(function(card){
+
+    const input=
+      card.querySelector(
+        '.friendly-hole-score'
+      );
+
+    if(!input)
+      return;
+
+    const playerIndex=
+      Number(
+        input.dataset.player
+      );
+
+    const own=
+      mySubmission(
+        playerIndex,
+        hole
+      );
+
+    const status=
+      card.querySelector(
+        '.cs-score-status'
+      );
+
+    if(own){
+
+      /*
+        THIS MEMBER has submitted.
+      */
+
+      input.value=
+        Number(own.strokes);
+
+      if(status){
+
+        status.textContent=
+          'Saved';
+
+      }
+
+      card.classList.add(
+        'saved'
+      );
+
+      const smalls=
+        card.querySelectorAll(
+          '.small'
+        );
+
+      if(smalls.length){
+
+        const last=
+          smalls[smalls.length-1];
+
+        if(
+          last &&
+          last.textContent
+            .toLowerCase()
+            .includes('expected')
+        ){
+
+          last.textContent=
+            'Saved score';
+
+        }
+
+      }
+
+    }else{
+
+      /*
+        THIS MEMBER has NOT submitted.
+        Ignore any score stored in the old
+        shared scorecard.
+      */
+
+      const expected=
+        expectedScore(
+          game,
+          playerIndex,
+          hole
+        );
+
+      if(expected!==''){
+
+        input.value=
+          expected;
+
+      }else{
+
+        input.value='';
+
+      }
+
+      if(status){
+
+        status.textContent=
+          'Not entered';
+
+      }
+
+      card.classList.remove(
+        'saved'
+      );
+
+      const smalls=
+        card.querySelectorAll(
+          '.small'
+        );
+
+      if(smalls.length){
+
+        const last=
+          smalls[smalls.length-1];
+
+        if(last){
+
+          last.textContent=
+            'Expected handicap score';
+
+        }
+
+      }
+
+    }
+
+  });
+
+}
+
+
+/* =========================================================
    AGREEMENT PANEL
-   ===================================================== */
+   ========================================================= */
 
 function ensureAgreementPanel(){
 
   const section=
-    document.getElementById('friendlyScore');
+    document.getElementById(
+      'friendlyScore'
+    );
 
-  if(!section)return;
+  if(!section)
+    return;
 
   if(
     document.getElementById(
@@ -261,14 +591,16 @@ function ensureAgreementPanel(){
       'friendlySaveAllBtn'
     );
 
-  if(!saveButton)return;
+  if(!saveButton)
+    return;
 
   const card=
     document.createElement('div');
 
   card.className='card';
 
-  card.id='friendlyAgreementCard';
+  card.id=
+    'friendlyAgreementCard';
 
   card.innerHTML=
     '<div class="row">'+
@@ -303,43 +635,9 @@ function ensureAgreementPanel(){
 }
 
 
-/* =====================================================
-   SUBMISSIONS
-   ===================================================== */
-
-function submissionsFor(
-  playerIndex,
-  hole
-){
-
-  return(
-    multiStatus &&
-    Array.isArray(
-      multiStatus.submissions
-    )
-      ? multiStatus.submissions
-      : []
-  ).filter(function(row){
-
-    return(
-      Number(
-        row.player_index ??
-        row.competition_player_id
-      )===
-      Number(playerIndex)
-      &&
-      Number(row.hole_no)===
-      Number(hole)
-    );
-
-  });
-
-}
-
-
-/* =====================================================
-   CHECK HOLE
-   ===================================================== */
+/* =========================================================
+   CHECK A HOLE
+   ========================================================= */
 
 function checkHole(
   game,
@@ -353,14 +651,16 @@ function checkHole(
     function(player,index){
 
       const rows=
-        submissionsFor(
+        allSubmissions(
           index,
           hole
         );
 
       if(!rows.length){
 
-        missing.push(player);
+        missing.push(
+          player
+        );
 
         return;
 
@@ -383,6 +683,7 @@ function checkHole(
         conflicts.push({
 
           player:player,
+
           values:values
 
         });
@@ -407,15 +708,15 @@ function checkHole(
 }
 
 
-/* =====================================================
+/* =========================================================
    RENDER AGREEMENT
-   ===================================================== */
+   ========================================================= */
 
 function renderAgreement(){
 
   ensureAgreementPanel();
 
-  const game=round();
+  const game=getRound();
 
   if(
     !game ||
@@ -441,7 +742,8 @@ function renderAgreement(){
       'friendlyFinaliseBtn'
     );
 
-  if(!pill || !body)return;
+  if(!pill || !body)
+    return;
 
   let agreed=0;
   let missing=0;
@@ -567,14 +869,14 @@ function renderAgreement(){
 }
 
 
-/* =====================================================
-   REFRESH DATABASE STATUS
-   ===================================================== */
+/* =========================================================
+   GET DATABASE STATUS
+   ========================================================= */
 
 async function refreshStatus(){
 
-  const game=round();
-  const login=credentials();
+  const game=getRound();
+  const login=getCredentials();
 
   if(
     !game ||
@@ -582,10 +884,6 @@ async function refreshStatus(){
     !login.name ||
     !login.pin
   ){
-
-    console.log(
-      'Friendly test credentials not available yet'
-    );
 
     return null;
 
@@ -627,19 +925,21 @@ async function refreshStatus(){
 
   renderAgreement();
 
+  syncScorerDisplay();
+
   return result.data;
 
 }
 
 
-/* =====================================================
+/* =========================================================
    SAVE CURRENT HOLE
-   ===================================================== */
+   ========================================================= */
 
 async function saveMultiScores(){
 
-  const game=round();
-  const login=credentials();
+  const game=getRound();
+  const login=getCredentials();
 
   if(
     !game ||
@@ -758,25 +1058,12 @@ async function saveMultiScores(){
 
 
   /*
-    Keep the existing local scorecard
-    updated too.
+    Do NOT rely on the old shared scorecard
+    for this member's Saved status.
   */
 
-  game.players.forEach(
-    function(player,index){
-
-      if(!game.scores[player])
-        game.scores[player]={};
-
-      game.scores[player][hole]=
-        scores[index].strokes;
-
-    }
-  );
-
   if(
-    typeof saveFriendlyState===
-    'function'
+    typeof saveFriendlyState==='function'
   ){
 
     saveFriendlyState();
@@ -785,7 +1072,14 @@ async function saveMultiScores(){
 
 
   /*
-    Automatically move to next hole.
+    Get the fresh database submissions.
+  */
+
+  await refreshStatus();
+
+
+  /*
+    Automatically advance to next hole.
   */
 
   if(hole<18){
@@ -794,8 +1088,7 @@ async function saveMultiScores(){
       hole+1;
 
     if(
-      typeof saveFriendlyState===
-      'function'
+      typeof saveFriendlyState==='function'
     ){
 
       saveFriendlyState();
@@ -803,36 +1096,39 @@ async function saveMultiScores(){
     }
 
     if(
-      typeof originalRenderFriendlyScore===
-      'function'
+      typeof originalRenderFriendlyScore==='function'
     ){
 
       originalRenderFriendlyScore();
 
     }
 
-    refreshStatus()
-      .catch(function(error){
+    await new Promise(
+      function(resolve){
 
-        console.warn(
-          'Agreement refresh:',
-          error
+        setTimeout(
+          resolve,
+          50
         );
 
-      });
+      }
+    );
+
+    syncScorerDisplay();
+
+    renderAgreement();
 
   }else{
 
     if(
-      typeof originalRenderFriendlyScore===
-      'function'
+      typeof originalRenderFriendlyScore==='function'
     ){
 
       originalRenderFriendlyScore();
 
     }
 
-    await refreshStatus();
+    syncScorerDisplay();
 
     renderAgreement();
 
@@ -843,9 +1139,9 @@ async function saveMultiScores(){
 }
 
 
-/* =====================================================
-   SAVE BUTTON REPLACEMENT
-   ===================================================== */
+/* =========================================================
+   REPLACE SAVE BUTTON FUNCTION
+   ========================================================= */
 
 window.saveFriendlyScore=
   async function(){
@@ -905,17 +1201,17 @@ window.saveFriendlyScore=
   };
 
 
-/* =====================================================
-   FINALISE ROUND
-   ===================================================== */
+/* =========================================================
+   FINALISE
+   ========================================================= */
 
 window.nlgsFinaliseFriendlyRound=
   async function(){
 
-    if(multiFinalising)
+    if(finalising)
       return;
 
-    const game=round();
+    const game=getRound();
 
     if(
       !game ||
@@ -926,7 +1222,7 @@ window.nlgsFinaliseFriendlyRound=
 
     }
 
-    multiFinalising=true;
+    finalising=true;
 
     const button=
       document.getElementById(
@@ -1012,7 +1308,7 @@ window.nlgsFinaliseFriendlyRound=
         ){
 
           const rows=
-            submissionsFor(
+            allSubmissions(
               playerIndex,
               hole
             );
@@ -1044,24 +1340,16 @@ window.nlgsFinaliseFriendlyRound=
 
       }
 
-
       if(
-        typeof saveFriendlyState===
-        'function'
+        typeof saveFriendlyState==='function'
       ){
 
         saveFriendlyState();
 
       }
 
-
-      /*
-        Preserve existing NLGS database save.
-      */
-
       if(
-        typeof saveFriendlyToDatabase===
-        'function'
+        typeof saveFriendlyToDatabase==='function'
       ){
 
         try{
@@ -1079,14 +1367,8 @@ window.nlgsFinaliseFriendlyRound=
 
       }
 
-
-      /*
-        Run existing NLGS final scoring.
-      */
-
       if(
-        typeof finishFriendlyRound===
-        'function'
+        typeof finishFriendlyRound==='function'
       ){
 
         finishFriendlyRound();
@@ -1111,7 +1393,7 @@ window.nlgsFinaliseFriendlyRound=
 
     }finally{
 
-      multiFinalising=false;
+      finalising=false;
 
       if(button){
 
@@ -1127,9 +1409,9 @@ window.nlgsFinaliseFriendlyRound=
   };
 
 
-/* =====================================================
-   HOOK INTO EXISTING RENDER
-   ===================================================== */
+/* =========================================================
+   OVERRIDE RENDER
+   ========================================================= */
 
 const originalRenderFriendlyScore=
   window.renderFriendlyScore;
@@ -1148,37 +1430,49 @@ window.renderFriendlyScore=
 
     ensureAgreementPanel();
 
-    renderAgreement();
+    /*
+      The original app may have displayed the
+      old shared scorecard. Immediately replace
+      that display with THIS MEMBER'S status.
+    */
+
+    setTimeout(
+      function(){
+
+        syncScorerDisplay();
+
+        renderAgreement();
+
+      },
+      20
+    );
 
   };
 
 
-/* =====================================================
-   INITIAL SETUP
-   ===================================================== */
+/* =========================================================
+   INITIALISE
+   ========================================================= */
 
 setTimeout(
-  function(){
+  async function(){
 
     try{
 
-      captureLogin();
-
       ensureAgreementPanel();
 
-      refreshStatus()
-        .catch(function(error){
+      await refreshStatus();
 
-          console.warn(
-            'Initial agreement check:',
-            error
-          );
+      syncScorerDisplay();
 
-        });
+      renderAgreement();
 
     }catch(error){
 
-      console.warn(error);
+      console.warn(
+        'Friendly test initialisation:',
+        error
+      );
 
     }
 
@@ -1187,11 +1481,41 @@ setTimeout(
 );
 
 
-})();
+/* =========================================================
+   ALSO WATCH FOR LOGIN / SCREEN CHANGES
+   ========================================================= */
 
+setInterval(
+  function(){
+
+    try{
+
+      const game=getRound();
+
+      if(
+        game &&
+        game.dbId
+      ){
+
+        ensureAgreementPanel();
+
+        syncScorerDisplay();
+
+      }
+
+    }catch(e){}
+
+  },
+  1000
+);
+
+
+})();
 `;
 
-      win.eval(script.textContent);
+      win.eval(
+        script.textContent
+      );
 
       loading.style.display='none';
 
