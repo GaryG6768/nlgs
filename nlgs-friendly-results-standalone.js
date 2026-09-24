@@ -210,9 +210,74 @@
           '<td style="padding:8px 4px;text-align:center"><b>' + x.pts + '</b></td>' +
         '</tr>';
     });
+    const sideRows = row.include_3s5s ? p.map(function(name, pi) {
+      const player = Array.isArray(pd) ? (pd[pi] || {}) : {};
+      const sc = s[name] || {};
+      let strokes3 = 0, points5 = 0;
 
+      for (let h = 1; h <= 18; h++) {
+        const strokes = Number(sc[h] ?? sc[String(h)]);
+        if (!Number.isFinite(strokes) || strokes <= 0) continue;
+
+        const hole = holeData(h);
+
+        if (Number(hole.par) === 3) {
+          strokes3 += strokes;
+        }
+
+        if (Number(hole.par) === 5) {
+          const shots = shotsOnHole(player.playingHandicap, hole.stroke_index);
+          points5 += stablefordPoints(strokes, 5, shots);
+        }
+      }
+
+      return {
+        name: name,
+        strokes3: strokes3,
+        points5: points5
+      };
+    }) : [];
+
+    let sideHtml = '';
+
+    if (sideRows.length) {
+      const by3 = sideRows.slice().sort((a,b) => a.strokes3 - b.strokes3);
+      const by5 = sideRows.slice().sort((a,b) => b.points5 - a.points5);
+
+      const best3 = by3[0].strokes3;
+      const best5 = by5[0].points5;
+
+      const winners3 = by3.filter(x => x.strokes3 === best3);
+      const winners5 = by5.filter(x => x.points5 === best5);
+
+      sideHtml =
+        '<div class="card" style="margin:14px 0 4px">' +
+          '<div class="row"><h3 style="margin:0">3s &amp; 5s</h3><span class="pill">SIDE GAME</span></div>' +
+          '<div class="small" style="margin:6px 0 10px">3s uses actual strokes on par 3s. 5s uses handicap Stableford points on par 5s.</div>' +
+          '<div style="overflow-x:auto">' +
+            '<table style="width:100%;border-collapse:collapse">' +
+              '<thead><tr><th style="text-align:left;padding:7px 4px">Player</th><th style="padding:7px 4px">3s strokes</th><th style="padding:7px 4px">5s points</th></tr></thead>' +
+              '<tbody>' +
+                sideRows.map(x =>
+                  '<tr><td style="text-align:left;padding:8px 4px"><b>' + esc(x.name) + '</b></td><td style="text-align:center;padding:8px 4px">' + x.strokes3 + '</td><td style="text-align:center;padding:8px 4px">' + x.points5 + '</td></tr>'
+                ).join('') +
+              '</tbody>' +
+            '</table>' +
+          '</div>' +
+          '<div style="margin-top:12px">' +
+            '<b>🏆 3s Winner:</b> ' +
+            (winners3.length > 1
+              ? 'Tie — ' + winners3.map(x => esc(x.name)).join(', ') + ' — ' + best3 + ' strokes'
+              : esc(winners3[0].name) + ' — ' + best3 + ' strokes') +
+            '<br><b>🏆 5s Winner:</b> ' +
+            (winners5.length > 1
+              ? 'Tie — ' + winners5.map(x => esc(x.name)).join(', ') + ' — ' + best5 + ' points'
+              : esc(winners5[0].name) + ' — ' + best5 + ' points') +
+          '</div>' +
+        '</div>';
+    }
     html +=
-          '</tbody></table></div>' +
+          '</tbody></table></div>' +     sideHtml +
       '<button class="btn secondary" style="margin-top:12px" id="friendlyResultsBackBtn">' +
         '← BACK TO FRIENDLY RESULTS' +
       '</button>';
