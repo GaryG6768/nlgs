@@ -38,7 +38,33 @@
     return Array.isArray(multiStatus?.submissions)?multiStatus.submissions.filter(r=>Number(r.player_index)===Number(p)&&Number(r.hole_no)===Number(h)):[];
   }
   function scorerKey(r){return String(r.scorer_member_id||r.scorer_id||r.scorer_name||r.member_name||'');}
+  function scorerDisplayName(game,key){
+    const pd=Array.isArray(game?.playerData)?game.playerData:[];
+    const hit=pd.find(function(x){
+      return String(x?.memberId||'')===String(key);
+    });
+    if(hit?.name)return hit.name;
+    return String(key||'Scorer');
+  }
 
+  function conflictText(game,playerIndex,hole){
+    const rows=rowsFor(playerIndex,hole);
+    const byScore={};
+
+    rows.forEach(function(r){
+      const score=Number(r.strokes);
+      if(!Number.isFinite(score))return;
+      const key=scorerKey(r);
+      const name=scorerDisplayName(game,key);
+      if(!byScore[score])byScore[score]=[];
+      if(!byScore[score].includes(name))byScore[score].push(name);
+    });
+
+    return Object.keys(byScore).sort(function(a,b){return Number(a)-Number(b);})
+      .map(function(score){
+        return byScore[score].join(', ')+' — '+score;
+      }).join(' / ');
+  }
   function ownSubmission(p,h){
     const rows=rowsFor(p,h);
     if(exactScorerId){
@@ -233,7 +259,7 @@ if(draft===undefined && input.dataset.manualEdit==='1'){
         if(card)card.classList.add('saved');
         if(conflict){
           if(status)status.textContent='⚠️ Discrepancy';
-          if(helper)helper.textContent='Scores entered: '+conflict.join(' / ')+' • agree before finalising';
+          if(helper)helper.textContent=conflictText(game,index,hole)+' • agree before finalising';
         }else{
           if(status)status.textContent='Changed — not saved';
           if(helper)helper.textContent='Changed score • press SAVE GROUP SCORES';
@@ -246,7 +272,7 @@ if(draft===undefined && input.dataset.manualEdit==='1'){
         if(card)card.classList.add('saved');
         if(conflict){
           if(status)status.textContent='⚠️ Discrepancy';
-          if(helper)helper.textContent='Scores entered: '+conflict.join(' / ')+' • agree before finalising';
+          if(helper)helper.textContent=conflictText(game,index,hole)+' • agree before finalising';
         }else{
           if(status)status.textContent='Saved';
           if(helper)helper.textContent='Saved score • use + / − or swipe ← / →';
@@ -255,7 +281,7 @@ if(draft===undefined && input.dataset.manualEdit==='1'){
         input.value=expected;
         if(conflict){
           if(status)status.textContent='⚠️ Discrepancy';
-          if(helper)helper.textContent='Scores entered: '+conflict.join(' / ')+' • agree before finalising';
+          if(helper)helper.textContent=conflictText(game,index,hole)+' • agree before finalising';
         }else{
           if(status)status.textContent='Not entered';
           if(helper)helper.textContent='Expected handicap score';
