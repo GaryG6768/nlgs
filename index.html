@@ -1388,10 +1388,18 @@ function renderFriendlyScore(){
 
 function friendlySwipeScore(i,delta){
   const el=document.getElementById('friendlyScoreInput_'+i); if(!el)return;
-  let v=Number(el.value)||1; v=Math.max(1,Math.min(15,Math.round(v)+Number(delta||0))); el.value=String(v);
-  const btn=document.getElementById('friendlySaveAllBtn'); if(btn)btn.disabled=!Array.from(document.querySelectorAll('.friendly-hole-score')).length;
+  let v=Number(el.value)||1;
+  v=Math.max(1,Math.min(15,Math.round(v)+Number(delta||0)));
+  el.value=String(v);
+
+  // Tell V15 that this is a manually changed unsaved score.
+  el.dispatchEvent(new Event('change',{bubbles:true}));
+
+  const btn=document.getElementById('friendlySaveAllBtn');
+  if(btn)btn.disabled=!Array.from(document.querySelectorAll('.friendly-hole-score')).length;
   updateFriendlySaveButton();
 }
+
 function updateFriendlySaveButton(){
   const r=getFriendlyRound(),btn=document.getElementById('friendlySaveAllBtn'); if(!r||!btn)return;
   btn.disabled=!r.players.every((p,i)=>{const el=document.getElementById('friendlyScoreInput_'+i);const v=Number(el?.value);return Number.isInteger(v)&&v>=1&&v<=15;});
