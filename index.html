@@ -2925,7 +2925,7 @@ function nlgsAdminEsc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;
     const r=getFriendlyRound?.(); const card=document.getElementById('friendly3s5sCard'); const out=document.getElementById('friendly3s5sResults');
     if(!r||!r.include3s5s||!card||!out)return;
     card.style.display='block';
-    const rows=calcSide(r.players.map((name,i)=>({name,i})),(p,i)=>r.scores[p.name]?.[i+1],p=>r.playerData?.[p.i]?.playingHandicap||0,i=>friendlyHoleData(r,i));
+    const rows=calcSide(r.players.map((name,i)=>({name,i})),(p,i)=>r.scores[p.name]?.[i],p=>r.playerData?.[p.i]?.playingHandicap||0,i=>friendlyHoleData(r,i));
     const complete=r.players.every(p=>Object.keys(r.scores[p]||{}).length>=18);
     const by3=[...rows].filter(x=>x.n3>0).sort((a,b)=>a.strokes3-b.strokes3); const by5=[...rows].filter(x=>x.n5>0).sort((a,b)=>b.points5-a.points5);
     const winnerText=(arr,key,unit,lowest)=>{if(!complete||!arr.length)return '—';const best=arr[0][key];const tied=arr.filter(x=>x[key]===best);return tied.length>1?'Tie — '+tied.map(x=>esc(x.name)).join(', ')+' — '+best+' '+unit:esc(tied[0].name)+' — '+best+' '+unit;};
