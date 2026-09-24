@@ -2495,71 +2495,7 @@ async function viewAdminCompetition(id){
 
 
 <script>
-// V37.6 — unified swipe score entry for Friendly Game.
-// Starts each unsaved hole at Par + handicap shots; swipe left/right to adjust.
-(function(){
-  const previousRenderFriendlyScore = window.renderFriendlyScore;
-  window.renderFriendlyScore = async function(){
-    if(previousRenderFriendlyScore) await previousRenderFriendlyScore();
-    setupFriendlySwipeScores();
-  };
 
-  function setupFriendlySwipeScores(){
-    const r = (typeof getFriendlyRound==='function') ? getFriendlyRound() : null;
-    if(!r || !Array.isArray(r.players) || !r.players.length) return;
-    const h = (typeof friendlyHoleData==='function') ? friendlyHoleData(r,r.currentHole) : null;
-    if(!h) return;
-    document.querySelectorAll('.friendly-hole-score').forEach(input=>{
-      const i=Number(input.dataset.player);
-      const pd=(r.playerData||[])[i]||{};
-      const shots=(typeof friendlyShotsOnHole==='function') ? friendlyShotsOnHole(pd.playingHandicap,h.stroke_index) : 0;
-      const target=Math.max(1,Math.min(15,Number(h.par)+Number(shots||0)));
-      const saved=(r.scores?.[r.players[i]]||{})[r.currentHole];
-
-      input.type='text';
-      input.inputMode='none';
-      input.readOnly=true;
-      input.autocomplete='off';
-      input.placeholder='Score';
-      input.setAttribute('aria-label','Score for '+r.players[i]);
-      input.style.cursor='ew-resize';
-      input.style.userSelect='none';
-      input.style.webkitUserSelect='none';
-      input.style.touchAction='pan-y';
-      if(saved!==undefined && saved!=='') input.value=String(saved);
-      else input.value=String(target);
-
-      if(input.dataset.swipeReady==='1') return;
-      input.dataset.swipeReady='1';
-      let startX=0,startY=0,moved=false;
-      input.addEventListener('touchstart',e=>{
-        if(!e.touches.length)return;
-        startX=e.touches[0].clientX; startY=e.touches[0].clientY; moved=false;
-      },{passive:true});
-      input.addEventListener('touchmove',e=>{
-        if(!e.touches.length)return;
-        const dx=e.touches[0].clientX-startX;
-        const dy=e.touches[0].clientY-startY;
-        if(Math.abs(dx)>20 && Math.abs(dx)>Math.abs(dy)) moved=true;
-      },{passive:true});
-      input.addEventListener('touchend',e=>{
-        const t=e.changedTouches&&e.changedTouches[0];
-        if(!t || !moved)return;
-        const dx=t.clientX-startX;
-        let v=parseInt(input.value,10);
-        if(!Number.isFinite(v))v=target;
-        v += dx<0 ? -1 : 1;
-        v=Math.max(1,Math.min(15,v));
-        input.value=String(v);
-        input.dispatchEvent(new Event('change',{bubbles:true}));
-        if(e.cancelable)e.preventDefault();
-      },{passive:false});
-    });
-  }
-})();
-</script>
-
-<script>
 // NLGS v38 — integrated secure Manage Players & Handicaps
 // Uses the same proven Supabase RPCs as the tested standalone admin page.
 let nlgsAdminPlayers=[];
