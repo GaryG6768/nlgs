@@ -1333,7 +1333,7 @@ function renderFriendlyScore(){
     card.className='card cs-score-card'+savedClass;
     card.style.cssText='margin:0 0 10px;border:1px solid var(--line);cursor:default';
     card.innerHTML='<div class="row"><div><b>'+String(p).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))+'</b><div class="small">HI '+(pd.handicapIndex!=null?Number(pd.handicapIndex).toFixed(1):'—')+' • Course HCP '+courseHcp+' • Playing HCP '+playingHcp+' • '+shots+' shot'+(shots===1?'':'s')+'</div></div><span class="pill cs-score-status">'+(saved!==undefined&&saved!==''?'Saved':'Not entered')+'</span></div>'+
-      '<div style="margin-top:10px;text-align:center" ontouchstart="this.dataset.touchStartX=event.touches[0].clientX;this.dataset.swiped=\'0\'" ontouchend="friendlyHandleScoreTouch(event,'+i+');" onclick="event.stopPropagation();friendlyFocusPlayer('+i+')">'+
+      '<div style="margin-top:10px;text-align:center" onclick="event.stopPropagation();friendlyFocusPlayer('+i+')">'+
       '<div class="cs-score-stepper">'+
       '<button type="button" class="cs-stepper-btn" tabindex="-1" aria-label="Decrease score" onclick="event.stopPropagation();friendlySwipeScore('+i+',-1)">−</button>'+
       '<input data-player="'+i+'" id="friendlyScoreInput_'+i+'" class="input friendly-hole-score cs-score-no-focus" type="text" inputmode="none" readonly aria-label="Score for '+String(p).replace(/"/g,'&quot;')+'" value="'+(saved===undefined?expected:saved)+'" style="margin:0;width:105px;text-align:center;font-size:28px;font-weight:800;cursor:ew-resize;touch-action:pan-y">'+
