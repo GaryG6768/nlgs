@@ -247,7 +247,7 @@ function holeStatus(game,h){
           if(helper)helper.textContent='Scores entered: '+conflict.join(' / ')+' • agree before finalising';
         }else{
           if(status)status.textContent='Not entered';
-          if(helper)helper.textContent='Expected handicap score • use + / − or swipe ← / →';
+          if(helper)helper.textContent='Expected handicap score';
         }
       }
     });
