@@ -212,7 +212,18 @@ function holeStatus(game,h){
       const smalls=card?.querySelectorAll?.('.small');
       const helper=smalls?.length?smalls[smalls.length-1]:null;
 
-      const draft=unsavedDrafts[hole]?.[index];
+      let draft=unsavedDrafts[hole]?.[index];
+
+// Preserve a score that the scorer has manually changed, even if
+// another renderer refreshes the score card.
+if(draft===undefined && input.dataset.manualEdit==='1'){
+  const v=Number(input.value);
+  if(Number.isInteger(v) && v>=1 && v<=15){
+    if(!unsavedDrafts[hole])unsavedDrafts[hole]={};
+    unsavedDrafts[hole][index]=v;
+    draft=v;
+  }
+}
       const savedValue=own?String(Number(own.strokes)):'';
       const expected=String(expectedScore(game,index,hole));
       const conflict=conflictByPlayer[index];
