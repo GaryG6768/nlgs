@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NLGS Season League 2026</title>
+<style>
+:root{--green:#064b35;--gold:#c9a44a;--cream:#f6f3e8;--ink:#193127;--muted:#6b756f;--line:#dfe4dc;--white:#fff}
+*{box-sizing:border-box} body{margin:0;background:#e9ece5;color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+.wrap{max-width:900px;margin:auto;padding:20px 14px 50px}
+.hero{background:linear-gradient(145deg,#064b35,#0a6a4b);color:#fff;border-radius:20px;padding:24px 20px;margin-bottom:16px}
+h1{font-family:Georgia,serif;margin:0 0 5px;font-size:30px} .sub{font-size:11px;letter-spacing:1.5px;opacity:.9}
+.gold{height:3px;width:60px;background:var(--gold);margin:12px 0}
+.card{background:#fff;border-radius:16px;padding:16px;margin:12px 0;box-shadow:0 3px 14px #19312712}
+.tabs{display:flex;gap:6px;background:#e9ece5;padding:4px;border-radius:11px}
+.tab{flex:1;border:0;padding:12px 7px;border-radius:8px;font-weight:800;color:var(--green);background:transparent;cursor:pointer}
+.tab.on{background:var(--green);color:#fff}
+.note{font-size:13px;color:var(--muted);line-height:1.45}
+.tablewrap{overflow-x:auto} table{border-collapse:collapse;width:100%;min-width:720px;font-size:13px}
+th{background:var(--green);color:#fff;padding:9px 7px;white-space:nowrap}
+td{padding:9px 7px;border-bottom:1px solid var(--line);text-align:center}
+td.player,th:first-child{text-align:left;position:sticky;left:0;background:inherit}
+td.player{background:#fff;font-weight:800} tr:nth-child(even) td.player{background:#fbfcf9}
+td.keep{font-weight:800} td.drop{text-decoration:line-through;color:#a66f00;background:#fff8e8}
+td.total{font-weight:800;background:#edf5ef;color:var(--green)} td.miss{color:#999}
+td.played{color:var(--muted)}
+.legend span{display:inline-block;margin-right:14px;font-size:12px} .swatch{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:4px;background:#edf5ef} .swatch.drop{background:#fff8e8}
+.hidden{display:none}
+.badge{display:inline-block;background:#e8f2ed;color:var(--green);padding:5px 9px;border-radius:999px;font-size:11px;font-weight:800}
+.warning{background:#fff8e8;border-left:4px solid var(--gold);padding:11px 12px;border-radius:8px;font-size:12px;line-height:1.45}
+</style></head><body>
+<div class="wrap">
+<div class="hero"><div class="sub">NORWICH LOCO GOLF SOCIETY</div><h1>NLGS Season League 2026</h1>
+<div class="gold"></div><div>Rounds 1–5 completed • Round 6 to come</div></div>
+
+<div class="card">
+<div class="tabs">
+<button class="tab on" onclick="showTab('medal',this)">MEDAL</button>
+<button class="tab" onclick="showTab('stable',this)">STABLEFORD</button>
+</div>
+</div>
+
+<section id="medal">
+<div class="card"><div><span class="badge">BEST 4 OF 6</span></div>
+<p class="note">Medal uses the nett score for each round. The lowest four nett scores count. Missed rounds are ignored, not scored as zero. Players with fewer than four rounds currently have all their played rounds counted.</p>
+<div class="legend"><span><i class="swatch"></i>Counts</span><span><i class="swatch drop"></i>Dropped</span></div></div>
+<div class="card tablewrap"><table><thead><tr><th>Player</th><th>R1</th><th>R2</th><th>R3</th><th>R4</th><th>R5</th><th>R6</th><th>Best 4 Total</th><th>Played</th></tr></thead>
+<tbody><tr><td class="player">Gary G</td><td class="keep">74</td><td class="keep">79</td><td class="keep">70</td><td class="drop">79</td><td class="keep">73</td><td class="total"><b>296</b></td><td class="played">5</td></tr><tr><td class="player">Steve H</td><td class="keep">76</td><td class="keep">79</td><td class="keep">76</td><td class="keep">66</td><td class="drop">89</td><td class="total"><b>297</b></td><td class="played">5</td></tr><tr><td class="player">Neil B</td><td class="keep">66</td><td class="keep">79</td><td class="keep">70</td><td class="keep">84</td><td class="drop">89</td><td class="total"><b>299</b></td><td class="played">5</td></tr><tr><td class="player">Gareth J</td><td class="drop">81</td><td class="keep">77</td><td class="keep">76</td><td class="keep">76</td><td class="keep">78</td><td class="total"><b>307</b></td><td class="played">5</td></tr><tr><td class="player">Roger M</td><td class="keep">74</td><td class="keep">77</td><td class="keep">76</td><td class="drop">86</td><td class="keep">81</td><td class="total"><b>308</b></td><td class="played">5</td></tr><tr><td class="player">Dave B</td><td class="keep">75</td><td class="keep">77</td><td class="keep">75</td><td class="keep">84</td><td class="miss">—</td><td class="total"><b>311</b></td><td class="played">4</td></tr><tr><td class="player">Bob S</td><td class="drop">84</td><td class="keep">74</td><td class="keep">81</td><td class="keep">75</td><td class="keep">83</td><td class="total"><b>313</b></td><td class="played">5</td></tr><tr><td class="player">Gary P</td><td class="keep">77</td><td class="keep">82</td><td class="keep">79</td><td class="drop">90</td><td class="keep">81</td><td class="total"><b>319</b></td><td class="played">5</td></tr><tr><td class="player">Kevin T</td><td class="keep">84</td><td class="keep">80</td><td class="keep">79</td><td class="keep">76</td><td class="drop">93</td><td class="total"><b>319</b></td><td class="played">5</td></tr><tr><td class="player">Dave F</td><td class="miss">—</td><td class="keep">84</td><td class="keep">81</td><td class="keep">76</td><td class="keep">79</td><td class="total"><b>320</b></td><td class="played">4</td></tr><tr><td class="player">David A</td><td class="drop">85</td><td class="keep">84</td><td class="keep">81</td><td class="keep">82</td><td class="keep">73</td><td class="total"><b>320</b></td><td class="played">5</td></tr><tr><td class="player">Peter F</td><td class="keep">81</td><td class="keep">88</td><td class="keep">75</td><td class="keep">88</td><td class="miss">—</td><td class="total"><b>332</b></td><td class="played">4</td></tr><tr><td class="player">Sean G</td><td class="keep">95</td><td class="keep">81</td><td class="keep">73</td><td class="keep">90</td><td class="miss">—</td><td class="total"><b>339</b></td><td class="played">4</td></tr><tr><td class="player">Darren W</td><td class="keep">93</td><td class="keep">78</td><td class="miss">—</td><td class="miss">—</td><td class="miss">—</td><td class="total"><b>171</b></td><td class="played">2</td></tr><tr><td class="player">Neil L</td><td class="miss">—</td><td class="keep">72</td><td class="keep">78</td><td class="miss">—</td><td class="keep">73</td><td class="total"><b>223</b></td><td class="played">3</td></tr><tr><td class="player">Courtney C</td><td class="miss">—</td><td class="keep">74</td><td class="keep">83</td><td class="keep">81</td><td class="miss">—</td><td class="total"><b>238</b></td><td class="played">3</td></tr><tr><td class="player">Ian W</td><td class="keep">76</td><td class="miss">—</td><td class="keep">97</td><td class="miss">—</td><td class="keep">73</td><td class="total"><b>246</b></td><td class="played">3</td></tr><tr><td class="player">Lee T</td><td class="miss">—</td><td class="keep">76</td><td class="miss">—</td><td class="keep">87</td><td class="keep">83</td><td class="total"><b>246</b></td><td class="played">3</td></tr></tbody></table></div>
+</section>
+
+<section class="tab">
+<h2>🏆 STABLEFORD</h2>
+<h3>STABLEFORD — BEST 4 OF 6</h3>
+<p class="note">Highest four Stableford scores count. Missed rounds are ignored.</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Pos</th><th>Player</th><th>R1</th><th>R2</th><th>R3</th><th>R4</th><th>R5</th><th>R6</th><th>Best 4</th></tr></thead>
+<tbody><tr><td>1</td><td><b>Gary G</b></td><td>35</td><td>28</td><td>36</td><td>29</td><td>37</td><td><b>137</b></td></tr><tr><td>2</td><td><b>Neil B</b></td><td>42</td><td>31</td><td>38</td><td>26</td><td>24</td><td><b>137</b></td></tr><tr><td>3</td><td><b>Steve H</b></td><td>32</td><td>30</td><td>31</td><td>41</td><td>21</td><td><b>134</b></td></tr><tr><td>4</td><td><b>Dave B</b></td><td>33</td><td>30</td><td>39</td><td>28</td><td>—</td><td><b>130</b></td></tr><tr><td>5</td><td><b>Gareth J</b></td><td>30</td><td>33</td><td>32</td><td>32</td><td>31</td><td><b>128</b></td></tr><tr><td>6</td><td><b>Roger M</b></td><td>35</td><td>32</td><td>34</td><td>24</td><td>27</td><td><b>128</b></td></tr><tr><td>7</td><td><b>Kevin T</b></td><td>25</td><td>32</td><td>32</td><td>34</td><td>26</td><td><b>124</b></td></tr><tr><td>8</td><td><b>David A</b></td><td>27</td><td>28</td><td>31</td><td>27</td><td>37</td><td><b>123</b></td></tr><tr><td>9</td><td><b>Gary P</b></td><td>32</td><td>25</td><td>34</td><td>23</td><td>30</td><td><b>121</b></td></tr><tr><td>10</td><td><b>Bob S</b></td><td>25</td><td>35</td><td>27</td><td>23</td><td>28</td><td><b>115</b></td></tr><tr><td>11</td><td><b>Peter F</b></td><td>30</td><td>25</td><td>37</td><td>22</td><td>—</td><td><b>114</b></td></tr><tr><td>12</td><td><b>Dave F</b></td><td>—</td><td>25</td><td>27</td><td>31</td><td>30</td><td><b>113</b></td></tr><tr><td>13</td><td><b>Sean G</b></td><td>22</td><td>27</td><td>36</td><td>20</td><td>—</td><td><b>105</b></td></tr><tr><td>14</td><td><b>Neil L</b></td><td>—</td><td>35</td><td>30</td><td>—</td><td>35</td><td><b>100</b></td></tr><tr><td>15</td><td><b>Courtney C</b></td><td>—</td><td>37</td><td>25</td><td>29</td><td>—</td><td><b>91</b></td></tr><tr><td>16</td><td><b>Lee T</b></td><td>—</td><td>31</td><td>—</td><td>25</td><td>27</td><td><b>83</b></td></tr><tr><td>17</td><td><b>Darren W</b></td><td>22</td><td>32</td><td>—</td><td>—</td><td>—</td><td><b>54</b></td></tr><tr><td>18</td><td><b>Ian W</b></td><td>—</td><td>—</td><td>18</td><td>—</td><td>—</td><td><b>18</b></td></tr></tbody></table></div>
+
+<h3>🎯 STABLEFORD POINTS LEAGUE</h3>
+<p class="note">1st = 12 points, 2nd = 10, 3rd = 9, then 8, 7, 6, 5, 4, 3, 2. All players finishing 11th or lower receive 1 point. The number of players does not affect the points. Best 4 of 6 count.</p>
+<div class="table-wrap"><table id="stablefordPointsLeague"><thead><tr><th>Pos</th><th>Player</th><th>R1</th><th>R2</th><th>R3</th><th>R4</th><th>R5</th><th>R6</th><th>Best 4</th></tr></thead><tbody><tr><td>1</td><td><b>Gary G</b></td><td>10</td><td>1</td><td>8</td><td>6</td><td>12</td><td>—</td><td><b>36</b></td></tr><tr><td>2</td><td><b>Gareth J</b></td><td>5</td><td>8</td><td>4</td><td>8</td><td>8</td><td>—</td><td><b>29</b></td></tr><tr><td>3</td><td><b>Neil B</b></td><td>12</td><td>4</td><td>10</td><td>2</td><td>1</td><td>—</td><td><b>28</b></td></tr><tr><td>4</td><td><b>Bob S</b></td><td>2</td><td>10</td><td>1</td><td>10</td><td>5</td><td>—</td><td><b>27</b></td></tr><tr><td>5</td><td><b>Roger M</b></td><td>10</td><td>7</td><td>6</td><td>1</td><td>4</td><td>—</td><td><b>27</b></td></tr><tr><td>6</td><td><b>Dave B</b></td><td>8</td><td>2</td><td>12</td><td>4</td><td>—</td><td>—</td><td><b>26</b></td></tr><tr><td>7</td><td><b>Steve H</b></td><td>7</td><td>2</td><td>2</td><td>12</td><td>1</td><td>—</td><td><b>23</b></td></tr><tr><td>8</td><td><b>Kevin T</b></td><td>2</td><td>7</td><td>4</td><td>9</td><td>2</td><td>—</td><td><b>22</b></td></tr><tr><td>9</td><td><b>Gary P</b></td><td>7</td><td>1</td><td>6</td><td>1</td><td>7</td><td>—</td><td><b>21</b></td></tr><tr><td>10</td><td><b>David A</b></td><td>3</td><td>1</td><td>2</td><td>3</td><td>12</td><td>—</td><td><b>20</b></td></tr><tr><td>11</td><td><b>Neil L</b></td><td>—</td><td>10</td><td>1</td><td>—</td><td>9</td><td>—</td><td><b>20</b></td></tr><tr><td>12</td><td><b>Courtney C</b></td><td>—</td><td>12</td><td>1</td><td>6</td><td>—</td><td>—</td><td><b>19</b></td></tr><tr><td>13</td><td><b>Dave F</b></td><td>—</td><td>1</td><td>1</td><td>7</td><td>7</td><td>—</td><td><b>16</b></td></tr><tr><td>14</td><td><b>Peter F</b></td><td>5</td><td>1</td><td>9</td><td>1</td><td>—</td><td>—</td><td><b>16</b></td></tr><tr><td>15</td><td><b>Sean G</b></td><td>1</td><td>1</td><td>8</td><td>1</td><td>—</td><td>—</td><td><b>11</b></td></tr><tr><td>16</td><td><b>Lee T</b></td><td>—</td><td>4</td><td>—</td><td>1</td><td>4</td><td>—</td><td><b>9</b></td></tr><tr><td>17</td><td><b>Darren W</b></td><td>1</td><td>7</td><td>—</td><td>—</td><td>—</td><td>—</td><td><b>8</b></td></tr><tr><td>18</td><td><b>Ian W</b></td><td>—</td><td>—</td><td>1</td><td>—</td><td>—</td><td>—</td><td><b>1</b></td></tr></tbody></table></div>
+<h3>POSITION LEAGUE</h3>
+<p class="note">Points are awarded by finishing position in each round. Ties share the combined points for the tied positions.</p>
+<div class="table-wrap"><table id="positionTable">
+<thead><tr><th>Pos</th><th>Player</th><th>R1</th><th>R2</th><th>R3</th><th>R4</th><th>R5</th><th>R6</th><th>Total</th></tr></thead>
+<tbody><tr><td>1</td><td><b>Gary G</b></td><td>11.5</td><td>5.5</td><td>12.5</td><td>10.5</td><td>11.5</td><td><b>51.5</b></td></tr><tr><td>2</td><td><b>Gareth J</b></td><td>6.5</td><td>14</td><td>8.5</td><td>13</td><td>9</td><td><b>51</b></td></tr><tr><td>3</td><td><b>Neil B</b></td><td>13</td><td>9.5</td><td>15</td><td>7</td><td>2</td><td><b>46.5</b></td></tr><tr><td>4</td><td><b>Roger M</b></td><td>11.5</td><td>12</td><td>10.5</td><td>5</td><td>4.5</td><td><b>43.5</b></td></tr><tr><td>5</td><td><b>Dave B</b></td><td>10</td><td>7.5</td><td>16</td><td>9</td><td>—</td><td><b>42.5</b></td></tr><tr><td>6</td><td><b>Kevin T</b></td><td>3.5</td><td>12</td><td>8.5</td><td>14</td><td>3</td><td><b>41</b></td></tr><tr><td>7</td><td><b>Steve H</b></td><td>8.5</td><td>7.5</td><td>6.5</td><td>15</td><td>1</td><td><b>38.5</b></td></tr><tr><td>8</td><td><b>David A</b></td><td>5</td><td>5.5</td><td>6.5</td><td>8</td><td>11.5</td><td><b>36.5</b></td></tr><tr><td>9</td><td><b>Bob S</b></td><td>3.5</td><td>15.5</td><td>3.5</td><td>3.5</td><td>6</td><td><b>32</b></td></tr><tr><td>10</td><td><b>Gary P</b></td><td>8.5</td><td>2</td><td>10.5</td><td>3.5</td><td>7.5</td><td><b>32</b></td></tr><tr><td>11</td><td><b>Neil L</b></td><td>—</td><td>15.5</td><td>5</td><td>—</td><td>10</td><td><b>30.5</b></td></tr><tr><td>12</td><td><b>Courtney C</b></td><td>—</td><td>17</td><td>2</td><td>10.5</td><td>—</td><td><b>29.5</b></td></tr><tr><td>13</td><td><b>Dave F</b></td><td>—</td><td>2</td><td>3.5</td><td>12</td><td>7.5</td><td><b>25</b></td></tr><tr><td>14</td><td><b>Peter F</b></td><td>6.5</td><td>2</td><td>14</td><td>2</td><td>—</td><td><b>24.5</b></td></tr><tr><td>15</td><td><b>Lee T</b></td><td>—</td><td>9.5</td><td>—</td><td>6</td><td>4.5</td><td><b>20</b></td></tr><tr><td>16</td><td><b>Sean G</b></td><td>1.5</td><td>4</td><td>12.5</td><td>1</td><td>—</td><td><b>19</b></td></tr><tr><td>17</td><td><b>Darren W</b></td><td>1.5</td><td>12</td><td>—</td><td>—</td><td>—</td><td><b>13.5</b></td></tr><tr><td>18</td><td><b>Ian W</b></td><td>—</td><td>—</td><td>1</td><td>—</td><td>—</td><td><b>1</b></td></tr></tbody></table></div>
+</section>
+
+<div class="card note"><b>Rounds:</b> R1 Rookery Park • R2 Gorleston • R3 Heacham Manor • R4 Swaffham • R5 Barnham Broom Steel • R6 upcoming.</div>
+</div>
+<script>
+function showTab(id,btn){
+ document.getElementById('medal').classList.toggle('hidden',id!=='medal');
+ document.getElementById('stable').classList.toggle('hidden',id!=='stable');
+ document.querySelectorAll('.tab').forEach(b=>b.classList.remove('on')); btn.classList.add('on');
+ window.scrollTo(0,0);
+}
+</script>
+
+
+</body></html>
