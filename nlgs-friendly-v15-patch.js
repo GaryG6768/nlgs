@@ -1,7 +1,7 @@
 
 (function(){
   console.log('NLGS FRIENDLY MULTI-SCORER TEST V15 ACTIVE');
-  let multiStatus=null, finalising=false, exactScorerId='';
+  let multiStatus=null, finalising=false, exactScorerId='', exactScorerName='';
   const unsavedDrafts={};
 
   function credentials(){
@@ -11,8 +11,9 @@
       const pin=window.nlgsLoginCredentials?.pin||document.getElementById('loginPin')?.value?.trim()||'';
       if(name&&pin){
         window.nlgsLoginCredentials={name:name,pin:pin};
-        if(!window.nlgsTestMember) window.nlgsTestMember=m;
-        exactScorerId=String(m?.id||m?.member_id||m?.scorer_member_id||exactScorerId||'');
+        window.nlgsTestMember=m;
+exactScorerId=String(m?.id||m?.member_id||m?.scorer_member_id||'');
+exactScorerName=String(name||'');
         return {name:name,pin:pin};
       }
     }catch(e){}
@@ -27,7 +28,8 @@
       if(!r.error&&Array.isArray(r.data)&&r.data.length){
         const m=r.data[0];
         exactScorerId=String(m.id||m.member_id||m.scorer_member_id||'');
-        window.nlgsTestMember=m;
+exactScorerName=String(m.full_name||m.name||login.name||'');
+window.nlgsTestMember=m;
       }
     }catch(e){}
     return exactScorerId;
@@ -66,19 +68,35 @@
       }).join(' / ');
   }
   function ownSubmission(p,h){
-    const rows=rowsFor(p,h);
-    if(exactScorerId){
-      const hit=rows.find(r=>String(r.scorer_member_id||r.scorer_id||'')===String(exactScorerId));
-      if(hit)return hit;
-    }
-    const m=window.nlgsTestMember||{};
-    const ids=[m.id,m.member_id,m.scorer_member_id].filter(Boolean).map(String);
-    if(ids.length){
-      const hit=rows.find(r=>ids.includes(String(r.scorer_member_id||r.scorer_id||'')));
-      if(hit)return hit;
-    }
-    return null;
+  const rows=rowsFor(p,h);
+
+  const wantedName=String(exactScorerName||credentials().name||'').trim().toLowerCase();
+  if(wantedName){
+    const hit=rows.find(function(r){
+      const n=String(r.scorer_name||r.member_name||'').trim().toLowerCase();
+      return n===wantedName;
+    });
+    if(hit)return hit;
   }
+
+  if(exactScorerId){
+    const hit=rows.find(function(r){
+      return String(r.scorer_member_id||r.scorer_id||'')===String(exactScorerId);
+    });
+    if(hit)return hit;
+  }
+
+  const m=window.nlgsTestMember||{};
+  const ids=[m.id,m.member_id,m.scorer_member_id].filter(Boolean).map(String);
+  if(ids.length){
+    const hit=rows.find(function(r){
+      return ids.includes(String(r.scorer_member_id||r.scorer_id||''));
+    });
+    if(hit)return hit;
+  }
+
+  return null;
+}
 
   function expectedScore(game,index,hole){
     try{
