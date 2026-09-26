@@ -650,8 +650,12 @@ if(draft===undefined && input.dataset.manualEdit==='1'){
       }));
       return id;
     }catch(e){
-      console.error('Could not prepare Friendly Game database record',e);
-      return null;
+  console.error('Could not prepare Friendly Game database record',e);
+  if(typeof toast==='function'){
+    toast('Friendly game database setup failed: '+(e?.message||String(e)),12000);
+  }
+  return null;
+}
     }
   }
 
