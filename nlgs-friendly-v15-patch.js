@@ -453,10 +453,19 @@ return r.data;
     }
 
     if(hole<18){
-      game.currentHole=hole+1;
-      if(typeof saveFriendlyState==='function')saveFriendlyState();
-      originalRender();
-      setTimeout(()=>{syncScoreCards();syncLeaderboard();syncHoleGrid();ensureAgreement();},50);
+  game.currentHole=hole+1;
+  if(typeof saveFriendlyState==='function')saveFriendlyState();
+
+  const nextHole=friendlyHoleData(game,game.currentHole);
+  document.getElementById('friendlyHoleTitle').textContent='Hole '+game.currentHole;
+  document.getElementById('friendlyHoleInfo').textContent='Par '+nextHole.par+' • SI '+nextHole.stroke_index;
+  document.getElementById('friendlyHoleNum').textContent=game.currentHole+' / 18';
+
+  syncScoreCards();
+  syncLeaderboard();
+  syncHoleGrid();
+  ensureAgreement();
+      
     }else{
       // Hole 18 has been saved. Stay on Hole 18, then take the scorer
       // directly to the result that needs attention:
