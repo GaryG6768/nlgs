@@ -1,7 +1,6 @@
-
 (function(){
   console.log('NLGS FRIENDLY MULTI-SCORER TEST V15 ACTIVE');
-  let multiStatus=null, finalising=false, exactScorerId='', exactScorerName='';
+  let multiStatus=null, finalising=false, exactScorerId='';
   const unsavedDrafts={};
 
   function credentials(){
@@ -11,9 +10,8 @@
       const pin=window.nlgsLoginCredentials?.pin||document.getElementById('loginPin')?.value?.trim()||'';
       if(name&&pin){
         window.nlgsLoginCredentials={name:name,pin:pin};
-        window.nlgsTestMember=m;
-exactScorerId=String(m?.id||m?.member_id||m?.scorer_member_id||'');
-exactScorerName=String(name||'');
+        if(!window.nlgsTestMember) window.nlgsTestMember=m;
+        exactScorerId=String(m?.id||m?.member_id||m?.scorer_member_id||exactScorerId||'');
         return {name:name,pin:pin};
       }
     }catch(e){}
@@ -28,8 +26,7 @@ exactScorerName=String(name||'');
       if(!r.error&&Array.isArray(r.data)&&r.data.length){
         const m=r.data[0];
         exactScorerId=String(m.id||m.member_id||m.scorer_member_id||'');
-exactScorerName=String(m.full_name||m.name||login.name||'');
-window.nlgsTestMember=m;
+        window.nlgsTestMember=m;
       }
     }catch(e){}
     return exactScorerId;
@@ -40,63 +37,21 @@ window.nlgsTestMember=m;
     return Array.isArray(multiStatus?.submissions)?multiStatus.submissions.filter(r=>Number(r.player_index)===Number(p)&&Number(r.hole_no)===Number(h)):[];
   }
   function scorerKey(r){return String(r.scorer_member_id||r.scorer_id||r.scorer_name||r.member_name||'');}
-  function scorerDisplayName(game,key){
-    const pd=Array.isArray(game?.playerData)?game.playerData:[];
-    const hit=pd.find(function(x){
-      return String(x?.memberId||'')===String(key);
-    });
-    if(hit?.name)return hit.name;
-    return String(key||'Scorer');
-  }
 
-  function conflictText(game,playerIndex,hole){
-    const rows=rowsFor(playerIndex,hole);
-    const byScore={};
-
-    rows.forEach(function(r){
-      const score=Number(r.strokes);
-      if(!Number.isFinite(score))return;
-      const key=scorerKey(r);
-      const name=scorerDisplayName(game,key);
-      if(!byScore[score])byScore[score]=[];
-      if(!byScore[score].includes(name))byScore[score].push(name);
-    });
-
-    return Object.keys(byScore).sort(function(a,b){return Number(a)-Number(b);})
-      .map(function(score){
-        return byScore[score].join(', ')+' — '+score;
-      }).join(' / ');
-  }
   function ownSubmission(p,h){
-  const rows=rowsFor(p,h);
-
-  const wantedName=String(exactScorerName||credentials().name||'').trim().toLowerCase();
-  if(wantedName){
-    const hit=rows.find(function(r){
-      const n=String(r.scorer_name||r.member_name||'').trim().toLowerCase();
-      return n===wantedName;
-    });
-    if(hit)return hit;
+    const rows=rowsFor(p,h);
+    if(exactScorerId){
+      const hit=rows.find(r=>String(r.scorer_member_id||r.scorer_id||'')===String(exactScorerId));
+      if(hit)return hit;
+    }
+    const m=window.nlgsTestMember||{};
+    const ids=[m.id,m.member_id,m.scorer_member_id].filter(Boolean).map(String);
+    if(ids.length){
+      const hit=rows.find(r=>ids.includes(String(r.scorer_member_id||r.scorer_id||'')));
+      if(hit)return hit;
+    }
+    return null;
   }
-
-  if(exactScorerId){
-    const hit=rows.find(function(r){
-      return String(r.scorer_member_id||r.scorer_id||'')===String(exactScorerId);
-    });
-    if(hit)return hit;
-  }
-
-  const m=window.nlgsTestMember||{};
-  const ids=[m.id,m.member_id,m.scorer_member_id].filter(Boolean).map(String);
-  if(ids.length){
-    const hit=rows.find(function(r){
-      return ids.includes(String(r.scorer_member_id||r.scorer_id||''));
-    });
-    if(hit)return hit;
-  }
-
-  return null;
-}
 
   function expectedScore(game,index,hole){
     try{
@@ -258,16 +213,17 @@ function holeStatus(game,h){
 
       let draft=unsavedDrafts[hole]?.[index];
 
-// Preserve a score that the scorer has manually changed, even if
-// another renderer refreshes the score card.
-if(draft===undefined && input.dataset.manualEdit==='1'){
-  const v=Number(input.value);
-  if(Number.isInteger(v) && v>=1 && v<=15){
-    if(!unsavedDrafts[hole])unsavedDrafts[hole]={};
-    unsavedDrafts[hole][index]=v;
-    draft=v;
-  }
-}
+      // Preserve a score that the scorer has manually changed, even if
+      // another renderer refreshes the score card.
+      if(draft===undefined && input.dataset.manualEdit==='1'){
+        const v=Number(input.value);
+        if(Number.isInteger(v) && v>=1 && v<=15){
+          if(!unsavedDrafts[hole])unsavedDrafts[hole]={};
+          unsavedDrafts[hole][index]=v;
+          draft=v;
+        }
+      }
+
       const savedValue=own?String(Number(own.strokes)):'';
       const expected=String(expectedScore(game,index,hole));
       const conflict=conflictByPlayer[index];
@@ -277,7 +233,7 @@ if(draft===undefined && input.dataset.manualEdit==='1'){
         if(card)card.classList.add('saved');
         if(conflict){
           if(status)status.textContent='⚠️ Discrepancy';
-          if(helper)helper.textContent=conflictText(game,index,hole)+' • agree before finalising';
+          if(helper)helper.textContent='Scores entered: '+conflict.join(' / ')+' • agree before finalising';
         }else{
           if(status)status.textContent='Changed — not saved';
           if(helper)helper.textContent='Changed score • press SAVE GROUP SCORES';
@@ -290,7 +246,7 @@ if(draft===undefined && input.dataset.manualEdit==='1'){
         if(card)card.classList.add('saved');
         if(conflict){
           if(status)status.textContent='⚠️ Discrepancy';
-          if(helper)helper.textContent=conflictText(game,index,hole)+' • agree before finalising';
+          if(helper)helper.textContent='Scores entered: '+conflict.join(' / ')+' • agree before finalising';
         }else{
           if(status)status.textContent='Saved';
           if(helper)helper.textContent='Saved score • use + / − or swipe ← / →';
@@ -299,7 +255,7 @@ if(draft===undefined && input.dataset.manualEdit==='1'){
         input.value=expected;
         if(conflict){
           if(status)status.textContent='⚠️ Discrepancy';
-          if(helper)helper.textContent=conflictText(game,index,hole)+' • agree before finalising';
+          if(helper)helper.textContent='Scores entered: '+conflict.join(' / ')+' • agree before finalising';
         }else{
           if(status)status.textContent='Not entered';
           if(helper)helper.textContent='Expected handicap score';
@@ -668,12 +624,8 @@ if(draft===undefined && input.dataset.manualEdit==='1'){
       }));
       return id;
     }catch(e){
-  console.error('Could not prepare Friendly Game database record',e);
-  if(typeof toast==='function'){
-    toast('Friendly game database setup failed: '+(e?.message||String(e)),12000);
-  }
-  return null;
-}
+      console.error('Could not prepare Friendly Game database record',e);
+      return null;
     }
   }
 
