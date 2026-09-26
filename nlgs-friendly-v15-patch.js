@@ -402,7 +402,9 @@ function holeStatus(game,h){
     await resolveExactScorer();
     const r=await sb.rpc('get_friendly_submission_status',{p_friendly_game_id:game.dbId,p_member_name:login.name,p_member_pin:login.pin});
     if(r.error)throw r.error;if(r.data?.error)throw new Error(r.data.error);
-    multiStatus=r.data;syncScoreCards();syncLeaderboard();syncHoleGrid();ensureAgreement();lockFinalisedRound();return r.data;
+    multiStatus=r.data;
+if(!quiet){syncScoreCards();syncLeaderboard();syncHoleGrid();ensureAgreement();lockFinalisedRound();}
+return r.data;
   }
 
   async function saveMulti(){
