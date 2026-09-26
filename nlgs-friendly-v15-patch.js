@@ -428,7 +428,7 @@ return r.data;
 
     // Re-check the hole immediately after saving. If another scorer has
     // submitted a different value, do NOT advance to the next hole.
-    await refreshStatus();
+    await refreshStatus(true);
     const afterSave=holeStatus(game,hole);
     if(afterSave.conflicts.length){
       originalRender();
@@ -495,11 +495,22 @@ return r.data;
   }
 
   window.saveFriendlyScore=async function(){
-    const b=document.getElementById('friendlySaveAllBtn');if(b)b.disabled=true;
-    try{await saveMulti();if(typeof toast==='function')toast('Scores saved');}
-    catch(e){console.error(e);if(typeof toast==='function')toast(e.message||'Could not save scores');}
-    finally{if(b)b.disabled=false;}
-  };
+  const b=document.getElementById('friendlySaveAllBtn');
+  if(saveInProgress)return;
+  saveInProgress=true;
+  const oldText=b?b.textContent:'SAVE GROUP SCORES';
+  if(b){b.disabled=true;b.textContent='SAVING…';}
+  try{
+    await saveMulti();
+    if(typeof toast==='function')toast('Scores saved');
+  }catch(e){
+    console.error(e);
+    if(typeof toast==='function')toast(e.message||'Could not save scores');
+  }finally{
+    saveInProgress=false;
+    if(b){b.disabled=false;b.textContent=oldText||'SAVE GROUP SCORES';}
+  }
+};
 
   window.nlgsFinaliseFriendlyRound=async function(){
     if(finalising)return;
@@ -567,7 +578,7 @@ return r.data;
   };
 
   setTimeout(async function(){try{await resolveExactScorer();await refreshStatus();syncScoreCards();}catch(e){console.warn('Friendly test:',e);}},1200);
-  setInterval(async function(){try{if(round()?.dbId)await refreshStatus();}catch(e){}},2000);
+  setInterval(async function(){try{if(!saveInProgress && round()?.dbId)await refreshStatus();}catch(e){}},2000);
 })();
 
 // V15 safety: recover/create the Supabase Friendly Game record when an
