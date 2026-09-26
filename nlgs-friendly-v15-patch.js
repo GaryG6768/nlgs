@@ -1,6 +1,6 @@
 (function(){
   console.log('NLGS FRIENDLY MULTI-SCORER TEST V15 ACTIVE');
-  let multiStatus=null, finalising=false, exactScorerId='';
+  let multiStatus=null, finalising=false, exactScorerId='', saveInProgress=false;
   const unsavedDrafts={};
 
   function credentials(){
