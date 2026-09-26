@@ -456,10 +456,7 @@ return r.data;
   game.currentHole=hole+1;
   if(typeof saveFriendlyState==='function')saveFriendlyState();
 
-  const nextHole=friendlyHoleData(game,game.currentHole);
-  document.getElementById('friendlyHoleTitle').textContent='Hole '+game.currentHole;
-  document.getElementById('friendlyHoleInfo').textContent='Par '+nextHole.par+' • SI '+nextHole.stroke_index;
-  document.getElementById('friendlyHoleNum').textContent=game.currentHole+' / 18';
+  const nextHole=friendlyHoleData(game,game.currentHole),holeInfo=document.getElementById('friendlyHoleInfo');if(holeInfo)holeInfo.textContent='Hole '+game.currentHole+' / 18 • Par '+nextHole.par+' • SI '+nextHole.stroke_index+(nextHole.yards!=null?' • '+Number(nextHole.yards).toLocaleString()+' yds':'');
 
   syncScoreCards();
   syncLeaderboard();
