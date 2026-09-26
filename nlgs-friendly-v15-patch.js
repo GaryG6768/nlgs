@@ -397,7 +397,7 @@ function holeStatus(game,h){
     }
   },true);
 
-  async function refreshStatus(){
+  async function refreshStatus(quiet){
     const game=round(),login=credentials();if(!game?.dbId||!login.name||!login.pin)return null;
     await resolveExactScorer();
     const r=await sb.rpc('get_friendly_submission_status',{p_friendly_game_id:game.dbId,p_member_name:login.name,p_member_pin:login.pin});
