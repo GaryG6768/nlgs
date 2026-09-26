@@ -1,6 +1,6 @@
 (function(){
   console.log('NLGS FRIENDLY MULTI-SCORER TEST V15 ACTIVE');
-  let multiStatus=null, finalising=false, exactScorerId='', saveInProgress=false;
+  let multiStatus=null, finalising=false, exactScorerId='';
   const unsavedDrafts={};
 
   function credentials(){
@@ -96,7 +96,7 @@
     return values.length===1?values[0]:null;
   }
 
-    function roundCompletion(game){
+  function roundCompletion(game){
     // A scorer becomes active as soon as they submit any score in this round.
     // Completion is measured by distinct hole/player submissions for each
     // active scorer.  This avoids treating 18 agreed holes as a completed
@@ -142,7 +142,7 @@
     };
   }
 
-function holeStatus(game,h){
+  function holeStatus(game,h){
     const conflicts=[];
     const scorers=holeScorers(game,h);
 
@@ -213,8 +213,6 @@ function holeStatus(game,h){
 
       let draft=unsavedDrafts[hole]?.[index];
 
-      // Preserve a score that the scorer has manually changed, even if
-      // another renderer refreshes the score card.
       if(draft===undefined && input.dataset.manualEdit==='1'){
         const v=Number(input.value);
         if(Number.isInteger(v) && v>=1 && v<=15){
@@ -359,11 +357,6 @@ function holeStatus(game,h){
     }
   }
 
-  /*
-    Keep unsaved edits in memory for each hole. The original NLGS renderer
-    can rebuild the score inputs when a hole is opened or the live refresh
-    runs; the draft must win until SAVE GROUP SCORES is pressed.
-  */
   function captureDraft(input){
     if(!input?.classList?.contains('friendly-hole-score')) return;
     const game=round();
@@ -397,14 +390,12 @@ function holeStatus(game,h){
     }
   },true);
 
-  async function refreshStatus(quiet){
+  async function refreshStatus(){
     const game=round(),login=credentials();if(!game?.dbId||!login.name||!login.pin)return null;
     await resolveExactScorer();
     const r=await sb.rpc('get_friendly_submission_status',{p_friendly_game_id:game.dbId,p_member_name:login.name,p_member_pin:login.pin});
     if(r.error)throw r.error;if(r.data?.error)throw new Error(r.data.error);
-    multiStatus=r.data;
-if(!quiet){syncScoreCards();syncLeaderboard();syncHoleGrid();ensureAgreement();lockFinalisedRound();}
-return r.data;
+    multiStatus=r.data;syncScoreCards();syncLeaderboard();syncHoleGrid();ensureAgreement();lockFinalisedRound();return r.data;
   }
 
   async function saveMulti(){
@@ -426,16 +417,13 @@ return r.data;
       delete input.dataset.manualEdit;
     });
 
-    // Re-check the hole immediately after saving. If another scorer has
-    // submitted a different value, do NOT advance to the next hole.
-    await refreshStatus(true);
+    await refreshStatus();
     const afterSave=holeStatus(game,hole);
     if(afterSave.conflicts.length){
       originalRender();
       setTimeout(function(){
         syncScoreCards();syncLeaderboard();syncHoleGrid();ensureAgreement();
 
-        // Take the scorer straight to the affected player card.
         const conflictPlayer=afterSave.conflicts[0]?.player;
         if(conflictPlayer){
           const cards=[...document.querySelectorAll('.cs-score-card')];
@@ -453,23 +441,11 @@ return r.data;
     }
 
     if(hole<18){
-  game.currentHole=hole+1;
-  if(typeof saveFriendlyState==='function')saveFriendlyState();
-
-  const nextHole=friendlyHoleData(game,game.currentHole),holeInfo=document.getElementById('friendlyHoleInfo');if(holeInfo)holeInfo.textContent='Hole '+game.currentHole+' / 18 • Par '+nextHole.par+' • SI '+nextHole.stroke_index+(nextHole.yards!=null?' • '+Number(nextHole.yards).toLocaleString()+' yds':'');
-
-  syncScoreCards();
-  syncLeaderboard();
-  syncHoleGrid();
-  ensureAgreement();
-      
+      game.currentHole=hole+1;
+      if(typeof saveFriendlyState==='function')saveFriendlyState();
+      originalRender();
+      setTimeout(()=>{syncScoreCards();syncLeaderboard();syncHoleGrid();ensureAgreement();},50);
     }else{
-      // Hole 18 has been saved. Stay on Hole 18, then take the scorer
-      // directly to the result that needs attention:
-      // 1) discrepancy -> affected player card
-      // 2) no discrepancy + round complete -> FINALISE ROUND
-      // 3) no discrepancy but another active scorer is incomplete ->
-      //    show the round-completion message.
       originalRender();
       syncScoreCards();syncLeaderboard();syncHoleGrid();ensureAgreement();
 
@@ -501,22 +477,11 @@ return r.data;
   }
 
   window.saveFriendlyScore=async function(){
-  const b=document.getElementById('friendlySaveAllBtn');
-  if(saveInProgress)return;
-  saveInProgress=true;
-  const oldText=b?b.textContent:'SAVE GROUP SCORES';
-  if(b){b.disabled=true;b.textContent='SAVING…';}
-  try{
-    await saveMulti();
-    if(typeof toast==='function')toast('Scores saved');
-  }catch(e){
-    console.error(e);
-    if(typeof toast==='function')toast(e.message||'Could not save scores');
-  }finally{
-    saveInProgress=false;
-    if(b){b.disabled=false;b.textContent=oldText||'SAVE GROUP SCORES';}
-  }
-};
+    const b=document.getElementById('friendlySaveAllBtn');if(b)b.disabled=true;
+    try{await saveMulti();if(typeof toast==='function')toast('Scores saved');}
+    catch(e){console.error(e);if(typeof toast==='function')toast(e.message||'Could not save scores');}
+    finally{if(b)b.disabled=false;}
+  };
 
   window.nlgsFinaliseFriendlyRound=async function(){
     if(finalising)return;
@@ -584,7 +549,7 @@ return r.data;
   };
 
   setTimeout(async function(){try{await resolveExactScorer();await refreshStatus();syncScoreCards();}catch(e){console.warn('Friendly test:',e);}},1200);
-  setInterval(async function(){try{if(!saveInProgress && round()?.dbId)await refreshStatus();}catch(e){}},2000);
+  setInterval(async function(){try{if(round()?.dbId)await refreshStatus();}catch(e){}},2000);
 })();
 
 // V15 safety: recover/create the Supabase Friendly Game record when an
