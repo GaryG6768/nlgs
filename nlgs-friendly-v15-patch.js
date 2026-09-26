@@ -587,7 +587,7 @@ function holeStatus(game,h){
         return game.dbId;
       }
 
-      if(!game.courseId || !game.date || !Array.isArray(game.players)||game.players.length!==4){
+      if(!game.courseId || !game.date || !Array.isArray(game.players)||game.players.length<1||game.players.length>4){
         return null;
       }
 
