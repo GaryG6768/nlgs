@@ -49,6 +49,7 @@
     const section = document.createElement('section');
     section.id = 'friendlyResults';
     section.className = 'screen';
+
     section.innerHTML =
       '<div class="label">NLGS FRIENDLY GAMES</div>' +
       '<h2 style="margin:4px 0">Friendly Game Results</h2>' +
@@ -62,8 +63,12 @@
         'onclick="show(\'home\')">← BACK TO HOME</button>';
 
     const nav = main.querySelector('nav');
-    if (nav) main.insertBefore(section, nav);
-    else main.appendChild(section);
+
+    if (nav) {
+      main.insertBefore(section, nav);
+    } else {
+      main.appendChild(section);
+    }
 
     return true;
   }
@@ -72,8 +77,13 @@
     if (typeof show === 'function') {
       show('friendlyResults');
     } else {
-      document.querySelectorAll('.screen').forEach(x => x.classList.remove('active'));
-      document.getElementById('friendlyResults')?.classList.add('active');
+      document.querySelectorAll('.screen').forEach(function (x) {
+        x.classList.remove('active');
+      });
+
+      document
+        .getElementById('friendlyResults')
+        ?.classList.add('active');
     }
   }
 
@@ -92,320 +102,777 @@
     const format = String(row?.format || 'Stableford');
 
     function holeData(h) {
-      if (Array.isArray(hd)) return hd[h - 1] || {};
-      if (hd && typeof hd === 'object') return hd[h] || hd[String(h)] || {};
+      if (Array.isArray(hd)) {
+        return hd[h - 1] || {};
+      }
+
+      if (hd && typeof hd === 'object') {
+        return hd[h] || hd[String(h)] || {};
+      }
+
       return {};
     }
 
     function shotsOnHole(playingHcp, strokeIndex) {
       const hcp = Number(playingHcp) || 0;
       const si = Number(strokeIndex) || 0;
+
       if (hcp <= 0 || si <= 0) return 0;
+
       const base = Math.floor(hcp / 18);
       const remainder = hcp % 18;
+
       return base + (si <= remainder ? 1 : 0);
     }
 
     function stablefordPoints(strokes, par, shots) {
-      const s = Number(strokes);
+      const s0 = Number(strokes);
       const p0 = Number(par);
-      if (!Number.isFinite(s) || s <= 0 || !Number.isFinite(p0)) return 0;
-      const netScore = s - (Number(shots) || 0);
-      const diff = p0 - netScore;
-      return Math.max(0, diff + 2);
-    }
 
-    const results = p.map(function (name, pi) {
-      const player = Array.isArray(pd) ? (pd[pi] || {}) : {};
-      const sc = s[name] || {};
-      let gross = 0, net = 0, pts = 0, holesPlayed = 0;
-
-      for (let h = 1; h <= 18; h++) {
-        const strokes = Number(sc[h] ?? sc[String(h)]);
-        if (!Number.isFinite(strokes) || strokes <= 0) continue;
-
-        holesPlayed++;
-        const hole = holeData(h);
-        const shots = shotsOnHole(player.playingHandicap, hole.stroke_index);
-        gross += strokes;
-        net += strokes - shots;
-        pts += stablefordPoints(strokes, hole.par, shots);
+      if (
+        !Number.isFinite(s0) ||
+        s0 <= 0 ||
+        !Number.isFinite(p0)
+      ) {
+        return 0;
       }
 
-      return {
-        name: name,
-        gross: gross,
-        net: net,
-        pts: pts,
-        holesPlayed: holesPlayed,
-        handicapIndex: player.handicapIndex,
-        courseHandicap: player.courseHandicap,
-        playingHandicap: player.playingHandicap
-      };
-    }).filter(function (x) {
-      return x.holesPlayed > 0;
-    });
+      const netScore =
+        s0 - (Number(shots) || 0);
+
+      const diff =
+        p0 - netScore;
+
+      return Math.max(
+        0,
+        diff + 2
+      );
+    }
+
+    const results =
+      p.map(function (name, pi) {
+
+        const player =
+          Array.isArray(pd)
+            ? (pd[pi] || {})
+            : {};
+
+        const sc =
+          s[name] || {};
+
+        let gross = 0;
+        let net = 0;
+        let pts = 0;
+        let holesPlayed = 0;
+
+        for (let h = 1; h <= 18; h++) {
+
+          const strokes =
+            Number(
+              sc[h] ??
+              sc[String(h)]
+            );
+
+          if (
+            !Number.isFinite(strokes) ||
+            strokes <= 0
+          ) {
+            continue;
+          }
+
+          holesPlayed++;
+
+          const hole =
+            holeData(h);
+
+          const shots =
+            shotsOnHole(
+              player.playingHandicap,
+              hole.stroke_index
+            );
+
+          gross += strokes;
+
+          net +=
+            strokes - shots;
+
+          pts +=
+            stablefordPoints(
+              strokes,
+              hole.par,
+              shots
+            );
+        }
+
+        return {
+          name: name,
+          gross: gross,
+          net: net,
+          pts: pts,
+          holesPlayed: holesPlayed,
+          handicapIndex: player.handicapIndex,
+          courseHandicap: player.courseHandicap,
+          playingHandicap: player.playingHandicap
+        };
+
+      }).filter(function (x) {
+        return x.holesPlayed > 0;
+      });
 
     results.sort(function (a, b) {
+
       return format === 'Stableford'
-        ? (b.pts - a.pts || a.net - b.net)
-        : (a.net - b.net || b.pts - a.pts);
+        ? (
+            b.pts - a.pts ||
+            a.net - b.net
+          )
+        : (
+            a.net - b.net ||
+            b.pts - a.pts
+          );
     });
 
-    const winner = results[0];
+    const winner =
+      results[0];
+
     const listTitle =
       format === 'Stableford'
-        ? (winner ? winner.pts + ' Stableford points' : '—')
-        : (winner ? winner.net + ' net' : '—');
+        ? (
+            winner
+              ? winner.pts + ' Stableford points'
+              : '—'
+          )
+        : (
+            winner
+              ? winner.net + ' net'
+              : '—'
+          );
 
-    const card = document.createElement('div');
+    const card =
+      document.createElement('div');
+
     card.className = 'card';
     card.style.marginBottom = '14px';
 
     let html =
       '<div class="row" style="align-items:flex-start">' +
+
         '<div style="min-width:0;flex:1">' +
-          '<h3 style="margin:0">' + esc(row.course_name || 'Friendly Game') + '</h3>' +
+
+          '<h3 style="margin:0">' +
+            esc(
+              row.course_name ||
+              'Friendly Game'
+            ) +
+          '</h3>' +
+
           '<div class="small" style="margin-top:5px">' +
-            esc(dateText(row.game_date)) + ' • ' +
-            esc(format) + ' • ' +
+            esc(dateText(row.game_date)) +
+            ' • ' +
+            esc(format) +
+            ' • ' +
             esc(row.tee_name || 'Yellow') +
           '</div>' +
+
         '</div>' +
+
         '<span class="pill">🔒 COMPLETE</span>' +
-      '</div>' +
-      '<div class="small" style="margin-top:8px">' +
-        (p.length ? p.map(esc).join(' • ') : 'Players not listed') +
+
       '</div>' +
 
-      (winner
-        ? '<div class="card" style="margin:14px 0 4px;background:#f8faf7;border:1px solid var(--line);text-align:center">' +
-            '<div style="font-size:30px">🏆</div>' +
-            '<h2 style="margin:4px 0">' + esc(winner.name) + '</h2>' +
-            '<b>' + esc(listTitle) + '</b>' +
-          '</div>'
-        : '') +
+      '<div class="small" style="margin-top:8px">' +
+        (
+          p.length
+            ? p.map(esc).join(' • ')
+            : 'Players not listed'
+        ) +
+      '</div>' +
+
+      (
+        winner
+          ? (
+              '<div class="card" style="margin:14px 0 4px;background:#f8faf7;border:1px solid var(--line);text-align:center">' +
+
+                '<div style="font-size:30px">🏆</div>' +
+
+                '<h2 style="margin:4px 0">' +
+                  esc(winner.name) +
+                '</h2>' +
+
+                '<b>' +
+                  esc(listTitle) +
+                '</b>' +
+
+              '</div>'
+            )
+          : ''
+      ) +
 
       '<div style="overflow-x:auto;margin-top:12px">' +
+
         '<table style="width:100%;border-collapse:collapse">' +
+
           '<thead><tr>' +
+
             '<th style="padding:7px 4px">Pos</th>' +
+
             '<th style="text-align:left;padding:7px 4px">Player</th>' +
+
             '<th style="padding:7px 4px">Gross</th>' +
+
             '<th style="padding:7px 4px">Net</th>' +
+
             '<th style="padding:7px 4px">Pts</th>' +
-          '</tr></thead><tbody>';
+
+          '</tr></thead>' +
+
+          '<tbody>';
 
     results.forEach(function (x, i) {
+
       html +=
         '<tr>' +
-          '<td style="padding:8px 4px;text-align:center"><b>' + (i + 1) + '</b></td>' +
-          '<td style="text-align:left;padding:8px 4px">' +
-            '<b>' + (i === 0 ? '🏆 ' : '') + esc(x.name) + '</b>' +
-            '<div class="small">PH ' + esc(x.playingHandicap ?? '—') +
-              ' • ' + x.holesPlayed + '/18 holes</div>' +
+
+          '<td style="padding:8px 4px;text-align:center">' +
+            '<b>' +
+              (i + 1) +
+            '</b>' +
           '</td>' +
-          '<td style="padding:8px 4px;text-align:center">' + x.gross + '</td>' +
-          '<td style="padding:8px 4px;text-align:center"><b>' + x.net + '</b></td>' +
-          '<td style="padding:8px 4px;text-align:center"><b>' + x.pts + '</b></td>' +
+
+          '<td style="text-align:left;padding:8px 4px">' +
+
+            '<b>' +
+              (
+                i === 0
+                  ? '🏆 '
+                  : ''
+              ) +
+              esc(x.name) +
+            '</b>' +
+
+            '<div class="small">' +
+              'PH ' +
+              esc(
+                x.playingHandicap ??
+                '—'
+              ) +
+              ' • ' +
+              x.holesPlayed +
+              '/18 holes' +
+            '</div>' +
+
+          '</td>' +
+
+          '<td style="padding:8px 4px;text-align:center">' +
+            x.gross +
+          '</td>' +
+
+          '<td style="padding:8px 4px;text-align:center">' +
+            '<b>' +
+              x.net +
+            '</b>' +
+          '</td>' +
+
+          '<td style="padding:8px 4px;text-align:center">' +
+            '<b>' +
+              x.pts +
+            '</b>' +
+          '</td>' +
+
         '</tr>';
     });
-    const sideRows = row.include_3s5s ? p.map(function(name, pi) {
-      const player = Array.isArray(pd) ? (pd[pi] || {}) : {};
-      const sc = s[name] || {};
-      let strokes3 = 0, points5 = 0;
 
-      for (let h = 1; h <= 18; h++) {
-        const strokes = Number(sc[h] ?? sc[String(h)]);
-        if (!Number.isFinite(strokes) || strokes <= 0) continue;
+    const sideRows =
+      row.include_3s5s
+        ? p.map(function (name, pi) {
 
-        const hole = holeData(h);
+            const player =
+              Array.isArray(pd)
+                ? (pd[pi] || {})
+                : {};
 
-        if (Number(hole.par) === 3) {
-          strokes3 += strokes;
-        }
+            const sc =
+              s[name] || {};
 
-        if (Number(hole.par) === 5) {
-          const shots = shotsOnHole(player.playingHandicap, hole.stroke_index);
-          points5 += stablefordPoints(strokes, 5, shots);
-        }
-      }
+            let strokes3 = 0;
+            let points5 = 0;
 
-      return {
-        name: name,
-        strokes3: strokes3,
-        points5: points5
-      };
-    }) : [];
+            for (let h = 1; h <= 18; h++) {
+
+              const strokes =
+                Number(
+                  sc[h] ??
+                  sc[String(h)]
+                );
+
+              if (
+                !Number.isFinite(strokes) ||
+                strokes <= 0
+              ) {
+                continue;
+              }
+
+              const hole =
+                holeData(h);
+
+              if (
+                Number(hole.par) === 3
+              ) {
+                strokes3 += strokes;
+              }
+
+              if (
+                Number(hole.par) === 5
+              ) {
+
+                const shots =
+                  shotsOnHole(
+                    player.playingHandicap,
+                    hole.stroke_index
+                  );
+
+                points5 +=
+                  stablefordPoints(
+                    strokes,
+                    5,
+                    shots
+                  );
+              }
+            }
+
+            return {
+              name: name,
+              strokes3: strokes3,
+              points5: points5
+            };
+
+          })
+        : [];
 
     let sideHtml = '';
 
     if (sideRows.length) {
-      const by3 = sideRows.slice().sort((a,b) => a.strokes3 - b.strokes3);
-      const by5 = sideRows.slice().sort((a,b) => b.points5 - a.points5);
 
-      const best3 = by3[0].strokes3;
-      const best5 = by5[0].points5;
+      const by3 =
+        sideRows
+          .slice()
+          .sort(
+            (a, b) =>
+              a.strokes3 -
+              b.strokes3
+          );
 
-      const winners3 = by3.filter(x => x.strokes3 === best3);
-      const winners5 = by5.filter(x => x.points5 === best5);
+      const by5 =
+        sideRows
+          .slice()
+          .sort(
+            (a, b) =>
+              b.points5 -
+              a.points5
+          );
+
+      const best3 =
+        by3[0].strokes3;
+
+      const best5 =
+        by5[0].points5;
+
+      const winners3 =
+        by3.filter(
+          x =>
+            x.strokes3 === best3
+        );
+
+      const winners5 =
+        by5.filter(
+          x =>
+            x.points5 === best5
+        );
 
       sideHtml =
         '<div class="card" style="margin:14px 0 4px">' +
-          '<div class="row"><h3 style="margin:0">3s &amp; 5s</h3><span class="pill">SIDE GAME</span></div>' +
-          '<div class="small" style="margin:6px 0 10px">3s uses actual strokes on par 3s. 5s uses handicap Stableford points on par 5s.</div>' +
+
+          '<div class="row">' +
+            '<h3 style="margin:0">3s &amp; 5s</h3>' +
+            '<span class="pill">SIDE GAME</span>' +
+          '</div>' +
+
+          '<div class="small" style="margin:6px 0 10px">' +
+            '3s uses actual strokes on par 3s. ' +
+            '5s uses handicap Stableford points on par 5s.' +
+          '</div>' +
+
           '<div style="overflow-x:auto">' +
+
             '<table style="width:100%;border-collapse:collapse">' +
-              '<thead><tr><th style="text-align:left;padding:7px 4px">Player</th><th style="padding:7px 4px">3s strokes</th><th style="padding:7px 4px">5s points</th></tr></thead>' +
+
+              '<thead><tr>' +
+
+                '<th style="text-align:left;padding:7px 4px">' +
+                  'Player' +
+                '</th>' +
+
+                '<th style="padding:7px 4px">' +
+                  '3s strokes' +
+                '</th>' +
+
+                '<th style="padding:7px 4px">' +
+                  '5s points' +
+                '</th>' +
+
+              '</tr></thead>' +
+
               '<tbody>' +
-                sideRows.map(x =>
-                  '<tr><td style="text-align:left;padding:8px 4px"><b>' + esc(x.name) + '</b></td><td style="text-align:center;padding:8px 4px">' + x.strokes3 + '</td><td style="text-align:center;padding:8px 4px">' + x.points5 + '</td></tr>'
-                ).join('') +
+
+                sideRows.map(function (x) {
+
+                  return (
+                    '<tr>' +
+
+                      '<td style="text-align:left;padding:8px 4px">' +
+                        '<b>' +
+                          esc(x.name) +
+                        '</b>' +
+                      '</td>' +
+
+                      '<td style="text-align:center;padding:8px 4px">' +
+                        x.strokes3 +
+                      '</td>' +
+
+                      '<td style="text-align:center;padding:8px 4px">' +
+                        x.points5 +
+                      '</td>' +
+
+                    '</tr>'
+                  );
+
+                }).join('') +
+
               '</tbody>' +
+
             '</table>' +
+
           '</div>' +
+
           '<div style="margin-top:12px">' +
+
             '<b>🏆 3s Winner:</b> ' +
-            (winners3.length > 1
-              ? 'Tie — ' + winners3.map(x => esc(x.name)).join(', ') + ' — ' + best3 + ' strokes'
-              : esc(winners3[0].name) + ' — ' + best3 + ' strokes') +
+
+            (
+              winners3.length > 1
+
+                ? (
+                    'Tie — ' +
+                    winners3
+                      .map(x => esc(x.name))
+                      .join(', ') +
+                    ' — ' +
+                    best3 +
+                    ' strokes'
+                  )
+
+                : (
+                    esc(winners3[0].name) +
+                    ' — ' +
+                    best3 +
+                    ' strokes'
+                  )
+            ) +
+
             '<br><b>🏆 5s Winner:</b> ' +
-            (winners5.length > 1
-              ? 'Tie — ' + winners5.map(x => esc(x.name)).join(', ') + ' — ' + best5 + ' points'
-              : esc(winners5[0].name) + ' — ' + best5 + ' points') +
+
+            (
+              winners5.length > 1
+
+                ? (
+                    'Tie — ' +
+                    winners5
+                      .map(x => esc(x.name))
+                      .join(', ') +
+                    ' — ' +
+                    best5 +
+                    ' points'
+                  )
+
+                : (
+                    esc(winners5[0].name) +
+                    ' — ' +
+                    best5 +
+                    ' points'
+                  )
+            ) +
+
           '</div>' +
+
         '</div>';
     }
+
     html +=
-          '</tbody></table></div>' +     sideHtml +
+      '</tbody></table></div>' +
+
+      sideHtml +
+
       '<button class="btn secondary" style="margin-top:12px" id="friendlyResultsBackBtn">' +
         '← BACK TO FRIENDLY RESULTS' +
       '</button>';
 
     card.innerHTML = html;
+
     list.innerHTML = '';
+
     list.appendChild(card);
 
-    const back = document.getElementById('friendlyResultsBackBtn');
+    const back =
+      document.getElementById(
+        'friendlyResultsBackBtn'
+      );
+
     if (back) {
+
       back.onclick = function () {
+
         showingDetails = false;
+
         loadResults();
       };
     }
   }
 
   async function loadResults() {
+
     if (showingDetails) return;
 
     makeScreen();
 
-    const list = document.getElementById('friendlyResultsList');
+    const list =
+      document.getElementById(
+        'friendlyResultsList'
+      );
+
     if (!list) return;
 
     list.innerHTML =
-      '<div class="card"><div class="small">Loading Friendly Game results…</div></div>';
+      '<div class="card">' +
+        '<div class="small">' +
+          'Loading Friendly Game results…' +
+        '</div>' +
+      '</div>';
 
     try {
-      if (typeof sb === 'undefined' || !sb?.rpc) {
-        throw new Error('Supabase connection is not available.');
+
+      if (
+        typeof sb === 'undefined' ||
+        !sb?.rpc
+      ) {
+        throw new Error(
+          'Supabase connection is not available.'
+        );
       }
 
-      const r = await sb.rpc('list_completed_friendly_games');
-      if (r.error) throw r.error;
+      const r =
+        await sb.rpc(
+          'list_completed_friendly_games'
+        );
 
-      const rows = Array.isArray(r.data) ? r.data : [];
+      if (r.error) {
+        throw r.error;
+      }
+
+      const rows =
+        Array.isArray(r.data)
+          ? r.data
+          : [];
 
       if (!rows.length) {
+
         list.innerHTML =
           '<div class="card">' +
-            '<div style="font-size:34px;text-align:center">⛳</div>' +
-            '<h3 style="text-align:center;margin:8px 0">No completed Friendly Games yet</h3>' +
+
+            '<div style="font-size:34px;text-align:center">' +
+              '⛳' +
+            '</div>' +
+
+            '<h3 style="text-align:center;margin:8px 0">' +
+              'No completed Friendly Games yet' +
+            '</h3>' +
+
             '<div class="small" style="text-align:center">' +
               'Completed Friendly Games will appear here.' +
             '</div>' +
+
           '</div>';
+
         return;
       }
 
       list.innerHTML = '';
 
       rows.forEach(function (row) {
-        const card = document.createElement('div');
+
+        const card =
+          document.createElement('div');
+
         card.className = 'card';
         card.style.marginBottom = '12px';
 
-        const p = players(row);
+        const p =
+          players(row);
 
         card.innerHTML =
           '<div class="row" style="align-items:flex-start">' +
+
             '<div style="min-width:0;flex:1">' +
-              '<h3 style="margin:0">' + esc(row.course_name || 'Friendly Game') + '</h3>' +
+
+              '<h3 style="margin:0">' +
+                esc(
+                  row.course_name ||
+                  'Friendly Game'
+                ) +
+              '</h3>' +
+
               '<div class="small" style="margin-top:5px">' +
-                esc(dateText(row.game_date)) + ' • ' +
-                esc(row.format || 'Stableford') + ' • ' +
-                esc(row.tee_name || 'Yellow') +
+                esc(
+                  dateText(row.game_date)
+                ) +
+                ' • ' +
+                esc(
+                  row.format ||
+                  'Stableford'
+                ) +
+                ' • ' +
+                esc(
+                  row.tee_name ||
+                  'Yellow'
+                ) +
               '</div>' +
+
               '<div class="small" style="margin-top:5px">' +
-                (p.length ? p.map(esc).join(' • ') : 'Players not listed') +
+                (
+                  p.length
+                    ? p.map(esc).join(' • ')
+                    : 'Players not listed'
+                ) +
               '</div>' +
+
             '</div>' +
-            '<span class="pill">🔒 COMPLETE</span>' +
+
+            '<span class="pill">' +
+              '🔒 COMPLETE' +
+            '</span>' +
+
           '</div>' +
-          '<button class="btn secondary" style="margin-top:12px">VIEW FINAL RESULTS</button>';
 
-        card.querySelector('button').onclick = function (event) {
-          if (event) {
-            event.preventDefault();
-            event.stopPropagation();
-          }
+          '<button class="btn secondary" style="margin-top:12px">' +
+            'VIEW FINAL RESULTS' +
+          '</button>';
 
-          renderGameDetails(row);
+        card
+          .querySelector('button')
+          .onclick = function (event) {
 
-          const resultScreen = document.getElementById('friendlyResults');
-          if (resultScreen) {
-            document.querySelectorAll('.screen').forEach(function (screen) {
-              screen.classList.remove('active');
+            if (event) {
+              event.preventDefault();
+              event.stopPropagation();
+            }
+
+            renderGameDetails(row);
+
+            const resultScreen =
+              document.getElementById(
+                'friendlyResults'
+              );
+
+            if (resultScreen) {
+
+              document
+                .querySelectorAll('.screen')
+                .forEach(function (screen) {
+                  screen.classList.remove('active');
+                });
+
+              resultScreen.classList.add('active');
+            }
+
+            window.scrollTo({
+              top: 0,
+              left: 0,
+              behavior: 'auto'
             });
-            resultScreen.classList.add('active');
-          }
-
-          window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
-        };
+          };
 
         list.appendChild(card);
       });
+
     } catch (e) {
-      console.error('Could not load Friendly Game results', e);
+
+      console.error(
+        'Could not load Friendly Game results',
+        e
+      );
+
       list.innerHTML =
         '<div class="card">' +
-          '<div class="small">Could not load Friendly Game results. Please try again.</div>' +
+
+          '<div class="small">' +
+            'Could not load Friendly Game results. Please try again.' +
+          '</div>' +
+
         '</div>';
     }
   }
 
   function wire() {
+
     makeScreen();
 
-    const tile = document.getElementById('friendlyResultsTile');
-    if (tile && !tile.dataset.standaloneFriendlyResults) {
+    const tile =
+      document.getElementById(
+        'friendlyResultsTile'
+      );
+
+    if (
+      tile &&
+      !tile.dataset.standaloneFriendlyResults
+    ) {
+
       tile.dataset.standaloneFriendlyResults = '1';
+
       tile.onclick = function () {
+
         showingDetails = false;
+
         showScreen();
+
         loadResults();
       };
     }
   }
 
-  const originalShow = window.show;
-  if (typeof originalShow === 'function' && !window.NLGSStandaloneFriendlyShowWrapped) {
+  const originalShow =
+    window.show;
+
+  if (
+    typeof originalShow === 'function' &&
+    !window.NLGSStandaloneFriendlyShowWrapped
+  ) {
+
     window.NLGSStandaloneFriendlyShowWrapped = true;
 
     window.show = function (id) {
-      originalShow.apply(this, arguments);
-      if (id === 'friendlyResults') {
-        setTimeout(loadResults, 50);
+
+      originalShow.apply(
+        this,
+        arguments
+      );
+
+      if (
+        id === 'friendlyResults'
+      ) {
+
+        setTimeout(
+          loadResults,
+          50
+        );
       }
     };
   }
@@ -415,894 +882,20 @@
   };
 
   wire();
-  window.addEventListener('load', function () {
-    setTimeout(wire, 300);
-  });
-  setTimeout(wire, 500);
-})();
-/* NLGS BB LIVE DISPLAY FIX — loaded after V15 */
-(function(){
-  'use strict';
 
-  const BB='2 Ball Better Ball';
-
-  function escBB(v){
-    return String(v ?? '')
-      .replace(/&/g,'&amp;')
-      .replace(/</g,'&lt;')
-      .replace(/>/g,'&gt;')
-      .replace(/"/g,'&quot;')
-      .replace(/'/g,'&#39;');
-  }
-
-  function isBB(r){
-    return String(r?.format || '') === BB;
-  }
-
-  function getPairsBB(r){
-    if(
-      Array.isArray(r?.pairs) &&
-      r.pairs.length === 2 &&
-      r.pairs.every(x => Array.isArray(x) && x.length === 2)
-    ){
-      return r.pairs;
-    }
-
-    if(
-      Array.isArray(r?.betterBallPairs) &&
-      r.betterBallPairs.length === 2 &&
-      r.betterBallPairs.every(x => Array.isArray(x) && x.length === 2)
-    ){
-      return r.betterBallPairs;
-    }
-
-    return null;
-  }
-
-  function pairTotalsBB(r){
-    const pairs = getPairsBB(r) || [];
-
-    return pairs.map(function(pair){
-      let total = 0;
-      let holes = 0;
-
-      for(let h = 1; h <= 18; h++){
-
-        const hd = friendlyHoleData(r,h);
-
-        const pts = pair.map(function(i){
-
-          const p = r.players[i];
-          const pd = (r.playerData || [])[i] || {};
-
-          const s = Number((r.scores?.[p] || {})[h]) || 0;
-
-          if(s <= 0) return 0;
-
-          const shots =
-            friendlyShotsOnHole(
-              pd.playingHandicap,
-              hd.stroke_index
-            );
-
-          return friendlyPoints(
-            s,
-            hd.par,
-            shots
-          );
-        });
-
-        const best = Math.max(0,...pts);
-
-        if(best > 0){
-          total += best;
-          holes++;
-        }
-      }
-
-      return {
-        total: total,
-        holes: holes,
-        names: pair.map(i => r.players[i])
-      };
-    });
-  }
-
-  /* ================================
-     LIVE PAIR LEADERBOARD
-     ================================ */
-
-  function renderBBLiveBB(r){
-
-    if(!isBB(r)) return false;
-
-    const list =
-      document.getElementById('friendlyPlayersList');
-
-    if(!list) return false;
-
-    const totals =
-      pairTotalsBB(r)
-        .sort((a,b) => b.total - a.total);
-
-    list.innerHTML =
-      totals.map(function(x,i){
-
-        return `
-          <div class="row"
-               style="padding:10px 0;border-bottom:1px solid var(--line)">
-
-            <div>
-              <b>
-                ${i+1}. ${x.names.map(escBB).join(' &amp; ')}
-              </b>
-
-              <div class="small">
-                ${x.holes}/18 holes counted
-              </div>
-            </div>
-
-            <span class="pill">
-              ${x.total} pts
-            </span>
-
-          </div>
-        `;
-
-      }).join('') ||
-
-      '<div class="small">No pair scores yet.</div>';
-
-    const title =
-      document.getElementById(
-        'friendlyLeaderboardTitle'
+  window.addEventListener(
+    'load',
+    function () {
+      setTimeout(
+        wire,
+        300
       );
-
-    const sub =
-      document.getElementById(
-        'friendlyLeaderboardSub'
-      );
-
-    const complete =
-      r.players.every(function(p){
-        return Object.keys(
-          r.scores?.[p] || {}
-        ).length >= 18;
-      });
-
-    if(title){
-      title.textContent =
-        complete
-          ? 'FINAL TEAM LEADERBOARD'
-          : 'LIVE TEAM LEADERBOARD';
     }
-
-    if(sub){
-      sub.innerHTML =
-        complete
-          ? '2 Ball Better Ball'
-          : '<span class="cs-live-dot"></span>' +
-            'Higher score from each pair counts';
-    }
-
-    return true;
-  }
-
-
-  /* ================================
-     WRAP LIVE SCORE DISPLAY
-     ================================ */
-
-  const baseRenderBB =
-    window.renderFriendlyScore;
-
-  if(
-    typeof baseRenderBB === 'function' &&
-    !window.NLGSBBLiveRenderFixed
-  ){
-
-    window.NLGSBBLiveRenderFixed = true;
-
-    window.renderFriendlyScore =
-      function(){
-
-        const out =
-          baseRenderBB.apply(
-            this,
-            arguments
-          );
-
-        const r =
-          typeof getFriendlyRound === 'function'
-            ? getFriendlyRound()
-            : null;
-
-        if(isBB(r)){
-          renderBBLiveBB(r);
-        }
-
-        return out;
-      };
-  }
-
-
-  /* ================================
-     WRAP FINAL LEADERBOARD
-     ================================ */
-
-  const baseFinishBB =
-    window.finishFriendlyRound;
-
-  if(
-    typeof baseFinishBB === 'function' &&
-    !window.NLGSBBLiveFinishFixed
-  ){
-
-    window.NLGSBBLiveFinishFixed = true;
-
-    window.finishFriendlyRound =
-      function(){
-
-        const r =
-          typeof getFriendlyRound === 'function'
-            ? getFriendlyRound()
-            : null;
-
-        if(!isBB(r)){
-          return baseFinishBB.apply(
-            this,
-            arguments
-          );
-        }
-
-        const result =
-          baseFinishBB.apply(
-            this,
-            arguments
-          );
-
-        setTimeout(function(){
-
-          const latest =
-            typeof getFriendlyRound === 'function'
-              ? getFriendlyRound()
-              : r;
-
-          const totals =
-            pairTotalsBB(latest)
-              .sort(
-                (a,b) => b.total - a.total
-              );
-
-
-          const title =
-            document.getElementById(
-              'friendlySummaryMode'
-            );
-
-          if(title){
-            title.textContent = BB;
-          }
-
-
-          const table =
-            document
-              .querySelector(
-                '#friendlySummaryBody'
-              )
-              ?.closest('table');
-
-          if(table){
-
-            const th =
-              table.querySelector(
-                'thead tr'
-              );
-
-            if(th){
-
-              th.innerHTML =
-                '<th>Pos</th>' +
-                '<th>Pair</th>' +
-                '<th>Points</th>' +
-                '<th>Holes</th>';
-            }
-          }
-
-
-          const body =
-            document.getElementById(
-              'friendlySummaryBody'
-            );
-
-          if(body){
-
-            body.innerHTML =
-              totals.map(function(x,i){
-
-                return `
-                  <tr>
-
-                    <td>
-                      <b>${i+1}</b>
-                    </td>
-
-                    <td style="text-align:left">
-                      <b>
-                        ${x.names.map(escBB).join(' &amp; ')}
-                      </b>
-                    </td>
-
-                    <td>
-                      <b>${x.total}</b>
-                    </td>
-
-                    <td>
-                      ${x.holes}
-                    </td>
-
-                  </tr>
-                `;
-
-              }).join('');
-          }
-
-
-          const winner =
-            document.getElementById(
-              'friendlyWinnerName'
-            );
-
-          const winnerScore =
-            document.getElementById(
-              'friendlyWinnerScore'
-            );
-
-
-          if(winner){
-
-            winner.textContent =
-              totals[0]?.names.join(' & ') || '—';
-          }
-
-
-          if(winnerScore){
-
-            winnerScore.textContent =
-              totals.length > 1 &&
-              totals[0].total === totals[1].total
-
-                ? totals[0].total +
-                  ' pts — TIED'
-
-                : (totals[0]?.total ?? 0) +
-                  ' points';
-          }
-
-
-          const cards =
-            document.getElementById(
-              'friendlySummaryPlayerCards'
-            );
-
-          if(cards){
-
-            cards.innerHTML =
-              '<div class="small" style="margin-bottom:8px">' +
-              'Each hole contributes the higher Stableford score from the two partners.' +
-              '</div>' +
-
-              totals.map(function(x,i){
-
-                return `
-                  <div
-                    style="padding:12px 0;border-bottom:1px solid var(--line)"
-                  >
-
-                    <div class="row">
-
-                      <span>
-
-                        <b>
-                          ${i===0 ? '🏆 ' : ''}
-                          Pair ${i+1}
-                        </b>
-
-                        <br>
-
-                        <span class="small">
-                          ${x.names.map(escBB).join(' &amp; ')}
-                        </span>
-
-                      </span>
-
-                      <b>
-                        ${x.total} pts
-                      </b>
-
-                    </div>
-
-                  </div>
-                `;
-
-              }).join('');
-          }
-
-        },50);
-
-        return result;
-      };
-  }
-
-})();
-/* NLGS BB V15 AGREEMENT OVERRIDE — keep pair leaderboard visible */
-(function(){
-  'use strict';
-
-  const BB = '2 Ball Better Ball';
-  let updating = false;
-
-  function escBB2(v){
-    return String(v ?? '')
-      .replace(/&/g,'&amp;')
-      .replace(/</g,'&lt;')
-      .replace(/>/g,'&gt;')
-      .replace(/"/g,'&quot;')
-      .replace(/'/g,'&#39;');
-  }
-
-  function getBBRound(){
-    return typeof getFriendlyRound === 'function'
-      ? getFriendlyRound()
-      : null;
-  }
-
-  function isBBRound(r){
-    return String(r?.format || '') === BB &&
-           Array.isArray(r?.players) &&
-           r.players.length === 4;
-  }
-
-  function getBBPairs(r){
-    if(Array.isArray(r?.pairs) &&
-       r.pairs.length === 2 &&
-       r.pairs.every(x => Array.isArray(x) && x.length === 2)){
-      return r.pairs;
-    }
-
-    if(Array.isArray(r?.betterBallPairs) &&
-       r.betterBallPairs.length === 2 &&
-       r.betterBallPairs.every(x => Array.isArray(x) && x.length === 2)){
-      return r.betterBallPairs;
-    }
-
-    return null;
-  }
-
-  function getBBTotals(r){
-
-    const pairs = getBBPairs(r);
-
-    if(!pairs) return [];
-
-    return pairs.map(function(pair){
-
-      let total = 0;
-      let holes = 0;
-
-      for(let h = 1; h <= 18; h++){
-
-        const hd = friendlyHoleData(r,h);
-
-        const scores = pair.map(function(index){
-
-          const player = r.players[index];
-          const pd = (r.playerData || [])[index] || {};
-
-          const value =
-            Number((r.scores?.[player] || {})[h]) || 0;
-
-          if(value <= 0) return 0;
-
-          const shots =
-            friendlyShotsOnHole(
-              pd.playingHandicap,
-              hd.stroke_index
-            );
-
-          return friendlyPoints(
-            value,
-            hd.par,
-            shots
-          );
-        });
-
-        const best = Math.max(0,...scores);
-
-        if(best > 0){
-          total += best;
-          holes++;
-        }
-      }
-
-      return {
-        names: pair.map(i => r.players[i]),
-        total: total,
-        holes: holes
-      };
-    });
-  }
-
-  function forceBBLeaderboard(){
-
-    if(updating) return;
-
-    const r = getBBRound();
-
-    if(!isBBRound(r)) return;
-
-    const list =
-      document.getElementById('friendlyPlayersList');
-
-    if(!list) return;
-
-    const totals =
-      getBBTotals(r)
-        .sort((a,b) => b.total - a.total);
-
-    updating = true;
-
-    list.innerHTML =
-      totals.map(function(x,i){
-
-        return `
-          <div class="row"
-               style="padding:10px 0;border-bottom:1px solid var(--line)">
-
-            <div>
-              <b>
-                ${i+1}. ${x.names.map(escBB2).join(' &amp; ')}
-              </b>
-
-              <div class="small">
-                ${x.holes}/18 holes counted
-              </div>
-            </div>
-
-            <span class="pill">
-              ${x.total} pts
-            </span>
-
-          </div>
-        `;
-
-      }).join('') ||
-      '<div class="small">No pair scores yet.</div>';
-
-    const title =
-      document.getElementById('friendlyLeaderboardTitle');
-
-    const sub =
-      document.getElementById('friendlyLeaderboardSub');
-
-    const complete =
-      r.players.every(function(player){
-        return Object.keys(
-          r.scores?.[player] || {}
-        ).length >= 18;
-      });
-
-    if(title){
-      title.textContent =
-        complete
-          ? 'FINAL TEAM LEADERBOARD'
-          : 'LIVE TEAM LEADERBOARD';
-    }
-
-    if(sub){
-      sub.innerHTML =
-        complete
-          ? '2 Ball Better Ball'
-          : '<span class="cs-live-dot"></span>' +
-            'Higher score from each pair counts';
-    }
-
-    setTimeout(function(){
-      updating = false;
-    },0);
-  }
-
-  /* Watch the V15 leaderboard and immediately replace
-     the individual-player version with the pair version. */
-
-  const list =
-    document.getElementById('friendlyPlayersList');
-
-  if(list){
-
-    const observer =
-      new MutationObserver(function(){
-
-        if(!updating){
-          setTimeout(forceBBLeaderboard,0);
-        }
-
-      });
-
-    observer.observe(list,{
-      childList:true,
-      subtree:true
-    });
-  }
-
-  /* Also refresh whenever the scoring screen renders. */
-
-  const oldRenderBB2 =
-    window.renderFriendlyScore;
-
-  if(typeof oldRenderBB2 === 'function' &&
-     !window.NLGSBBV15AgreementRenderFixed){
-
-    window.NLGSBBV15AgreementRenderFixed = true;
-
-    window.renderFriendlyScore =
-      function(){
-
-        const result =
-          oldRenderBB2.apply(this,arguments);
-
-        setTimeout(forceBBLeaderboard,100);
-        setTimeout(forceBBLeaderboard,300);
-
-        return result;
-      };
-  }
-
-  /* Initial check */
-  setTimeout(forceBBLeaderboard,100);
-  setTimeout(forceBBLeaderboard,500);
-  setTimeout(forceBBLeaderboard,1000);
-
-})();
-/* NLGS BB AGREED-SCORE SOURCE FIX */
-(function(){
-  'use strict';
-
-  function bbAgreedScore(r,index,h){
-    try{
-      if(typeof window.NLGSAgreedScore==='function'){
-  const v=window.NLGSAgreedScore(r,index,h);
-        if(v!==null && v!==undefined && Number(v)>0){
-          return Number(v);
-        }
-      }
-    }catch(e){}
-
-    const p=r?.players?.[index];
-    const v=Number((r?.scores?.[p]||{})[h]);
-
-    return Number.isFinite(v) && v>0 ? v : null;
-  }
-
-  function bbPairTotalsFromAgreed(r){
-
-  let pairs = null;
-
-  /* First use the saved pair information */
-  if(
-    Array.isArray(r?.pairs) &&
-    r.pairs.length === 2 &&
-    r.pairs.every(x => Array.isArray(x) && x.length === 2)
-  ){
-    pairs = r.pairs;
-  }
-
-  /* Then try the alternative saved field */
-  if(
-    !pairs &&
-    Array.isArray(r?.betterBallPairs) &&
-    r.betterBallPairs.length === 2 &&
-    r.betterBallPairs.every(x => Array.isArray(x) && x.length === 2)
-  ){
-    pairs = r.betterBallPairs;
-  }
-
-  /* IMPORTANT:
-     After reopening a round, V15 stores the pair
-     information in playerData[].pair */
-  if(!pairs){
-
-    const p1 = [];
-    const p2 = [];
-
-    (r.playerData || []).forEach(function(pd,index){
-
-      if(Number(pd?.pair) === 1){
-        p1.push(index);
-      }
-
-      if(Number(pd?.pair) === 2){
-        p2.push(index);
-      }
-
-    });
-
-    if(p1.length === 2 && p2.length === 2){
-      pairs = [p1,p2];
-    }
-  }
-
-  if(!pairs){
-    return [];
-  }
-
-  return pairs.map(function(pair){
-
-    let total = 0;
-    let holes = 0;
-
-    for(let h = 1; h <= 18; h++){
-
-      const hd = friendlyHoleData(r,h);
-
-      const pts = pair.map(function(index){
-
-        let score = null;
-
-        /* Read the agreed V15 score */
-        if(typeof window.NLGSAgreedScore === 'function'){
-          score = window.NLGSAgreedScore(r,index,h);
-        }
-
-        /* Fallback to the local saved score */
-        if(
-          (score === null || score === undefined) &&
-          r.players?.[index]
-        ){
-          const v =
-            Number(
-              (r.scores?.[r.players[index]] || {})[h]
-            );
-
-          if(Number.isFinite(v) && v > 0){
-            score = v;
-          }
-        }
-
-        if(score === null || score === undefined){
-          return 0;
-        }
-
-        const pd =
-          (r.playerData || [])[index] || {};
-
-        const shots =
-          friendlyShotsOnHole(
-            pd.playingHandicap,
-            hd.stroke_index
-          );
-
-        return friendlyPoints(
-          Number(score),
-          hd.par,
-          shots
-        );
-
-      });
-
-      /* Better Ball = higher score from the pair */
-      const best = Math.max(0,...pts);
-
-      if(best > 0){
-        total += best;
-        holes++;
-      }
-
-    }
-
-    return {
-      names: pair.map(function(i){
-        return r.players[i];
-      }),
-      total: total,
-      holes: holes
-    };
-
-  });
-}
-
-  function refreshBBFromAgreed(){
-
-    const r =
-      typeof getFriendlyRound==='function'
-        ? getFriendlyRound()
-        : null;
-
-    if(
-      !r ||
-      String(r.format||'')!=='2 Ball Better Ball'
-    ) return;
-
-    const list =
-      document.getElementById(
-        'friendlyPlayersList'
-      );
-
-    if(!list) return;
-
-    const totals =
-      bbPairTotalsFromAgreed(r)
-        .sort((a,b)=>b.total-a.total);
-
-    if(!totals.length) return;
-
-    list.innerHTML =
-      totals.map(function(x,i){
-
-        return `
-          <div class="row"
-               style="padding:10px 0;border-bottom:1px solid var(--line)">
-
-            <div>
-              <b>
-                ${i+1}.
-                ${x.names.map(function(v){
-                  return String(v)
-                    .replace(/&/g,'&amp;')
-                    .replace(/</g,'&lt;')
-                    .replace(/>/g,'&gt;');
-                }).join(' &amp; ')}
-              </b>
-
-              <div class="small">
-                ${x.holes}/18 holes counted
-              </div>
-            </div>
-
-            <span class="pill">
-              ${x.total} pts
-            </span>
-
-          </div>
-        `;
-
-      }).join('');
-
-    const title =
-      document.getElementById(
-        'friendlyLeaderboardTitle'
-      );
-
-    const sub =
-      document.getElementById(
-        'friendlyLeaderboardSub'
-      );
-
-    if(title){
-      title.textContent =
-        'LIVE TEAM LEADERBOARD';
-    }
-
-    if(sub){
-      sub.innerHTML =
-        '<span class="cs-live-dot"></span>' +
-        'Higher score from each pair counts';
-    }
-  }
-
-  window.NLGSBBAgreedTotals =
-    bbPairTotalsFromAgreed;
-
-  window.NLGSRefreshBBAgreed =
-    refreshBBFromAgreed;
-
-  setTimeout(refreshBBFromAgreed,100);
-  setTimeout(refreshBBFromAgreed,500);
-  setTimeout(refreshBBFromAgreed,1000);
-
-  setInterval(
-    refreshBBFromAgreed,
-    1000
+  );
+
+  setTimeout(
+    wire,
+    500
   );
 
 })();
