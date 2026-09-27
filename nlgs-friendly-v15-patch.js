@@ -269,6 +269,96 @@ window.NLGSAgreedScore = agreedScore;
   function syncLeaderboard(){
     const game=round(),list=document.getElementById('friendlyPlayersList');
     if(!game||!list||!Array.isArray(game.players))return;
+        /* 2 BALL BETTER BALL — SHOW AGREED PAIR LEADERBOARD */
+    if(String(game.format||'')==='2 Ball Better Ball' &&
+       Array.isArray(game.pairs) &&
+       game.pairs.length===2){
+
+      const pairData=game.pairs.map(function(pair){
+
+        let total=0;
+        let holes=0;
+
+        for(let h=1;h<=18;h++){
+
+          const scores=pair.map(function(index){
+
+            const score=agreedScore(game,index,h);
+
+            if(score===null)return 0;
+
+            const hd=friendlyHoleData(game,h);
+            const pd=(game.playerData||[])[index]||{};
+
+            const shots=friendlyShotsOnHole(
+              pd.playingHandicap,
+              hd.stroke_index
+            );
+
+            return friendlyPoints(
+              Number(score),
+              hd.par,
+              shots
+            );
+          });
+
+          const best=Math.max(0,...scores);
+
+          if(best>0){
+            total+=best;
+            holes++;
+          }
+        }
+
+        return {
+          names:pair.map(function(i){
+            return game.players[i];
+          }),
+          total:total,
+          holes:holes
+        };
+      });
+
+      pairData.sort(function(a,b){
+        return b.total-a.total;
+      });
+
+      list.innerHTML=pairData.map(function(x,i){
+
+        return '<div class="row" style="padding:10px 0;border-bottom:1px solid var(--line)">'+
+          '<div><b>'+(i+1)+'. '+x.names.join(' &amp; ')+'</b>'+
+          '<div class="small">'+x.holes+'/18 holes agreed</div></div>'+
+          '<span class="pill">'+x.total+' pts</span></div>';
+
+      }).join('') ||
+      '<div class="small">No agreed pair scores yet.</div>';
+
+      const fullyAgreed=[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18]
+        .filter(function(h){
+          return game.players.every(function(_,i){
+            return agreedScore(game,i,h)!==null;
+          });
+        }).length;
+
+      const title=document.getElementById('friendlyLeaderboardTitle');
+      const sub=document.getElementById('friendlyLeaderboardSub');
+
+      if(title){
+        title.textContent=
+          fullyAgreed===18
+            ? 'FINAL TEAM LEADERBOARD'
+            : 'LIVE TEAM LEADERBOARD';
+      }
+
+      if(sub){
+        sub.innerHTML=
+          fullyAgreed===18
+            ? '2 Ball Better Ball'
+            : '<span class="cs-live-dot"></span>Higher score from each pair counts';
+      }
+
+      return;
+    }
     const medal=String(game.format||'').toLowerCase()==='medal';
     const data=game.players.map(function(player,index){
       let gross=0,points=0,holes=0;
