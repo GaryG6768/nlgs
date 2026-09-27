@@ -420,3 +420,418 @@
   });
   setTimeout(wire, 500);
 })();
+/* NLGS BB LIVE DISPLAY FIX — loaded after V15 */
+(function(){
+  'use strict';
+
+  const BB='2 Ball Better Ball';
+
+  function escBB(v){
+    return String(v ?? '')
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;')
+      .replace(/'/g,'&#39;');
+  }
+
+  function isBB(r){
+    return String(r?.format || '') === BB;
+  }
+
+  function getPairsBB(r){
+    if(
+      Array.isArray(r?.pairs) &&
+      r.pairs.length === 2 &&
+      r.pairs.every(x => Array.isArray(x) && x.length === 2)
+    ){
+      return r.pairs;
+    }
+
+    if(
+      Array.isArray(r?.betterBallPairs) &&
+      r.betterBallPairs.length === 2 &&
+      r.betterBallPairs.every(x => Array.isArray(x) && x.length === 2)
+    ){
+      return r.betterBallPairs;
+    }
+
+    return null;
+  }
+
+  function pairTotalsBB(r){
+    const pairs = getPairsBB(r) || [];
+
+    return pairs.map(function(pair){
+      let total = 0;
+      let holes = 0;
+
+      for(let h = 1; h <= 18; h++){
+
+        const hd = friendlyHoleData(r,h);
+
+        const pts = pair.map(function(i){
+
+          const p = r.players[i];
+          const pd = (r.playerData || [])[i] || {};
+
+          const s = Number((r.scores?.[p] || {})[h]) || 0;
+
+          if(s <= 0) return 0;
+
+          const shots =
+            friendlyShotsOnHole(
+              pd.playingHandicap,
+              hd.stroke_index
+            );
+
+          return friendlyPoints(
+            s,
+            hd.par,
+            shots
+          );
+        });
+
+        const best = Math.max(0,...pts);
+
+        if(best > 0){
+          total += best;
+          holes++;
+        }
+      }
+
+      return {
+        total: total,
+        holes: holes,
+        names: pair.map(i => r.players[i])
+      };
+    });
+  }
+
+  /* ================================
+     LIVE PAIR LEADERBOARD
+     ================================ */
+
+  function renderBBLiveBB(r){
+
+    if(!isBB(r)) return false;
+
+    const list =
+      document.getElementById('friendlyPlayersList');
+
+    if(!list) return false;
+
+    const totals =
+      pairTotalsBB(r)
+        .sort((a,b) => b.total - a.total);
+
+    list.innerHTML =
+      totals.map(function(x,i){
+
+        return `
+          <div class="row"
+               style="padding:10px 0;border-bottom:1px solid var(--line)">
+
+            <div>
+              <b>
+                ${i+1}. ${x.names.map(escBB).join(' &amp; ')}
+              </b>
+
+              <div class="small">
+                ${x.holes}/18 holes counted
+              </div>
+            </div>
+
+            <span class="pill">
+              ${x.total} pts
+            </span>
+
+          </div>
+        `;
+
+      }).join('') ||
+
+      '<div class="small">No pair scores yet.</div>';
+
+    const title =
+      document.getElementById(
+        'friendlyLeaderboardTitle'
+      );
+
+    const sub =
+      document.getElementById(
+        'friendlyLeaderboardSub'
+      );
+
+    const complete =
+      r.players.every(function(p){
+        return Object.keys(
+          r.scores?.[p] || {}
+        ).length >= 18;
+      });
+
+    if(title){
+      title.textContent =
+        complete
+          ? 'FINAL TEAM LEADERBOARD'
+          : 'LIVE TEAM LEADERBOARD';
+    }
+
+    if(sub){
+      sub.innerHTML =
+        complete
+          ? '2 Ball Better Ball'
+          : '<span class="cs-live-dot"></span>' +
+            'Higher score from each pair counts';
+    }
+
+    return true;
+  }
+
+
+  /* ================================
+     WRAP LIVE SCORE DISPLAY
+     ================================ */
+
+  const baseRenderBB =
+    window.renderFriendlyScore;
+
+  if(
+    typeof baseRenderBB === 'function' &&
+    !window.NLGSBBLiveRenderFixed
+  ){
+
+    window.NLGSBBLiveRenderFixed = true;
+
+    window.renderFriendlyScore =
+      function(){
+
+        const out =
+          baseRenderBB.apply(
+            this,
+            arguments
+          );
+
+        const r =
+          typeof getFriendlyRound === 'function'
+            ? getFriendlyRound()
+            : null;
+
+        if(isBB(r)){
+          renderBBLiveBB(r);
+        }
+
+        return out;
+      };
+  }
+
+
+  /* ================================
+     WRAP FINAL LEADERBOARD
+     ================================ */
+
+  const baseFinishBB =
+    window.finishFriendlyRound;
+
+  if(
+    typeof baseFinishBB === 'function' &&
+    !window.NLGSBBLiveFinishFixed
+  ){
+
+    window.NLGSBBLiveFinishFixed = true;
+
+    window.finishFriendlyRound =
+      function(){
+
+        const r =
+          typeof getFriendlyRound === 'function'
+            ? getFriendlyRound()
+            : null;
+
+        if(!isBB(r)){
+          return baseFinishBB.apply(
+            this,
+            arguments
+          );
+        }
+
+        const result =
+          baseFinishBB.apply(
+            this,
+            arguments
+          );
+
+        setTimeout(function(){
+
+          const latest =
+            typeof getFriendlyRound === 'function'
+              ? getFriendlyRound()
+              : r;
+
+          const totals =
+            pairTotalsBB(latest)
+              .sort(
+                (a,b) => b.total - a.total
+              );
+
+
+          const title =
+            document.getElementById(
+              'friendlySummaryMode'
+            );
+
+          if(title){
+            title.textContent = BB;
+          }
+
+
+          const table =
+            document
+              .querySelector(
+                '#friendlySummaryBody'
+              )
+              ?.closest('table');
+
+          if(table){
+
+            const th =
+              table.querySelector(
+                'thead tr'
+              );
+
+            if(th){
+
+              th.innerHTML =
+                '<th>Pos</th>' +
+                '<th>Pair</th>' +
+                '<th>Points</th>' +
+                '<th>Holes</th>';
+            }
+          }
+
+
+          const body =
+            document.getElementById(
+              'friendlySummaryBody'
+            );
+
+          if(body){
+
+            body.innerHTML =
+              totals.map(function(x,i){
+
+                return `
+                  <tr>
+
+                    <td>
+                      <b>${i+1}</b>
+                    </td>
+
+                    <td style="text-align:left">
+                      <b>
+                        ${x.names.map(escBB).join(' &amp; ')}
+                      </b>
+                    </td>
+
+                    <td>
+                      <b>${x.total}</b>
+                    </td>
+
+                    <td>
+                      ${x.holes}
+                    </td>
+
+                  </tr>
+                `;
+
+              }).join('');
+          }
+
+
+          const winner =
+            document.getElementById(
+              'friendlyWinnerName'
+            );
+
+          const winnerScore =
+            document.getElementById(
+              'friendlyWinnerScore'
+            );
+
+
+          if(winner){
+
+            winner.textContent =
+              totals[0]?.names.join(' & ') || '—';
+          }
+
+
+          if(winnerScore){
+
+            winnerScore.textContent =
+              totals.length > 1 &&
+              totals[0].total === totals[1].total
+
+                ? totals[0].total +
+                  ' pts — TIED'
+
+                : (totals[0]?.total ?? 0) +
+                  ' points';
+          }
+
+
+          const cards =
+            document.getElementById(
+              'friendlySummaryPlayerCards'
+            );
+
+          if(cards){
+
+            cards.innerHTML =
+              '<div class="small" style="margin-bottom:8px">' +
+              'Each hole contributes the higher Stableford score from the two partners.' +
+              '</div>' +
+
+              totals.map(function(x,i){
+
+                return `
+                  <div
+                    style="padding:12px 0;border-bottom:1px solid var(--line)"
+                  >
+
+                    <div class="row">
+
+                      <span>
+
+                        <b>
+                          ${i===0 ? '🏆 ' : ''}
+                          Pair ${i+1}
+                        </b>
+
+                        <br>
+
+                        <span class="small">
+                          ${x.names.map(escBB).join(' &amp; ')}
+                        </span>
+
+                      </span>
+
+                      <b>
+                        ${x.total} pts
+                      </b>
+
+                    </div>
+
+                  </div>
+                `;
+
+              }).join('');
+          }
+
+        },50);
+
+        return result;
+      };
+  }
+
+})();
