@@ -1070,8 +1070,8 @@
 
   function bbAgreedScore(r,index,h){
     try{
-      if(typeof agreedScore==='function'){
-        const v=agreedScore(r,index,h);
+      if(typeof window.NLGSAgreedScore==='function'){
+  const v=window.NLGSAgreedScore(r,index,h);
         if(v!==null && v!==undefined && Number(v)>0){
           return Number(v);
         }
