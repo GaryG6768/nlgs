@@ -1064,3 +1064,178 @@
   setTimeout(forceBBLeaderboard,1000);
 
 })();
+/* NLGS BB AGREED-SCORE SOURCE FIX */
+(function(){
+  'use strict';
+
+  function bbAgreedScore(r,index,h){
+    try{
+      if(typeof agreedScore==='function'){
+        const v=agreedScore(r,index,h);
+        if(v!==null && v!==undefined && Number(v)>0){
+          return Number(v);
+        }
+      }
+    }catch(e){}
+
+    const p=r?.players?.[index];
+    const v=Number((r?.scores?.[p]||{})[h]);
+
+    return Number.isFinite(v) && v>0 ? v : null;
+  }
+
+  function bbPairTotalsFromAgreed(r){
+
+    const pairs =
+      Array.isArray(r?.pairs) &&
+      r.pairs.length===2 &&
+      r.pairs.every(x=>Array.isArray(x)&&x.length===2)
+        ? r.pairs
+        : (
+          Array.isArray(r?.betterBallPairs) &&
+          r.betterBallPairs.length===2 &&
+          r.betterBallPairs.every(x=>Array.isArray(x)&&x.length===2)
+            ? r.betterBallPairs
+            : []
+        );
+
+    return pairs.map(function(pair){
+
+      let total=0;
+      let holes=0;
+
+      for(let h=1;h<=18;h++){
+
+        const hd=friendlyHoleData(r,h);
+
+        const pts=pair.map(function(index){
+
+          const score=bbAgreedScore(r,index,h);
+
+          if(score===null) return 0;
+
+          const pd=(r.playerData||[])[index]||{};
+
+          const shots=friendlyShotsOnHole(
+            pd.playingHandicap,
+            hd.stroke_index
+          );
+
+          return friendlyPoints(
+            score,
+            hd.par,
+            shots
+          );
+        });
+
+        const best=Math.max(0,...pts);
+
+        if(best>0){
+          total+=best;
+          holes++;
+        }
+      }
+
+      return {
+        names:pair.map(i=>r.players[i]),
+        total:total,
+        holes:holes
+      };
+    });
+  }
+
+  function refreshBBFromAgreed(){
+
+    const r =
+      typeof getFriendlyRound==='function'
+        ? getFriendlyRound()
+        : null;
+
+    if(
+      !r ||
+      String(r.format||'')!=='2 Ball Better Ball'
+    ) return;
+
+    const list =
+      document.getElementById(
+        'friendlyPlayersList'
+      );
+
+    if(!list) return;
+
+    const totals =
+      bbPairTotalsFromAgreed(r)
+        .sort((a,b)=>b.total-a.total);
+
+    if(!totals.length) return;
+
+    list.innerHTML =
+      totals.map(function(x,i){
+
+        return `
+          <div class="row"
+               style="padding:10px 0;border-bottom:1px solid var(--line)">
+
+            <div>
+              <b>
+                ${i+1}.
+                ${x.names.map(function(v){
+                  return String(v)
+                    .replace(/&/g,'&amp;')
+                    .replace(/</g,'&lt;')
+                    .replace(/>/g,'&gt;');
+                }).join(' &amp; ')}
+              </b>
+
+              <div class="small">
+                ${x.holes}/18 holes counted
+              </div>
+            </div>
+
+            <span class="pill">
+              ${x.total} pts
+            </span>
+
+          </div>
+        `;
+
+      }).join('');
+
+    const title =
+      document.getElementById(
+        'friendlyLeaderboardTitle'
+      );
+
+    const sub =
+      document.getElementById(
+        'friendlyLeaderboardSub'
+      );
+
+    if(title){
+      title.textContent =
+        'LIVE TEAM LEADERBOARD';
+    }
+
+    if(sub){
+      sub.innerHTML =
+        '<span class="cs-live-dot"></span>' +
+        'Higher score from each pair counts';
+    }
+  }
+
+  window.NLGSBBAgreedTotals =
+    bbPairTotalsFromAgreed;
+
+  window.NLGSRefreshBBAgreed =
+    refreshBBFromAgreed;
+
+  setTimeout(refreshBBFromAgreed,100);
+  setTimeout(refreshBBFromAgreed,500);
+  setTimeout(refreshBBFromAgreed,1000);
+
+  setInterval(
+    refreshBBFromAgreed,
+    1000
+  );
+
+})();
