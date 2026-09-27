@@ -94,6 +94,9 @@
     const values=[...new Set(rs.map(function(r){return Number(r.strokes);}))]
       .filter(function(v){return Number.isFinite(v);});
     return values.length===1?values[0]:null;
+}
+
+window.NLGSAgreedScore = agreedScore;
   }
 
   function roundCompletion(game){
