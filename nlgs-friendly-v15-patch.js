@@ -97,7 +97,7 @@
 }
 
 window.NLGSAgreedScore = agreedScore;
-  }
+  
 
   function roundCompletion(game){
     // A scorer becomes active as soon as they submit any score in this round.
