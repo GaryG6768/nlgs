@@ -1086,63 +1086,130 @@
 
   function bbPairTotalsFromAgreed(r){
 
-    const pairs =
-      Array.isArray(r?.pairs) &&
-      r.pairs.length===2 &&
-      r.pairs.every(x=>Array.isArray(x)&&x.length===2)
-        ? r.pairs
-        : (
-          Array.isArray(r?.betterBallPairs) &&
-          r.betterBallPairs.length===2 &&
-          r.betterBallPairs.every(x=>Array.isArray(x)&&x.length===2)
-            ? r.betterBallPairs
-            : []
-        );
+  let pairs = null;
 
-    return pairs.map(function(pair){
+  /* First use the saved pair information */
+  if(
+    Array.isArray(r?.pairs) &&
+    r.pairs.length === 2 &&
+    r.pairs.every(x => Array.isArray(x) && x.length === 2)
+  ){
+    pairs = r.pairs;
+  }
 
-      let total=0;
-      let holes=0;
+  /* Then try the alternative saved field */
+  if(
+    !pairs &&
+    Array.isArray(r?.betterBallPairs) &&
+    r.betterBallPairs.length === 2 &&
+    r.betterBallPairs.every(x => Array.isArray(x) && x.length === 2)
+  ){
+    pairs = r.betterBallPairs;
+  }
 
-      for(let h=1;h<=18;h++){
+  /* IMPORTANT:
+     After reopening a round, V15 stores the pair
+     information in playerData[].pair */
+  if(!pairs){
 
-        const hd=friendlyHoleData(r,h);
+    const p1 = [];
+    const p2 = [];
 
-        const pts=pair.map(function(index){
+    (r.playerData || []).forEach(function(pd,index){
 
-          const score=bbAgreedScore(r,index,h);
+      if(Number(pd?.pair) === 1){
+        p1.push(index);
+      }
 
-          if(score===null) return 0;
+      if(Number(pd?.pair) === 2){
+        p2.push(index);
+      }
 
-          const pd=(r.playerData||[])[index]||{};
+    });
 
-          const shots=friendlyShotsOnHole(
+    if(p1.length === 2 && p2.length === 2){
+      pairs = [p1,p2];
+    }
+  }
+
+  if(!pairs){
+    return [];
+  }
+
+  return pairs.map(function(pair){
+
+    let total = 0;
+    let holes = 0;
+
+    for(let h = 1; h <= 18; h++){
+
+      const hd = friendlyHoleData(r,h);
+
+      const pts = pair.map(function(index){
+
+        let score = null;
+
+        /* Read the agreed V15 score */
+        if(typeof window.NLGSAgreedScore === 'function'){
+          score = window.NLGSAgreedScore(r,index,h);
+        }
+
+        /* Fallback to the local saved score */
+        if(
+          (score === null || score === undefined) &&
+          r.players?.[index]
+        ){
+          const v =
+            Number(
+              (r.scores?.[r.players[index]] || {})[h]
+            );
+
+          if(Number.isFinite(v) && v > 0){
+            score = v;
+          }
+        }
+
+        if(score === null || score === undefined){
+          return 0;
+        }
+
+        const pd =
+          (r.playerData || [])[index] || {};
+
+        const shots =
+          friendlyShotsOnHole(
             pd.playingHandicap,
             hd.stroke_index
           );
 
-          return friendlyPoints(
-            score,
-            hd.par,
-            shots
-          );
-        });
+        return friendlyPoints(
+          Number(score),
+          hd.par,
+          shots
+        );
 
-        const best=Math.max(0,...pts);
+      });
 
-        if(best>0){
-          total+=best;
-          holes++;
-        }
+      /* Better Ball = higher score from the pair */
+      const best = Math.max(0,...pts);
+
+      if(best > 0){
+        total += best;
+        holes++;
       }
 
-      return {
-        names:pair.map(i=>r.players[i]),
-        total:total,
-        holes:holes
-      };
-    });
-  }
+    }
+
+    return {
+      names: pair.map(function(i){
+        return r.players[i];
+      }),
+      total: total,
+      holes: holes
+    };
+
+  });
+}
 
   function refreshBBFromAgreed(){
 
