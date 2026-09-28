@@ -107,7 +107,7 @@
       <div class="card">
         <div class="row">
           <div class="label">ROUND HISTORY</div>
-          <button class="btn secondary" style="width:auto;padding:8px 10px" onclick="nlgsHcpClearRounds()">CLEAR</button>
+          <button id="nlgsHcpClearButton" class="btn secondary" style="width:auto;padding:8px 10px;display:none" onclick="nlgsHcpClearRounds()">CLEAR</button>
         </div>
         <div id="nlgsHcpHistory" style="max-height:360px;overflow:auto;margin-top:8px">No rounds recorded.</div>
       </div>
@@ -169,8 +169,17 @@
     return {r,form,ability,limit,handicap};
   }
 
+  function updateClearButton(){
+    const m=getMember();
+    const b=document.getElementById('nlgsHcpClearButton');
+    if(!b)return;
+    const role=String(m?.role||'').toLowerCase();
+    b.style.display=(role==='admin'||role==='handicap_admin')?'inline-block':'none';
+  }
+
   function render(){
     const m=getMember(),x=calculate();
+    updateClearButton();
     const p=document.getElementById('nlgsHcpPlayer');
     if(p)p.textContent=(m&&(m.full_name||m.name))||'Logged-in member';
 
@@ -671,38 +680,6 @@
     render();
   };
 
-  let autoSyncStarted=false;
-
-  function autoSyncOnAppOpen(){
-    if(autoSyncStarted)return;
-    const startedAt=Date.now();
-
-    function trySync(){
-      if(autoSyncStarted)return;
-
-      const member=getMember();
-      const ready=(member && typeof sb!=='undefined' && sb && typeof sb.rpc==='function');
-
-      if(ready){
-        autoSyncStarted=true;
-        // Run once when the app opens. The normal sync duplicate protection
-        // prevents an already-imported competition or Friendly Game being
-        // added again.
-        setTimeout(()=>{
-          try{ window.nlgsHcpSyncRounds(); }catch(e){}
-        },500);
-        return;
-      }
-
-      // Give the main app/login a few seconds to finish initialising.
-      if(Date.now()-startedAt<10000){
-        setTimeout(trySync,500);
-      }
-    }
-
-    trySync();
-  }
-
   function install(){
     addStyles();
     buildSection();
@@ -721,10 +698,6 @@
     }
 
     render();
-
-    // Automatically sync completed competitions and Friendly Games when the
-    // NLGS app opens, once the logged-in member and Supabase connection are ready.
-    autoSyncOnAppOpen();
   }
 
   if(document.readyState==='loading')
