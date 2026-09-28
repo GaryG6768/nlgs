@@ -98,10 +98,7 @@
       <div class="card">
         <div class="label">ADD SCORE DIFFERENTIAL</div>
         <div style="margin-top:8px">
-          <input id="nlgsHcpDiff" class="input" type="number" step="0.1" inputmode="decimal" placeholder="Score differential e.g. 12.4">
-        </div>
-        <div style="margin-top:8px">
-          <input id="nlgsHcpDate" class="input" type="date">
+          <input id="nlgsHcpDiff" class="input" type="number" step="0.1" inputmode="decimal" placeholder="e.g. 12.4">
         </div>
         <button class="btn" style="margin-top:10px" onclick="nlgsHcpAddRound()">ADD ROUND</button>
         <div id="nlgsHcpMsg" class="small" style="margin-top:8px"></div>
@@ -110,7 +107,6 @@
       <div class="card">
         <div class="row">
           <div class="label">ROUND HISTORY</div>
-          <button id="nlgsHcpClearButton" class="btn secondary" style="width:auto;padding:8px 10px;display:none" onclick="nlgsHcpClearRounds()">CLEAR</button>
         </div>
         <div id="nlgsHcpHistory" style="max-height:360px;overflow:auto;margin-top:8px">No rounds recorded.</div>
       </div>
@@ -172,18 +168,8 @@
     return {r,form,ability,limit,handicap};
   }
 
-  function updateClearButton(){
-    const m=getMember();
-    const b=document.getElementById('nlgsHcpClearButton');
-    if(!b)return;
-    const role=String(m?.role||'').toLowerCase();
-    b.style.display=(role==='admin'||role==='handicap_admin')?'inline-block':'none';
-  }
-
   function render(){
-     correctKnownRoundDates();
     const m=getMember(),x=calculate();
-    updateClearButton();
     const p=document.getElementById('nlgsHcpPlayer');
     if(p)p.textContent=(m&&(m.full_name||m.name))||'Logged-in member';
 
@@ -208,35 +194,10 @@
         let label='Manual entry';
         if(v.source==='competition')label=v.competitionName||'NLGS competition';
         if(v.source==='friendly')label=v.friendlyName||v.competitionName||'Friendly Game';
-        const dateText=v.date?String(v.date).slice(0,10):'Date not recorded';
-        return '<div style="padding:9px 0;border-bottom:1px solid var(--line)"><b>Round '+(x.r.length-i)+'</b> — Score Differential <b>'+fmt(v.diff)+'</b><br><span class="small">'+label+' • '+dateText+'</span></div>';
+        const idx=x.r.length-i-1;
+        return '<div style="padding:9px 0;border-bottom:1px solid var(--line)"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px"><div><b>Round '+(x.r.length-i)+'</b> — Score Differential <b>'+fmt(v.diff)+'</b><br><span class="small">'+label+'</span></div><button class="btn secondary" style="width:auto;padding:6px 9px;font-size:12px" onclick="nlgsHcpRemoveRound('+idx+')">CLEAR</button></div></div>';
       }).join('')
       :'No rounds recorded.';
-  }
-
-  function correctKnownRoundDates(){
-    const rounds=getRounds();
-    let changed=false;
-
-    rounds.forEach(r=>{
-      const comp=String(r.competitionName||'').toLowerCase();
-      const friendly=String(r.friendlyName||'').toLowerCase();
-      const label=comp+' '+friendly;
-      const currentDate=String(r.date||'').slice(0,10);
-
-      // Barnham was played on 14 September 2026.
-      // Correct the stored round regardless of whether the app recorded
-      // it as a competition or friendly round.
-      if(label.includes('barnham') && currentDate!=='2026-09-14'){
-        r.date='2026-09-14T12:00:00';
-        changed=true;
-      }
-    });
-
-    if(changed){
-      rounds.sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
-      saveRounds(rounds);
-    }
   }
 
   function migrateOld(){
@@ -388,160 +349,46 @@
     return i;
   }
 
-  function jsonValue(v,fallback){
-    if(v==null)return fallback;
-    if(typeof v==='string'){
-      try{return JSON.parse(v);}
-      catch(e){return fallback;}
-    }
-    return v;
-  }
-
-  function normaliseFriendlyGame(g){
-    if(!g)return null;
-    const x={...g};
-    x.players=jsonValue(x.players,[]);
-    x.player_data=jsonValue(x.player_data,[]);
-    x.hole_data=jsonValue(x.hole_data,[]);
-    x.scores=jsonValue(x.scores,{});
-    return x;
-  }
-
-  function friendlyPlayerData(game){
-    const pd=jsonValue(game.player_data,[]);
-    if(Array.isArray(pd))return pd;
-    if(pd&&typeof pd==='object'){
-      return Object.entries(pd).map(([name,value])=>({
-        ...(value&&typeof value==='object'?value:{}),
-        name:(value&&value.name)||name
-      }));
-    }
-    return [];
-  }
-
-  function friendlyScoreMap(game,pd,pi){
-    const all=jsonValue(game.scores,{});
-    const name=String(pd?.name||game.players?.[pi]||'').trim();
-    if(!all||typeof all!=='object')return {};
-    return all[name]||all[String(game.players?.[pi]||'').trim()]||{};
-  }
-
-  async function getFriendlyGameRobust(summary){
-    const sid=String(summary?.id||summary?.game_id||'');
-    let game=normaliseFriendlyGame(summary);
-
-    // The normal RPC is the authoritative route used by the Friendly Game app.
-    if(sid){
-      try{
-        const detail=await sb.rpc('get_friendly_game',{p_id:sid});
-        if(!detail.error&&detail.data){
-          const d=Array.isArray(detail.data)?detail.data[0]:detail.data;
-          if(d)game=normaliseFriendlyGame(d);
-        }
-      }catch(e){}
-    }
-
-    // If the list RPC only returns a summary, try the table directly as a
-    // fallback. This is harmless when RLS blocks it; the RPC route above
-    // remains the normal path.
-    if(sid && (!Array.isArray(game.hole_data)||game.hole_data.length!==18)){
-      try{
-        const q=await sb.from('friendly_games').select('*').eq('id',sid).maybeSingle();
-        if(!q.error&&q.data)game=normaliseFriendlyGame(q.data);
-      }catch(e){}
-    }
-
-    return game;
-  }
-
   async function syncFriendlyGames(rounds,m){
     let added=0;
-    let candidates=[];
+    const result=await sb.rpc('list_friendly_games');
+    if(result.error)throw result.error;
 
-    // Completed Friendly Games are deliberately excluded from the normal
-    // Fixtures list. Use the dedicated completed-games RPC first.
-    try{
-      const completed=await sb.rpc('list_completed_friendly_games');
-      if(!completed.error && Array.isArray(completed.data))
-        candidates=completed.data;
-    }catch(e){}
+    const games=Array.isArray(result.data)?result.data:[];
 
-    // Keep the normal list as a fallback for installations where the new
-    // completed-games RPC has not yet been added.
-    if(!candidates.length){
-      try{
-        const result=await sb.rpc('list_friendly_games');
-        if(!result.error && Array.isArray(result.data))
-          candidates=result.data;
-      }catch(e){}
-    }
-
-    // The list_friendly_games RPC is used by the Fixtures screen and can
-    // intentionally omit completed games. Always also query the table for
-    // games up to today, then merge the two sources by ID. This makes the
-    // handicap tracker independent of the Fixtures list filtering.
-    try{
-      const today=new Date().toISOString().slice(0,10);
-      const q=await sb.from('friendly_games')
-        .select('*')
-        .lte('game_date',today)
-        .order('game_date',{ascending:false});
-      if(!q.error&&Array.isArray(q.data)){
-        const seen=new Set(candidates.map(x=>String(x?.id||x?.game_id||'')));
-        q.data.forEach(g=>{
-          const id=String(g?.id||g?.game_id||'');
-          if(id&&!seen.has(id)){
-            candidates.push(g);
-            seen.add(id);
-          }
-        });
-      }
-    }catch(e){
-      // If direct table access is unavailable, the RPC candidates above
-      // remain usable.
-    }
-
-    for(const summary of candidates){
-      const gid=String(summary?.id||summary?.game_id||'');
+    for(const summary of games){
+      const gid=String(summary.id||summary.game_id||'');
       if(!gid)continue;
 
       if(rounds.some(r=>r.source==='friendly'&&String(r.friendlyGameId)===gid))
         continue;
 
-      const game=await getFriendlyGameRobust(summary);
+      const detail=await sb.rpc('get_friendly_game',{p_id:gid});
+      if(detail.error||!detail.data)continue;
+
+      const game=Array.isArray(detail.data)?detail.data[0]:detail.data;
       if(!game)continue;
 
-      const players=Array.isArray(game.players)?game.players:[];
-      const playerData=friendlyPlayerData(game);
-
-      let pi=-1;
-      const meId=String(m.id||m.member_id||'');
-      const myName=String(m.full_name||m.name||'').trim().toLowerCase();
-
-      pi=playerData.findIndex(p=>{
-        const id=String(p?.memberId||p?.member_id||p?.member_uuid||'');
-        const name=String(p?.name||'').trim().toLowerCase();
-        return (id&&id===meId)||(name&&name===myName);
-      });
-
-      if(pi<0)
-        pi=players.findIndex(n=>String(n||'').trim().toLowerCase()===myName);
-
+      const pi=friendlyPlayerIndex(game,m);
       if(pi<0)continue;
 
+      const players=Array.isArray(game.players)?game.players:[];
+      const playerData=Array.isArray(game.player_data)?game.player_data:[];
       const pd=playerData[pi]||{name:players[pi]||m.full_name||m.name};
-      const holes=jsonValue(game.hole_data,[]);
-      if(!Array.isArray(holes)||holes.length!==18)continue;
+      const holes=Array.isArray(game.hole_data)?game.hole_data:[];
 
-      const scoreMap=friendlyScoreMap(game,pd,pi);
+      if(holes.length!==18)continue;
+
+      const scoreMap=friendlyScoreMapForPlayer(game,pd,pi);
       const diff=friendlyRoundDiff(pd,scoreMap,holes,game);
 
-      // Only import when this player's own 18-hole card is complete.
+      // A friendly game only counts once the logged-in player's own
+      // 18-hole card is complete.
       if(!Number.isFinite(diff))continue;
 
-      const course=game.course_name||game.course||summary.course_name||'Golf course';
-      const format=game.format||summary.format||'Friendly Game';
-      const date=game.game_date||game.date||game.completed_at||summary.game_date||summary.date||new Date().toISOString();
+      const course=game.course_name||game.course||'Golf course';
+      const format=game.format||'Friendly Game';
+      const date=game.game_date||game.date||game.completed_at||game.created_at||new Date().toISOString();
 
       rounds.push({
         diff:Math.round(diff*10)/10,
@@ -623,7 +470,7 @@
           source:'competition',
           competitionId:cid,
           competitionName:comp.name||c.name||'NLGS competition',
-          date:String((comp.name||c.name||'')).toLowerCase().includes('barnham') ? '2026-09-14T12:00:00' : (comp.date||c.date||comp.completed_at||c.completed_at||new Date().toISOString())
+          date:comp.completed_at||comp.date||c.completed_at||c.date||new Date().toISOString()
         });
 
         competitionAdded++;
@@ -681,27 +528,39 @@
       return;
     }
 
-    const dateInput=document.getElementById('nlgsHcpDate');
-    const playedDate=dateInput?String(dateInput.value||'').trim():'';
-
-    if(!playedDate){
-      if(msg)msg.textContent='Please enter the date the round was played.';
-      return;
-    }
-
     const r=getRounds();
     r.push({
       diff:Math.round(v*10)/10,
       source:'manual',
-      date:playedDate+'T12:00:00'
+      date:new Date().toISOString()
     });
 
-    r.sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
     saveRounds(r);
 
     if(i)i.value='';
-    if(dateInput)dateInput.value='';
     if(msg)msg.textContent='Round added for '+(m.full_name||m.name)+'.';
+    render();
+  };
+
+  window.nlgsHcpRemoveRound=function(index){
+    const m=getMember();
+    if(!m)return;
+
+    const r=getRounds();
+    if(!Number.isInteger(index)||index<0||index>=r.length)return;
+
+    const round=r[index];
+    let label='Manual entry';
+    if(round.source==='competition')label=round.competitionName||'NLGS competition';
+    if(round.source==='friendly')label=round.friendlyName||round.competitionName||'Friendly Game';
+
+    if(!confirm('Clear Round '+(index+1)+' ('+fmt(round.diff)+' — '+label+') for '+(m.full_name||m.name)+'?'))return;
+
+    r.splice(index,1);
+    saveRounds(r);
+
+    const msg=document.getElementById('nlgsHcpMsg');
+    if(msg)msg.textContent='Round '+(index+1)+' cleared.';
     render();
   };
 
@@ -726,7 +585,6 @@
     addHomeTile();
     addMyGolfButton();
     migrateOld();
-    correctKnownRoundDates();
 
     if(typeof window.show==='function'&&!window.nlgsHcpShowWrappedV3){
       const originalShow=window.show;
