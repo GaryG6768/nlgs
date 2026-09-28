@@ -1,5 +1,6 @@
-/* NLGS Handicap Display
+/* NLGS Handicap Display v2
    Shows the player's current NLGS Handicap next to their name on the Home screen.
+   Automatically refreshes immediately after ADD ROUND, SYNC, or CLEAR.
 */
 (function(){
   'use strict';
@@ -94,48 +95,54 @@
       : 'Welcome, '+name;
   }
 
-  function install(){
+  function wrapFunction(name){
+    const flag='nlgsHcpDisplayWrapped_'+name;
 
+    if(window[flag] || typeof window[name]!=='function')
+      return;
+
+    const original=window[name];
+
+    window[name]=async function(){
+      const result=await original.apply(this,arguments);
+
+      // Give the handicap tracker a moment to save/recalculate first.
+      setTimeout(update,50);
+      setTimeout(update,250);
+      setTimeout(update,1000);
+
+      return result;
+    };
+
+    window[flag]=true;
+  }
+
+  function install(){
     update();
 
-    if(
-      typeof window.nlgsHcpSyncRounds==='function' &&
-      !window.nlgsHcpSyncWrappedDisplay
-    ){
-
-      const originalSync=window.nlgsHcpSyncRounds;
-
-      window.nlgsHcpSyncRounds=async function(){
-
-        const result=
-          await originalSync.apply(this,arguments);
-
-        setTimeout(update,100);
-        setTimeout(update,1000);
-
-        return result;
-      };
-
-      window.nlgsHcpSyncWrappedDisplay=true;
-    }
+    // Keep the Home screen in sync after any handicap-changing action.
+    wrapFunction('nlgsHcpAddRound');
+    wrapFunction('nlgsHcpSyncRounds');
+    wrapFunction('nlgsHcpClearRounds');
 
     let tries=0;
 
     const timer=setInterval(()=>{
-
       update();
 
-      if(++tries>=20)
+      // These functions may be installed slightly after this script.
+      wrapFunction('nlgsHcpAddRound');
+      wrapFunction('nlgsHcpSyncRounds');
+      wrapFunction('nlgsHcpClearRounds');
+
+      if(++tries>=40)
         clearInterval(timer);
 
     },500);
   }
 
   if(document.readyState==='loading')
-    document.addEventListener(
-      'DOMContentLoaded',
-      install
-    );
+    document.addEventListener('DOMContentLoaded',install);
   else
     install();
 
