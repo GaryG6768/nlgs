@@ -671,6 +671,38 @@
     render();
   };
 
+  let autoSyncStarted=false;
+
+  function autoSyncOnAppOpen(){
+    if(autoSyncStarted)return;
+    const startedAt=Date.now();
+
+    function trySync(){
+      if(autoSyncStarted)return;
+
+      const member=getMember();
+      const ready=(member && typeof sb!=='undefined' && sb && typeof sb.rpc==='function');
+
+      if(ready){
+        autoSyncStarted=true;
+        // Run once when the app opens. The normal sync duplicate protection
+        // prevents an already-imported competition or Friendly Game being
+        // added again.
+        setTimeout(()=>{
+          try{ window.nlgsHcpSyncRounds(); }catch(e){}
+        },500);
+        return;
+      }
+
+      // Give the main app/login a few seconds to finish initialising.
+      if(Date.now()-startedAt<10000){
+        setTimeout(trySync,500);
+      }
+    }
+
+    trySync();
+  }
+
   function install(){
     addStyles();
     buildSection();
@@ -689,6 +721,10 @@
     }
 
     render();
+
+    // Automatically sync completed competitions and Friendly Games when the
+    // NLGS app opens, once the logged-in member and Supabase connection are ready.
+    autoSyncOnAppOpen();
   }
 
   if(document.readyState==='loading')
