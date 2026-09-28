@@ -423,17 +423,29 @@
     if(!result.error && Array.isArray(result.data))
       candidates=result.data;
 
-    // Fallback: if the RPC does not return the played game, ask the exposed
-    // table for games up to today. RLS may reject this; that is fine.
-    if(!candidates.length){
-      try{
-        const today=new Date().toISOString().slice(0,10);
-        const q=await sb.from('friendly_games')
-          .select('*')
-          .lte('game_date',today)
-          .order('game_date',{ascending:false});
-        if(!q.error&&Array.isArray(q.data))candidates=q.data;
-      }catch(e){}
+    // The list_friendly_games RPC is used by the Fixtures screen and can
+    // intentionally omit completed games. Always also query the table for
+    // games up to today, then merge the two sources by ID. This makes the
+    // handicap tracker independent of the Fixtures list filtering.
+    try{
+      const today=new Date().toISOString().slice(0,10);
+      const q=await sb.from('friendly_games')
+        .select('*')
+        .lte('game_date',today)
+        .order('game_date',{ascending:false});
+      if(!q.error&&Array.isArray(q.data)){
+        const seen=new Set(candidates.map(x=>String(x?.id||x?.game_id||'')));
+        q.data.forEach(g=>{
+          const id=String(g?.id||g?.game_id||'');
+          if(id&&!seen.has(id)){
+            candidates.push(g);
+            seen.add(id);
+          }
+        });
+      }
+    }catch(e){
+      // If direct table access is unavailable, the RPC candidates above
+      // remain usable.
     }
 
     for(const summary of candidates){
