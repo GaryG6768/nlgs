@@ -216,15 +216,17 @@
   function correctKnownRoundDates(){
     const rounds=getRounds();
     let changed=false;
+
     rounds.forEach(r=>{
       const comp=String(r.competitionName||'').toLowerCase();
       const friendly=String(r.friendlyName||'').toLowerCase();
       const label=comp+' '+friendly;
+      const currentDate=String(r.date||'').slice(0,10);
 
-      // Barnham was played on 14 September 2026. Use the actual
-      // competition/friendly label so the round is corrected even if
-      // the database supplied a completion date instead of the played date.
-      if(label.includes('barnham') && String(r.date||'').slice(0,10)==='2026-09-28'){
+      // Barnham was played on 14 September 2026.
+      // Correct the stored round regardless of whether the app recorded
+      // it as a competition or friendly round.
+      if(label.includes('barnham') && currentDate!=='2026-09-14'){
         r.date='2026-09-14T12:00:00';
         changed=true;
       }
