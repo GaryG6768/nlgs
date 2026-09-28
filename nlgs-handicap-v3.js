@@ -98,7 +98,10 @@
       <div class="card">
         <div class="label">ADD SCORE DIFFERENTIAL</div>
         <div style="margin-top:8px">
-          <input id="nlgsHcpDiff" class="input" type="number" step="0.1" inputmode="decimal" placeholder="e.g. 12.4">
+          <input id="nlgsHcpDiff" class="input" type="number" step="0.1" inputmode="decimal" placeholder="Score differential e.g. 12.4">
+        </div>
+        <div style="margin-top:8px">
+          <input id="nlgsHcpDate" class="input" type="date">
         </div>
         <button class="btn" style="margin-top:10px" onclick="nlgsHcpAddRound()">ADD ROUND</button>
         <div id="nlgsHcpMsg" class="small" style="margin-top:8px"></div>
@@ -204,7 +207,8 @@
         let label='Manual entry';
         if(v.source==='competition')label=v.competitionName||'NLGS competition';
         if(v.source==='friendly')label=v.friendlyName||v.competitionName||'Friendly Game';
-        return '<div style="padding:9px 0;border-bottom:1px solid var(--line)"><b>Round '+(x.r.length-i)+'</b> — Score Differential <b>'+fmt(v.diff)+'</b><br><span class="small">'+label+'</span></div>';
+        const dateText=v.date?String(v.date).slice(0,10):'Date not recorded';
+        return '<div style="padding:9px 0;border-bottom:1px solid var(--line)"><b>Round '+(x.r.length-i)+'</b> — Score Differential <b>'+fmt(v.diff)+'</b><br><span class="small">'+label+' • '+dateText+'</span></div>';
       }).join('')
       :'No rounds recorded.';
   }
@@ -651,16 +655,26 @@
       return;
     }
 
+    const dateInput=document.getElementById('nlgsHcpDate');
+    const playedDate=dateInput?String(dateInput.value||'').trim():'';
+
+    if(!playedDate){
+      if(msg)msg.textContent='Please enter the date the round was played.';
+      return;
+    }
+
     const r=getRounds();
     r.push({
       diff:Math.round(v*10)/10,
       source:'manual',
-      date:new Date().toISOString()
+      date:playedDate+'T12:00:00'
     });
 
+    r.sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
     saveRounds(r);
 
     if(i)i.value='';
+    if(dateInput)dateInput.value='';
     if(msg)msg.textContent='Round added for '+(m.full_name||m.name)+'.';
     render();
   };
