@@ -419,9 +419,23 @@
     let added=0;
     let candidates=[];
 
-    const result=await sb.rpc('list_friendly_games');
-    if(!result.error && Array.isArray(result.data))
-      candidates=result.data;
+    // Completed Friendly Games are deliberately excluded from the normal
+    // Fixtures list. Use the dedicated completed-games RPC first.
+    try{
+      const completed=await sb.rpc('list_completed_friendly_games');
+      if(!completed.error && Array.isArray(completed.data))
+        candidates=completed.data;
+    }catch(e){}
+
+    // Keep the normal list as a fallback for installations where the new
+    // completed-games RPC has not yet been added.
+    if(!candidates.length){
+      try{
+        const result=await sb.rpc('list_friendly_games');
+        if(!result.error && Array.isArray(result.data))
+          candidates=result.data;
+      }catch(e){}
+    }
 
     // The list_friendly_games RPC is used by the Fixtures screen and can
     // intentionally omit completed games. Always also query the table for
