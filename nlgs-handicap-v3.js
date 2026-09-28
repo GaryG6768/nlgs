@@ -622,7 +622,7 @@
           source:'competition',
           competitionId:cid,
           competitionName:comp.name||c.name||'NLGS competition',
-          date:comp.completed_at||comp.date||c.completed_at||c.date||new Date().toISOString()
+          date:String((comp.name||c.name||'')).toLowerCase().includes('barnham') ? '2026-09-14T12:00:00' : (comp.date||c.date||comp.completed_at||c.completed_at||new Date().toISOString())
         });
 
         competitionAdded++;
