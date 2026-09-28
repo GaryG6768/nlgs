@@ -90,7 +90,7 @@
     const name=m.full_name||m.name||'';
 
     welcome.textContent=Number.isFinite(h)
-      ? 'Welcome, '+name+'  •  Handicap '+h.toFixed(1)
+      ? 'Welcome, '+name+'  •  HDC '+h.toFixed(1)
       : 'Welcome, '+name;
   }
 
