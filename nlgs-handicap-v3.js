@@ -181,6 +181,7 @@
   }
 
   function render(){
+     correctKnownRoundDates();
     const m=getMember(),x=calculate();
     updateClearButton();
     const p=document.getElementById('nlgsHcpPlayer');
