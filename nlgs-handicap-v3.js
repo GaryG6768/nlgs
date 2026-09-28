@@ -213,6 +213,25 @@
       :'No rounds recorded.';
   }
 
+  function correctKnownRoundDates(){
+    const rounds=getRounds();
+    let changed=false;
+    rounds.forEach(r=>{
+      const name=String(r.competitionName||'').toLowerCase();
+      if(r.source==='competition'&&name.includes('barnham')){
+        const correct='2026-09-14T12:00:00';
+        if(String(r.date||'').slice(0,10)!=='2026-09-14'){
+          r.date=correct;
+          changed=true;
+        }
+      }
+    });
+    if(changed){
+      rounds.sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+      saveRounds(rounds);
+    }
+  }
+
   function migrateOld(){
     try{
       const d=getAll(),k=memberKey();
@@ -700,6 +719,7 @@
     addHomeTile();
     addMyGolfButton();
     migrateOld();
+    correctKnownRoundDates();
 
     if(typeof window.show==='function'&&!window.nlgsHcpShowWrappedV3){
       const originalShow=window.show;
