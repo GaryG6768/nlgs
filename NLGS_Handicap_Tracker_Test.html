@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#064b35">
+<title>NLGS Handicap Tracker — Test</title>
+<style>
+:root{--green:#064b35;--green2:#0a6a4b;--gold:#c9a44a;--cream:#f6f3e8;--ink:#193127;--muted:#6b756f;--line:#e3e5df}
+*{box-sizing:border-box}body{margin:0;background:#e9ece5;color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+.app{max-width:480px;margin:auto;min-height:100vh;background:var(--cream);box-shadow:0 0 30px #0002}.top{background:var(--green);color:#fff;padding:14px 18px;display:flex;align-items:center;justify-content:space-between}.brand{font-family:Georgia,serif;font-size:21px;letter-spacing:1px}.sub{font-size:9px;letter-spacing:1.5px;opacity:.85}
+.screen{padding:18px 16px 95px}.hero{background:linear-gradient(160deg,#064b35,#0b7452);color:#fff;border-radius:20px;padding:22px 20px;margin-bottom:16px}.hero h1{font:30px Georgia,serif;margin:0 0 4px}.card{background:#fff;border-radius:16px;padding:16px;margin:12px 0;box-shadow:0 3px 14px #19312710}.label{font-size:12px;color:var(--muted)}.big{font-size:24px;font-weight:800}.small{font-size:12px;color:var(--muted)}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.stat{background:#f8faf7;border-radius:12px;padding:12px}.stat .value{font-size:21px;font-weight:800;color:var(--green);margin-top:4px}.row{display:flex;align-items:center;justify-content:space-between;gap:10px}.input{width:100%;padding:13px;border:1px solid #d8ddd5;border-radius:10px;background:#fff;font-size:17px}.btn{border:0;border-radius:12px;padding:13px 16px;background:var(--green);color:#fff;font-weight:750;width:100%;font-size:15px}.btn.secondary{background:#edf0e9;color:var(--green)}.history{max-height:360px;overflow:auto}.round{padding:9px 0;border-bottom:1px solid var(--line)}.rules{line-height:1.65}.warning{background:#fff7df;border-radius:10px;padding:10px;font-size:12px;color:#765b00}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="top">
+  <div style="text-align:center;width:100%"><div class="brand">NLGS</div><div class="sub">NORWICH LOCO GOLF SOCIETY</div></div>
+</header>
+
+<main class="screen">
+  <div class="hero">
+    <div class="sub">NLGS TEST VERSION</div>
+    <h1>Handicap Tracker</h1>
+    <div class="small" style="color:#fff">Ability-based NLGS handicap</div>
+  </div>
+
+  <div class="card">
+    <div class="label">PLAYER</div>
+    <div class="row" style="margin-top:8px">
+      <input id="player" class="input" placeholder="Enter player name">
+      <button class="btn" style="width:auto;white-space:nowrap" onclick="savePlayer()">SET</button>
+    </div>
+    <div id="playerMsg" class="small" style="margin-top:7px"></div>
+  </div>
+
+  <div class="card">
+    <div class="label">CURRENT NLGS HANDICAP</div>
+    <div class="grid2" style="margin-top:10px">
+      <div class="stat"><div class="small">Best 8 of last 20</div><div class="value" id="form">—</div></div>
+      <div class="stat"><div class="small">Best last 15</div><div class="value" id="ability">—</div></div>
+      <div class="stat"><div class="small">Ability limit (+5)</div><div class="value" id="limit">—</div></div>
+      <div class="stat"><div class="small">NLGS Handicap</div><div class="value" id="handicap">—</div></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="label">ADD SCORE DIFFERENTIAL</div>
+    <div style="margin-top:8px"><input id="diff" class="input" type="number" step="0.1" placeholder="e.g. 12.4"></div>
+    <button class="btn" style="margin-top:10px" onclick="addRound()">ADD ROUND</button>
+    <div id="msg" class="small" style="margin-top:8px"></div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <div class="label">ROUND HISTORY</div>
+      <button class="btn secondary" style="width:auto;padding:8px 10px" onclick="clearRounds()">CLEAR</button>
+    </div>
+    <div id="history" class="history" style="margin-top:8px">No rounds recorded.</div>
+  </div>
+
+  <div class="card">
+    <div class="label">NLGS HANDICAP RULES</div>
+    <div class="small rules" style="margin-top:8px">
+      • Current form = average of the best 8 Score Differentials from the last 20 rounds.<br>
+      • Demonstrated ability = best Score Differential from the last 15 rounds.<br>
+      • Ability limit = demonstrated ability + 5 shots.<br>
+      • NLGS Handicap = the lower of current form and the ability limit.<br>
+      • Demonstrated ability moves with the most recent 15 rounds.
+    </div>
+  </div>
+
+  <div class="warning">
+    <b>TEST VERSION:</b> This page is completely separate from the live NLGS app. It uses this browser's local storage only, so testing it cannot change the live NLGS scores or Friendly Games.
+  </div>
+</main>
+</div>
+
+<script>
+const KEY='nlgsHandicapTrackerTestV1';
+
+function getData(){
+  try{return JSON.parse(localStorage.getItem(KEY)||'{}')||{};}catch(e){return {};}
+}
+function playerName(){
+  return (localStorage.getItem(KEY+'_player')||document.getElementById('player').value||'').trim();
+}
+function rounds(){
+  const d=getData(),p=playerName();
+  return Array.isArray(d[p])?d[p]:[];
+}
+function fmt(n){return Number.isFinite(n)?n.toFixed(1):'—';}
+
+function render(){
+  const p=playerName(),r=rounds(),last20=r.slice(-20),last15=r.slice(-15);
+  document.getElementById('player').value=p;
+  const best8=last20.slice().sort((a,b)=>a-b).slice(0,8);
+  const form=best8.length?best8.reduce((a,b)=>a+b,0)/best8.length:NaN;
+  const ability=last15.length?Math.min(...last15):NaN;
+  const limit=Number.isFinite(ability)?ability+5:NaN;
+  const h=Number.isFinite(form)&&Number.isFinite(limit)?Math.min(form,limit):(Number.isFinite(form)?form:limit);
+  document.getElementById('form').textContent=fmt(form);
+  document.getElementById('ability').textContent=fmt(ability);
+  document.getElementById('limit').textContent=fmt(limit);
+  document.getElementById('handicap').textContent=fmt(h);
+
+  const hist=document.getElementById('history');
+  hist.innerHTML=r.length
+    ? r.slice().reverse().map((v,i)=>'<div class="round"><b>Round '+(r.length-i)+'</b> — Score Differential <b>'+fmt(v)+'</b></div>').join('')
+    : 'No rounds recorded.';
+}
+
+function savePlayer(){
+  const p=document.getElementById('player').value.trim();
+  if(!p){document.getElementById('playerMsg').textContent='Enter a player name.';return;}
+  localStorage.setItem(KEY+'_player',p);
+  document.getElementById('playerMsg').textContent='Now tracking '+p+'.';
+  render();
+}
+
+function addRound(){
+  const p=playerName(),input=document.getElementById('diff'),v=parseFloat(input.value);
+  if(!p){document.getElementById('msg').textContent='Set the player name first.';return;}
+  if(!Number.isFinite(v)){document.getElementById('msg').textContent='Enter a score differential.';return;}
+  const d=getData();if(!Array.isArray(d[p]))d[p]=[];
+  d[p].push(Math.round(v*10)/10);
+  localStorage.setItem(KEY,JSON.stringify(d));
+  input.value='';
+  document.getElementById('msg').textContent='Round added for '+p+'.';
+  render();
+}
+
+function clearRounds(){
+  const p=playerName();
+  if(!p)return;
+  if(!confirm('Clear all handicap rounds for '+p+'?'))return;
+  const d=getData();delete d[p];localStorage.setItem(KEY,JSON.stringify(d));
+  document.getElementById('msg').textContent='Rounds cleared.';
+  render();
+}
+
+document.addEventListener('DOMContentLoaded',render);
+</script>
+</body>
+</html>
