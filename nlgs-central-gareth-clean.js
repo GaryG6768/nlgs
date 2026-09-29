@@ -5,7 +5,7 @@
   'use strict';
 
   const ID = '6b34da97-82cd-4343-b31d-d7d84260e861';
-  const KEY = 'nlgsGarethCleanRecoveryV1';
+  const KEY = 'nlgsGarethCleanRecoveryV2';
 
   const historical = [
     {date:'2026-05-27T12:00:00',diff:25.0,source:'manual'},
