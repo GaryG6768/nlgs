@@ -41,10 +41,23 @@
   }
 
   function saveRounds(r){
-    const d=getAll();
-    d[memberKey()]=r;
-    saveAll(d);
+  const m=getMember();
+
+  if(String(m&& (m.id||m.member_id) || '')==='39e93d56-4904-4287-85d0-06a9b0568898'){
+    r=r.filter(x=>{
+      const name=String(x&&x.competitionName||'').toLowerCase();
+      const date=String(x&&x.date||'').slice(0,10);
+
+      return !(name.includes('barnham') &&
+               date==='2026-09-14' &&
+               Number(x.diff)===23.3);
+    });
   }
+
+  const d=getAll();
+  d[memberKey()]=r;
+  saveAll(d);
+}
 
   function fmt(n){return Number.isFinite(n)?n.toFixed(1):'—';}
 
