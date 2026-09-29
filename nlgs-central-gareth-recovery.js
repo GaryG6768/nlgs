@@ -27,7 +27,7 @@
     {date:'2026-08-21T12:00:00', diff:22.1, source:'manual'},
     {date:'2026-08-22T12:00:00', diff:26.5, source:'manual'},
     {date:'2026-09-19T12:00:00', diff:23.1, source:'manual'},
-    {date:'2026-09-27T12:00:00', diff:19.4, source:'manual'}
+    
   ];
 
   function getAll() {
