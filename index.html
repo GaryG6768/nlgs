@@ -283,12 +283,50 @@ html,body{overscroll-behavior-y:none}
 
 <section id="mygolf" class="screen">
   <h2 style="margin-top:0">My Golf</h2>
-  <div class="card"><div class="row"><div><div class="label">PLAYER</div><div class="big" id="myGolfName">Member</div><div class="small">Handicap <span id="myGolfHcp">—</span></div></div><span style="font-size:40px">⛳</span></div></div>
-  <div class="grid2">
-    <div class="tile"><span>Rounds played</span><b>24</b></div><div class="tile"><span>Average score</span><b>83</b></div>
-    <div class="tile"><span>Best gross</span><b>76</b></div><div class="tile"><span>Best Stableford</span><b>44</b></div>
+
+  <div class="card">
+    <div class="row">
+      <div>
+        <div class="label">PLAYER</div>
+        <div class="big" id="myGolfName">Member</div>
+        <div class="small">Handicap <span id="myGolfHcp">—</span></div>
+      </div>
+      <span style="font-size:40px">⛳</span>
+    </div>
   </div>
-  <div class="card"><h3>Recent results</h3><div class="row" style="padding:9px 0;border-bottom:1px solid var(--line)"><span>NLGS Stableford</span><b>41 pts</b></div><div class="row" style="padding:9px 0"><span>Summer Medal</span><b>72 net</b></div></div>
+
+  <div class="grid2">
+    <div class="tile">
+      <span>Rounds played</span>
+      <b id="myGolfRounds">0</b>
+    </div>
+
+    <div class="tile">
+      <span>Average differential</span>
+      <b id="myGolfAverage">—</b>
+    </div>
+
+    <div class="tile">
+      <span>Best differential</span>
+      <b id="myGolfBest">—</b>
+    </div>
+
+    <div class="tile">
+      <span>Last differential</span>
+      <b id="myGolfLast">—</b>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>Recent results</h3>
+    <div id="myGolfRecent">
+      No rounds recorded.
+    </div>
+  </div>
+
+  <button class="btn" onclick="show('handicapTracker')">
+    OPEN HANDICAP TRACKER
+  </button>
 </section>
 
 <section id="competitionBuilder" class="screen adminOnly">
