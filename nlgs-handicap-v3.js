@@ -753,7 +753,17 @@ return '<div style="padding:9px 0;border-bottom:1px solid #ddd">' +
         // Friendly sync must never stop the working competition sync.
         console.warn('Friendly Game handicap sync skipped:',e);
       }
+      // Final Barnham 2 correction for Roger.
+      if(String(m.id||m.member_id||'')==='39e93d56-4904-4287-85d0-06a9b0568898'){
+        rounds=rounds.filter(r=>{
+          const name=String(r.competitionName||'').toLowerCase();
+          const date=String(r.date||'').slice(0,10);
 
+          return !(name.includes('barnham') &&
+                   date==='2026-09-14' &&
+                   Number(r.diff)===23.3);
+        });
+      }
       rounds.sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
       saveRounds(rounds);
 correctKnownRoundDates();
