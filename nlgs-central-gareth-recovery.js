@@ -1,15 +1,14 @@
-/* NLGS CENTRAL HANDICAP RECOVERY — Gareth Joshlyn
-   One-time recovery of Gareth's 19 existing rounds.
-   Barnham is deliberately NOT included here.
-   After these 19 are restored, SYNC COMPLETED ROUNDS will add Barnham.
+/* NLGS CENTRAL HANDICAP RECOVERY V2 — Gareth Joshlyn
+   Restores Gareth's 19 historical rounds.
+   Keeps existing Barnham and Friendly Game rounds.
 */
 (function () {
   'use strict';
 
   const MEMBER_ID = '6b34da97-82cd-4343-b31d-d7d84260e861';
-  const DONE_KEY = 'nlgsGarethRecoveryV1';
+  const DONE_KEY = 'nlgsGarethRecoveryV2';
 
-  const ROUNDS = [
+  const HISTORICAL_ROUNDS = [
     {date:'2026-05-27T12:00:00', diff:25.0, source:'manual'},
     {date:'2026-05-29T12:00:00', diff:26.5, source:'manual'},
     {date:'2026-06-04T12:00:00', diff:25.6, source:'manual'},
@@ -28,16 +27,8 @@
     {date:'2026-08-21T12:00:00', diff:22.1, source:'manual'},
     {date:'2026-08-22T12:00:00', diff:26.5, source:'manual'},
     {date:'2026-09-19T12:00:00', diff:23.1, source:'manual'},
-    
+    {date:'2026-09-27T12:00:00', diff:19.4, source:'manual'}
   ];
-
-  function getMember() {
-    try {
-      return JSON.parse(sessionStorage.getItem('nlgsMember') || 'null');
-    } catch (e) {
-      return null;
-    }
-  }
 
   function getAll() {
     try {
@@ -52,16 +43,46 @@
   function restore() {
     if (localStorage.getItem(DONE_KEY) === '1') return false;
 
-    const m = getMember();
-    if (!m) return false;
+    let member;
+    try {
+      member = JSON.parse(
+        sessionStorage.getItem('nlgsMember') || 'null'
+      );
+    } catch (e) {
+      return false;
+    }
 
-    const id = String(m.id || m.member_id || '').trim();
+    if (!member) return false;
+
+    const id = String(
+      member.id || member.member_id || ''
+    ).trim();
 
     if (id !== MEMBER_ID) return false;
 
     const all = getAll();
+    const current = Array.isArray(all[MEMBER_ID])
+      ? all[MEMBER_ID]
+      : [];
 
-    all[MEMBER_ID] = ROUNDS.slice();
+    const existing = current.slice();
+
+    const barnham = existing.find(r =>
+      String(r.date || '').startsWith('2026-09-14') &&
+      String(r.course || r.name || r.label || '').toLowerCase().includes('barnham')
+    );
+
+    const friendly = existing.find(r =>
+      String(r.date || '').startsWith('2026-09-28') &&
+      String(r.course || r.name || r.label || '').toLowerCase().includes('royal cromer')
+    );
+
+    const result = HISTORICAL_ROUNDS.slice();
+
+    if (barnham) result.push(barnham);
+    if (friendly) result.push(friendly);
+
+    all[MEMBER_ID] = result;
 
     localStorage.setItem(
       'nlgsHandicapTrackerV3',
@@ -71,7 +92,7 @@
     localStorage.setItem(DONE_KEY, '1');
 
     console.log(
-      'NLGS: Gareth Joshlyn recovery complete - 19 rounds restored. Barnham not included.'
+      'NLGS: Gareth V2 recovery complete — historical rounds restored and existing Barnham/Friendly retained.'
     );
 
     return true;
@@ -79,14 +100,11 @@
 
   function waitForGareth() {
     if (restore()) return;
-
     if (localStorage.getItem(DONE_KEY) === '1') return;
-
     setTimeout(waitForGareth, 500);
   }
 
-  window.nlgsCentralGarethRecovery = restore;
+  window.nlgsCentralGarethRecoveryV2 = restore;
 
   waitForGareth();
-
 })();
