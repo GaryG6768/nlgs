@@ -1,0 +1,190 @@
+NLGS CENTRAL HANDICAP HISTORY – PATCH
+
+The Supabase database part has already been created. This patch makes the existing
+NLGS handicap tracker merge each player's local history with the central history,
+so the same handicap history follows the player onto another phone.
+
+IMPORTANT:
+- Do NOT delete any existing local handicap history.
+- Keep the existing migrateOld() and correctKnownRoundDates() functions.
+- The Barnham 2 date correction remains unchanged.
+
+FILE 1: nlgs-handicap-v3.js
+
+A) FIND THIS EXISTING BLOCK:
+
+  function saveRounds(r){
+    const d=getAll();
+    d[memberKey()]=r;
+    saveAll(d);
+  }
+
+REPLACE IT WITH:
+
+  function saveRoundsLocal(r){
+    const d=getAll();
+    d[memberKey()]=r;
+    saveAll(d);
+  }
+
+  let centralSyncTimer=null;
+  let centralSyncRunning=false;
+  let centralSyncAgain=false;
+
+  function centralMember(){
+    const m=getMember();
+    if(!m)return null;
+    const id=String(m.id||m.member_id||'').trim();
+    const fullName=String(m.full_name||m.name||'').trim();
+    if(!id||!fullName)return null;
+    return {id,fullName};
+  }
+
+  function queueCentralSave(){
+    if(centralSyncTimer)clearTimeout(centralSyncTimer);
+    centralSyncTimer=setTimeout(()=>{
+      centralSyncTimer=null;
+      syncCentralHistory();
+    },300);
+  }
+
+  function saveRounds(r){
+    saveRoundsLocal(r);
+    queueCentralSave();
+  }
+
+  async function syncCentralHistory(){
+    const cm=centralMember();
+    if(!cm||typeof sb==='undefined'||!sb||typeof sb.rpc!=='function')
+      return false;
+
+    if(centralSyncRunning){
+      centralSyncAgain=true;
+      return false;
+    }
+
+    centralSyncRunning=true;
+    try{
+      const local=getRounds();
+
+      const result=await sb.rpc('nlgs_handicap_sync',{
+        p_member_id:cm.id,
+        p_full_name:cm.fullName,
+        p_rounds:local
+      });
+
+      if(result.error){
+        console.warn('NLGS central handicap sync failed:',result.error);
+        return false;
+      }
+
+      const merged=Array.isArray(result.data)?result.data:[];
+      saveRoundsLocal(merged);
+      render();
+      return true;
+
+    }catch(e){
+      console.warn('NLGS central handicap sync failed:',e);
+      return false;
+
+    }finally{
+      centralSyncRunning=false;
+
+      if(centralSyncAgain){
+        centralSyncAgain=false;
+        queueCentralSave();
+      }
+    }
+  }
+
+
+B) FIND THE START OF syncRounds():
+
+    try{
+      let rounds=getRounds();
+      let competitionAdded=0;
+
+CHANGE IT TO:
+
+    try{
+      // First merge this phone's local history with the central NLGS history.
+      // This means a player's handicap follows them to any phone.
+      await syncCentralHistory();
+
+      let rounds=getRounds();
+      let competitionAdded=0;
+
+
+C) FIND THIS PART IN install():
+
+    render();
+
+    // Automatically sync after the player has actually logged in.
+
+CHANGE IT TO:
+
+    render();
+
+    // Pull/merge the player's central handicap history whenever the tracker
+    // is installed for an already logged-in member.
+    if(getMember())setTimeout(()=>syncCentralHistory(),250);
+
+    // Automatically sync after the player has actually logged in.
+
+
+FILE 2: index.html
+
+Find:
+
+nlgs-handicap-v3.js?v=21
+
+Change ONLY 21 to 22:
+
+nlgs-handicap-v3.js?v=22
+
+Also find:
+
+AUTO-UPDATE-111.0
+
+Change it to:
+
+AUTO-UPDATE-112.0
+
+
+FILE 3: sw.js
+
+Find:
+
+const CACHE = 'nlgs-shell-v5-scoring-boundary';
+
+Change it to:
+
+const CACHE = 'nlgs-shell-v6-central-handicap';
+
+
+WHAT THIS WILL DO
+
+1. A player's existing rounds on their current phone are uploaded to the central
+   NLGS database.
+2. If they log in on another phone, their central history is merged into that
+   phone.
+3. New manual rounds are also saved centrally.
+4. Competition and Friendly Game rounds continue to sync as before.
+5. Existing Barnham 2 date correction is kept.
+6. No existing local history is deliberately deleted.
+
+ROGER TEST
+
+After these changes are live:
+
+1. On Gary's phone, log in as Roger Margetson.
+2. Open Handicap Tracker.
+3. Let the automatic sync finish.
+4. Roger's existing history should then be in the central database.
+5. On Roger's iPhone, open:
+   https://garyg6768.github.io/nlgs/
+6. Log in as Roger.
+7. Handicap Tracker should pull the central history and should no longer show
+   only the single Barnham 2 round.
+
+Do not clear Roger's Safari data before this test.
