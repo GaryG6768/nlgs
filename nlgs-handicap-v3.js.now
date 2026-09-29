@@ -647,7 +647,7 @@
 
     const r=getRounds();
     r.push({diff:Math.round(v*10)/10,source:'manual',date:dateValue+'T12:00:00'});
-    r.sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+    
     saveRounds(r);
 
     if(i)i.value='';
