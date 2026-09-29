@@ -1,4 +1,4 @@
-/* NLGS Handicap Tracker v3
+/* NLGS Handicap Tracker v3.1
    Automatic import of completed NLGS competition rounds AND completed Friendly Games.
    Rules:
    - Current form = average of best 8 differentials from last 20 rounds.
@@ -431,6 +431,38 @@
     return game;
   }
 
+
+  function friendlyRoundStats(pd,scoreMap,holes,game){
+    let gross=0, points=0, playingHcp=Number(pd?.playingHandicap);
+    if(!Number.isFinite(playingHcp)) playingHcp=Number(pd?.playing_handicap);
+    if(!Number.isFinite(playingHcp)) playingHcp=Number(pd?.courseHandicap);
+    if(!Number.isFinite(playingHcp)) playingHcp=Number(pd?.course_handicap);
+    if(!Number.isFinite(playingHcp)) playingHcp=0;
+
+    const base=Math.floor(Math.max(0,playingHcp)/18);
+    const rem=Math.max(0,playingHcp)%18;
+
+    for(const h of holes){
+      let v=scoreMap[String(h.hole_no)];
+      if(v==null)v=scoreMap[h.hole_no];
+      const sc=Number(v);
+      const par=Number(h.par);
+      const si=Number(h.stroke_index);
+      if(!Number.isFinite(sc)||!Number.isFinite(par))continue;
+      gross+=sc;
+      const shots=base+(Number.isFinite(si)&&si<=rem?1:0);
+      const net=sc-shots;
+      points+=Math.max(0,2-(net-par));
+    }
+
+    return {
+      gross,
+      playingHcp,
+      net:gross-playingHcp,
+      stableford:points
+    };
+  }
+
   async function syncFriendlyGames(rounds,m){
     let added=0;
     let candidates=[];
@@ -466,9 +498,10 @@
     for(const summary of candidates){
       const gid=String(summary?.id||summary?.game_id||'');
       if(!gid)continue;
-      if(rounds.some(r=>r.source==='friendly'&&String(r.friendlyGameId)===gid))continue;
 
+      const existing=rounds.find(r=>r.source==='friendly'&&String(r.friendlyGameId)===gid);
       const game=await getFriendlyGameRobust(summary);
+      if(!game)continue;
       if(!game)continue;
 
       const players=Array.isArray(game.players)?game.players:[];
@@ -504,7 +537,32 @@
       const format=game.format||summary.format||'Friendly Game';
       const date=game.game_date||game.date||game.completed_at||summary.game_date||summary.date||new Date().toISOString();
 
-      rounds.push({diff:Math.round(diff*10)/10,source:'friendly',friendlyGameId:gid,friendlyName:'Friendly Game — '+course,friendlyFormat:format,date:date});
+      const stats=friendlyRoundStats(pd,scoreMap,holes,game);
+
+      if(existing){
+        existing.diff=Math.round(diff*10)/10;
+        existing.friendlyName='Friendly Game — '+course;
+        existing.friendlyFormat=format;
+        existing.date=date;
+        existing.gross=stats.gross;
+        existing.net=stats.net;
+        existing.stableford=stats.stableford;
+        existing.playingHcp=stats.playingHcp;
+        continue;
+      }
+
+      rounds.push({
+        diff:Math.round(diff*10)/10,
+        source:'friendly',
+        friendlyGameId:gid,
+        friendlyName:'Friendly Game — '+course,
+        friendlyFormat:format,
+        date:date,
+        gross:stats.gross,
+        net:stats.net,
+        stableford:stats.stableford,
+        playingHcp:stats.playingHcp
+      });
       added++;
     }
     return added;
@@ -686,14 +744,57 @@
 
     render();
 
-    // Automatically import any newly completed competition/friendly rounds
-    // when the app opens. The manual SYNC button remains available.
-    if(!window.nlgsHcpAutoSyncStarted){
-      window.nlgsHcpAutoSyncStarted=true;
-      setTimeout(()=>{
-        if(getMember()&&typeof window.nlgsHcpSyncRounds==='function')
-          window.nlgsHcpSyncRounds();
-      },700);
+    // Automatically sync after the player has actually logged in.
+    // The handicap script can load before login, so a one-off timer is not
+    // reliable. Hook the main app's openApp() and keep a short fallback.
+    if(!window.nlgsHcpAutoSyncHooked){
+      window.nlgsHcpAutoSyncHooked=true;
+
+      const runAutoSync=()=>{
+        if(getMember()&&typeof window.nlgsHcpSyncRounds==='function'){
+          setTimeout(()=>{
+            try{ window.nlgsHcpSyncRounds(); }catch(e){}
+          },400);
+        }
+      };
+
+      // The main NLGS login calls openApp(member). This runs immediately
+      // after a successful login, when nlgsMember is already stored.
+      const wrapOpenApp=()=>{
+        if(typeof window.openApp==='function'&&!window.nlgsHcpOpenAppWrapped){
+          const originalOpenApp=window.openApp;
+          window.openApp=function(m){
+            const result=originalOpenApp.apply(this,arguments);
+            setTimeout(runAutoSync,250);
+            return result;
+          };
+          window.nlgsHcpOpenAppWrapped=true;
+          return true;
+        }
+        return false;
+      };
+
+      wrapOpenApp();
+
+      // Fallback for an already logged-in session or if openApp was not
+      // available at the instant this script loaded.
+      let attempts=0;
+      const retry=setInterval(()=>{
+        attempts++;
+        wrapOpenApp();
+        if(getMember()){
+          runAutoSync();
+          clearInterval(retry);
+        }else if(attempts>=60){
+          clearInterval(retry);
+        }
+      },500);
+
+      // Re-sync when the app returns to the foreground.
+      document.addEventListener('visibilitychange',()=>{
+        if(document.visibilityState==='visible')runAutoSync();
+      });
+      window.addEventListener('pageshow',runAutoSync);
     }
   }
 
