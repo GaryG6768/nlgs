@@ -274,7 +274,8 @@
     :'No rounds recorded.';
 }
    function migrateOld(){
-      const d=getAll(),k=memberKey();
+  try{
+    const d=getAll(),k=memberKey();
       if(Array.isArray(d[k])&&d[k].length)return;
 
       const old2=JSON.parse(localStorage.getItem(OLD_KEY_V2)||'{}');
