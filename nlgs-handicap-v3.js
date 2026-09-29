@@ -729,7 +729,23 @@ return '<div style="padding:9px 0;border-bottom:1px solid #ddd">' +
 
         competitionAdded++;
       }
+      // Roger's Barnham 2 correction.
+      // The original competition import incorrectly produces 23.3.
+      // The genuine round is the 22.4 manual entry dated 14/09/2026.
+      if(String(m.id||m.member_id||'')==='39e93d56-4904-4287-85d0-06a9b0568898'){
+        rounds=rounds.filter(r=>{
+          const name=String(r.competitionName||'').toLowerCase();
+          const date=String(r.date||'').slice(0,10);
 
+          if(name.includes('barnham') &&
+             date==='2026-09-14' &&
+             Number(r.diff)===23.3){
+            return false;
+          }
+
+          return true;
+        });
+      }
       // New: Friendly Game import.
       try{
         friendlyAdded=await syncFriendlyGames(rounds,m);
