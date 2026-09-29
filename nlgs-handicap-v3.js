@@ -733,7 +733,7 @@
 
       rounds.sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
       saveRounds(rounds);
-
+correctKnownRoundDates();
       const messages=[];
       if(competitionAdded)
         messages.push(competitionAdded+' competition round'+(competitionAdded===1?'':'s'));
