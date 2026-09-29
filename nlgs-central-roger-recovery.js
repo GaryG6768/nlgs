@@ -1,11 +1,12 @@
-/* NLGS CENTRAL HANDICAP RECOVERY / SYNC v1
-   Loads the logged-in player's central handicap history from Supabase.
-   It deliberately does NOT replace the existing nlgs-handicap-v3.js.
+/* NLGS CENTRAL HANDICAP RECOVERY / SYNC v2
+   One-time recovery for Roger Margetson.
+   Waits for login, then restores his 20 genuine rounds.
 */
 (function () {
   'use strict';
 
   const MEMBER_ID = '39e93d56-4904-4287-85d0-06a9b0568898';
+
   const ROUNDS = [
     {date:'2026-06-29T12:00:00', diff:25.6, source:'manual'},
     {date:'2026-07-03T12:00:00', diff:19.6, source:'manual'},
@@ -29,34 +30,59 @@
     {date:'2026-09-24T12:00:00', diff:23.0, source:'manual'}
   ];
 
-  function member() {
-    try { return JSON.parse(sessionStorage.getItem('nlgsMember') || 'null'); }
-    catch (e) { return null; }
+  function getMember() {
+    try {
+      return JSON.parse(sessionStorage.getItem('nlgsMember') || 'null');
+    } catch (e) {
+      return null;
+    }
   }
 
   function getAll() {
-    try { return JSON.parse(localStorage.getItem('nlgsHandicapTrackerV3') || '{}') || {}; }
-    catch (e) { return {}; }
+    try {
+      return JSON.parse(
+        localStorage.getItem('nlgsHandicapTrackerV3') || '{}'
+      ) || {};
+    } catch (e) {
+      return {};
+    }
   }
 
-  function saveAll(x) {
-    localStorage.setItem('nlgsHandicapTrackerV3', JSON.stringify(x));
-  }
+  function restore() {
+    const m = getMember();
 
-  async function run() {
-    const m = member();
-    if (!m || String(m.id || m.member_id || '') !== MEMBER_ID) return;
+    if (!m) return false;
+
+    const id = String(m.id || m.member_id || '').trim();
+
+    if (id !== MEMBER_ID) return false;
 
     const all = getAll();
+
     all[MEMBER_ID] = ROUNDS.slice();
-    saveAll(all);
 
-    if (typeof window.render === 'function') window.render();
+    localStorage.setItem(
+      'nlgsHandicapTrackerV3',
+      JSON.stringify(all)
+    );
 
-    const msg = document.getElementById('nlgsHcpMsg');
-    if (msg) msg.textContent = 'Roger Margetson: 20 genuine rounds restored.';
+    console.log(
+      'NLGS: Roger Margetson recovery complete - 20 rounds restored.'
+    );
+
+    return true;
   }
 
-  window.nlgsCentralRogerRecovery = run;
-  run();
+  function waitForRoger() {
+    if (restore()) {
+      return;
+    }
+
+    setTimeout(waitForRoger, 500);
+  }
+
+  window.nlgsCentralRogerRecovery = restore;
+
+  waitForRoger();
+
 })();
