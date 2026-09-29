@@ -323,7 +323,7 @@
       }
     });
     if(changed){
-      rounds.sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+   
       saveRounds(rounds);
     }
   }
@@ -619,7 +619,7 @@
       try{friendlyAdded=await syncFriendlyGames(rounds,m);}
       catch(e){console.warn('Friendly Game handicap sync skipped:',e);}
 
-      rounds.sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+      
       saveRounds(rounds);
       correctKnownRoundDates();
 
