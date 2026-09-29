@@ -27,7 +27,7 @@
     {date:'2026-09-14T12:00:00', diff:22.4, source:'manual', competitionName:'Barnham 2'},
     {date:'2026-09-16T12:00:00', diff:19.3, source:'manual'},
     {date:'2026-09-18T12:00:00', diff:20.1, source:'manual'},
-    {date:'2026-09-24T12:00:00', diff:23.0, source:'manual'}
+    
   ];
 
   function getMember() {
