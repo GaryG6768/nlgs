@@ -729,8 +729,23 @@ return '<div style="padding:9px 0;border-bottom:1px solid #ddd">' +
 
         if(scores.length<18)continue;
 
-        const diff=courseRoundDiff(p,scores,data.holes||[],comp);
-        if(!Number.isFinite(diff))continue;
+// Roger's Barnham 2 result is already recorded correctly as 22.4.
+// Do not import the automatic Barnham calculation, which produces 23.3.
+const isRoger = String(m.id||m.member_id||'') ===
+  '39e93d56-4904-4287-85d0-06a9b0568898';
+
+const isBarnham =
+  String(comp.name||'').toLowerCase().includes('barnham');
+
+const compDate =
+  String(comp.competition_date||comp.date||'').slice(0,10);
+
+if(isRoger && isBarnham && compDate==='2026-09-14'){
+  continue;
+}
+
+const diff=courseRoundDiff(p,scores,data.holes||[],comp);
+if(!Number.isFinite(diff))continue;
 
         rounds.push({
           diff:Math.round(diff*10)/10,
