@@ -170,54 +170,109 @@
   }
 
   function render(){
-    const m=getMember(),x=calculate();
-    const p=document.getElementById('nlgsHcpPlayer');
-    if(p)p.textContent=(m&&(m.full_name||m.name))||'Logged-in member';
+  const m=getMember(),x=calculate();
 
-    [
-      ['nlgsHcpForm',x.form],
-      ['nlgsHcpAbility',x.ability],
-      ['nlgsHcpLimit',x.limit],
-      ['nlgsHcpValue',x.handicap]
-    ].forEach(a=>{
-      const e=document.getElementById(a[0]);
-      if(e)e.textContent=fmt(a[1]);
-    });
+  const p=document.getElementById('nlgsHcpPlayer');
+  if(p)p.textContent=(m&&(m.full_name||m.name))||'Logged-in member';
 
-    const mh=document.getElementById('myGolfHcp');
-    if(mh)mh.textContent=fmt(x.handicap);
+  [
+    ['nlgsHcpForm',x.form],
+    ['nlgsHcpAbility',x.ability],
+    ['nlgsHcpLimit',x.limit],
+    ['nlgsHcpValue',x.handicap]
+  ].forEach(a=>{
+    const e=document.getElementById(a[0]);
+    if(e)e.textContent=fmt(a[1]);
+  });
 
-    // Keep My Golf's Rounds played figure tied to the handicap tracker,
-    // rather than the old hard-coded placeholder value.
-    const myGolfTiles=document.querySelectorAll('#mygolf .tile');
-    myGolfTiles.forEach(tile=>{
-      const label=tile.querySelector('span');
-      const value=tile.querySelector('b');
-      if(label&&value&&label.textContent.trim()==='Rounds played')
-        value.textContent=String(x.r.length);
-    });
+  // My Golf player and handicap
+  const name=document.getElementById('myGolfName');
+  if(name)name.textContent=(m&&(m.full_name||m.name))||'Member';
 
-    const h=document.getElementById('nlgsHcpHistory');
-    if(!h)return;
+  const mh=document.getElementById('myGolfHcp');
+  if(mh)mh.textContent=fmt(x.handicap);
 
-    h.innerHTML=x.r.length
-      ?x.r.slice().reverse().map((v,i)=>{
-        let label='Manual entry';
-        if(v.source==='competition')label=v.competitionName||'NLGS competition';
-        if(v.source==='friendly')label=v.friendlyName||v.competitionName||'Friendly Game';
-        const actualIndex=x.r.length-1-i;
-        return '<div style="padding:9px 0;border-bottom:1px solid var(--line)">' +
-          '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">' +
-          '<div><b>Round '+(x.r.length-i)+'</b> — Score Differential <b>'+fmt(v.diff)+'</b><br>' +
-          '<span class="small">'+label+'</span></div>' +
-          '<button class="btn secondary" style="width:auto;padding:6px 9px;font-size:12px;white-space:nowrap" onclick="nlgsHcpRemoveRound('+actualIndex+')">CLEAR</button>' +
-          '</div></div>';
-      }).join('')
-      :'No rounds recorded.';
+  // My Golf statistics
+  const roundsEl=document.getElementById('myGolfRounds');
+  const averageEl=document.getElementById('myGolfAverage');
+  const bestEl=document.getElementById('myGolfBest');
+  const lastEl=document.getElementById('myGolfLast');
+
+  if(roundsEl)roundsEl.textContent=String(x.r.length);
+
+  if(x.r.length){
+    const diffs=x.r.map(r=>Number(r.diff)).filter(Number.isFinite);
+    const average=diffs.length
+      ?diffs.reduce((a,b)=>a+b,0)/diffs.length
+      :NaN;
+    const best=diffs.length?Math.min(...diffs):NaN;
+    const last=diffs.length?diffs[diffs.length-1]:NaN;
+
+    if(averageEl)averageEl.textContent=fmt(average);
+    if(bestEl)bestEl.textContent=fmt(best);
+    if(lastEl)lastEl.textContent=fmt(last);
+  }else{
+    if(averageEl)averageEl.textContent='—';
+    if(bestEl)bestEl.textContent='—';
+    if(lastEl)lastEl.textContent='—';
   }
 
-  function migrateOld(){
-    try{
+  // Recent results
+  const recent=document.getElementById('myGolfRecent');
+
+  if(recent){
+    if(!x.r.length){
+      recent.textContent='No rounds recorded.';
+    }else{
+      recent.innerHTML=x.r.slice().reverse().slice(0,5).map((v,i)=>{
+        let label='Manual entry';
+
+        if(v.source==='competition')
+          label=v.competitionName||'NLGS competition';
+
+        if(v.source==='friendly')
+          label=v.friendlyName||v.competitionName||'Friendly Game';
+
+        let date='';
+        if(v.date){
+          const d=new Date(v.date);
+          if(!isNaN(d.getTime()))
+            date=d.toLocaleDateString('en-GB');
+        }
+
+        return '<div class="row" style="padding:9px 0;border-bottom:1px solid var(--line)">' +
+          '<div><b>'+label+'</b><br>' +
+          '<span class="small">'+date+'</span></div>' +
+          '<b>'+fmt(v.diff)+'</b>' +
+          '</div>';
+      }).join('');
+    }
+  }
+
+  const h=document.getElementById('nlgsHcpHistory');
+  if(!h)return;
+
+  h.innerHTML=x.r.length
+    ?x.r.slice().reverse().map((v,i)=>{
+      let label='Manual entry';
+
+      if(v.source==='competition')
+        label=v.competitionName||'NLGS competition';
+
+      if(v.source==='friendly')
+        label=v.friendlyName||v.competitionName||'Friendly Game';
+
+      const actualIndex=x.r.length-1-i;
+
+      return '<div style="padding:9px 0;border-bottom:1px solid var(--line)">' +
+        '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">' +
+        '<div><b>Round '+(x.r.length-i)+'</b> — Score Differential <b>'+fmt(v.diff)+'</b><br>' +
+        '<span class="small">'+label+'</span></div>' +
+        '<button class="btn secondary" style="width:auto;padding:6px 9px;font-size:12px;white-space:nowrap" onclick="nlgsHcpRemoveRound('+actualIndex+')">CLEAR</button>' +
+        '</div></div>';
+    }).join('')
+    :'No rounds recorded.';
+}
       const d=getAll(),k=memberKey();
       if(Array.isArray(d[k])&&d[k].length)return;
 
