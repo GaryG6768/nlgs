@@ -273,6 +273,7 @@
     }).join('')
     :'No rounds recorded.';
 }
+   function migrateOld(){
       const d=getAll(),k=memberKey();
       if(Array.isArray(d[k])&&d[k].length)return;
 
