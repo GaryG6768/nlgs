@@ -270,12 +270,19 @@
 
       const actualIndex=x.r.length-1-i;
 
-      return '<div style="padding:9px 0;border-bottom:1px solid var(--line)">' +
-        '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start">' +
-        '<div><b>Round '+(x.r.length-i)+'</b> — Score Differential <b>'+fmt(v.diff)+'</b><br>' +
-        '<span class="small">'+label+'</span></div>' +
-        '<button class="btn secondary" style="width:auto;padding:6px 9px;font-size:12px;white-space:nowrap" onclick="nlgsHcpRemoveRound('+actualIndex+')">CLEAR</button>' +
-        '</div></div>';
+const roundDate=v.date
+  ? new Date(v.date).toLocaleDateString('en-GB')
+  : '';
+
+return '<div style="padding:9px 0;border-bottom:1px solid #ddd">' +
+'<div style="display:flex;justify-content:space-between">' +
+'<div><b>Round '+(x.r.length-i)+'</b> — Score Differential '+fmt(v.diff)+'<br>' +
+'<span class="small">'+label+'</span>' +
+(roundDate ? '<br><span class="small">'+roundDate+'</span>' : '') +
+'</div>' +
+'<button class="btn secondary" style="width:auto;padding:8px 10px" onclick="nlgsHcpRemoveRound('+actualIndex+')">CLEAR</button>' +
+'</div></div>';
+      
     }).join('')
     :'No rounds recorded.';
 }
