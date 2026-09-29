@@ -1,12 +1,13 @@
-/* NLGS CENTRAL HANDICAP RECOVERY V2 — Gareth Joshlyn
-   Restores Gareth's 19 historical rounds.
-   Keeps existing Barnham and Friendly Game rounds.
+/* NLGS CENTRAL HANDICAP RECOVERY V3 — Gareth Joshlyn
+   CLEAN REBUILD
+   Keeps Barnham + Friendly Game.
+   Removes the unwanted 27-Sep manual round.
 */
 (function () {
   'use strict';
 
   const MEMBER_ID = '6b34da97-82cd-4343-b31d-d7d84260e861';
-  const DONE_KEY = 'nlgsGarethRecoveryV2';
+  const DONE_KEY = 'nlgsGarethRecoveryV3';
 
   const HISTORICAL_ROUNDS = [
     {date:'2026-05-27T12:00:00', diff:25.0, source:'manual'},
@@ -26,9 +27,18 @@
     {date:'2026-08-12T12:00:00', diff:32.4, source:'manual'},
     {date:'2026-08-21T12:00:00', diff:22.1, source:'manual'},
     {date:'2026-08-22T12:00:00', diff:26.5, source:'manual'},
-    {date:'2026-09-19T12:00:00', diff:23.1, source:'manual'},
-    
+    {date:'2026-09-19T12:00:00', diff:23.1, source:'manual'}
   ];
+
+  function getMember() {
+    try {
+      return JSON.parse(
+        sessionStorage.getItem('nlgsMember') || 'null'
+      );
+    } catch (e) {
+      return null;
+    }
+  }
 
   function getAll() {
     try {
@@ -43,15 +53,7 @@
   function restore() {
     if (localStorage.getItem(DONE_KEY) === '1') return false;
 
-    let member;
-    try {
-      member = JSON.parse(
-        sessionStorage.getItem('nlgsMember') || 'null'
-      );
-    } catch (e) {
-      return false;
-    }
-
+    const member = getMember();
     if (!member) return false;
 
     const id = String(
@@ -65,24 +67,33 @@
       ? all[MEMBER_ID]
       : [];
 
-    const existing = current.slice();
-
-    const barnham = existing.find(r =>
+    const barnham = current.find(r =>
       String(r.date || '').startsWith('2026-09-14') &&
-      String(r.course || r.name || r.label || '').toLowerCase().includes('barnham')
+      String(r.course || r.name || r.label || '')
+        .toLowerCase()
+        .includes('barnham')
     );
 
-    const friendly = existing.find(r =>
+    const friendly = current.find(r =>
       String(r.date || '').startsWith('2026-09-28') &&
-      String(r.course || r.name || r.label || '').toLowerCase().includes('royal cromer')
+      String(r.course || r.name || r.label || '')
+        .toLowerCase()
+        .includes('royal cromer')
     );
 
-    const result = HISTORICAL_ROUNDS.slice();
+    if (!barnham || !friendly) {
+      console.log(
+        'NLGS Gareth V3: Barnham or Friendly Game not found — nothing changed.'
+      );
+      return false;
+    }
 
-    if (barnham) result.push(barnham);
-    if (friendly) result.push(friendly);
+    const rebuilt = HISTORICAL_ROUNDS.slice();
 
-    all[MEMBER_ID] = result;
+    rebuilt.push(barnham);
+    rebuilt.push(friendly);
+
+    all[MEMBER_ID] = rebuilt;
 
     localStorage.setItem(
       'nlgsHandicapTrackerV3',
@@ -92,7 +103,7 @@
     localStorage.setItem(DONE_KEY, '1');
 
     console.log(
-      'NLGS: Gareth V2 recovery complete — historical rounds restored and existing Barnham/Friendly retained.'
+      'NLGS Gareth V3: CLEAN REBUILD COMPLETE — 20 rounds.'
     );
 
     return true;
@@ -104,7 +115,7 @@
     setTimeout(waitForGareth, 500);
   }
 
-  window.nlgsCentralGarethRecoveryV2 = restore;
+  window.nlgsCentralGarethRecoveryV3 = restore;
 
   waitForGareth();
 })();
