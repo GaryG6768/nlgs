@@ -1,4 +1,4 @@
-const CACHE = 'nlgs-shell-v5-scoring-boundary';
+const CACHE = 'nlgs-shell-v6-central-handicap';
 
 self.addEventListener('install', event => {
   self.skipWaiting();
