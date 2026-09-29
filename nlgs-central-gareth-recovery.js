@@ -7,7 +7,7 @@
   'use strict';
 
   const MEMBER_ID = '6b34da97-82cd-4343-b31d-d7d84260e861';
-  const DONE_KEY = 'nlgsGarethRecoveryV3';
+  const DONE_KEY = 'nlgsGarethRecoveryV7';
 
   const HISTORICAL_ROUNDS = [
     {date:'2026-05-27T12:00:00', diff:25.0, source:'manual'},
