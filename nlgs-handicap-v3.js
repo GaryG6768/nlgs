@@ -98,8 +98,14 @@
       <div class="card">
         <div class="label">ADD SCORE DIFFERENTIAL</div>
         <div style="margin-top:8px">
-          <input id="nlgsHcpDiff" class="input" type="number" step="0.1" inputmode="decimal" placeholder="e.g. 12.4">
-        </div>
+  <label class="label" style="display:block;margin-bottom:6px">DATE</label>
+  <input id="nlgsHcpDate" class="input" type="date">
+</div>
+
+<div style="margin-top:10px">
+  <label class="label" style="display:block;margin-bottom:6px">SCORE DIFFERENTIAL</label>
+  <input id="nlgsHcpDiff" class="input" type="number" step="0.1" inputmode="decimal" placeholder="e.g. 12.4">
+</div>
         <button class="btn" style="margin-top:10px" onclick="nlgsHcpAddRound()">ADD ROUND</button>
         <div id="nlgsHcpMsg" class="small" style="margin-top:8px"></div>
       </div>
@@ -733,34 +739,46 @@
   window.nlgsHcpSyncRounds=syncRounds;
 
   window.nlgsHcpAddRound=function(){
-    const m=getMember();
-    const i=document.getElementById('nlgsHcpDiff');
-    const msg=document.getElementById('nlgsHcpMsg');
-    const v=parseFloat(i?i.value:'');
+  const m=getMember();
+  const i=document.getElementById('nlgsHcpDiff');
+  const dateInput=document.getElementById('nlgsHcpDate');
+  const msg=document.getElementById('nlgsHcpMsg');
+  const v=parseFloat(i?i.value:'');
+  const dateValue=dateInput?dateInput.value:'';
 
-    if(!m){
-      if(msg)msg.textContent='Please log into NLGS first.';
-      return;
-    }
+  if(!m){
+    if(msg)msg.textContent='Please log into NLGS first.';
+    return;
+  }
 
-    if(!Number.isFinite(v)){
-      if(msg)msg.textContent='Enter a score differential.';
-      return;
-    }
+  if(!Number.isFinite(v)){
+    if(msg)msg.textContent='Enter a score differential.';
+    return;
+  }
 
-    const r=getRounds();
-    r.push({
-      diff:Math.round(v*10)/10,
-      source:'manual',
-      date:new Date().toISOString()
-    });
+  if(!dateValue){
+    if(msg)msg.textContent='Please enter the round date.';
+    return;
+  }
 
-    saveRounds(r);
+  const r=getRounds();
+  r.push({
+    diff:Math.round(v*10)/10,
+    source:'manual',
+    date:dateValue+'T12:00:00'
+  });
 
-    if(i)i.value='';
-    if(msg)msg.textContent='Round added for '+(m.full_name||m.name)+'.';
-    render();
-  };
+  r.sort((a,b)=>String(a.date||'').localeCompare(String(b.date||'')));
+  saveRounds(r);
+
+  if(i)i.value='';
+  if(msg)msg.textContent='Round added for '+(m.full_name||m.name)+'.';
+  render();
+};
+
+    
+
+    
 
   window.nlgsHcpRemoveRound=function(index){
     const m=getMember();
