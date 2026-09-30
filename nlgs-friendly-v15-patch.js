@@ -705,7 +705,7 @@
             {
               p_game_date:game.date,
               p_course_id:game.courseId,
-              p_players:game.players,
+              
               p_member_name:c.name,
               p_member_pin:c.pin
             }
