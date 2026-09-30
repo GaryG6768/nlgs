@@ -53,7 +53,15 @@
                Number(x.diff)===23.3);
     });
   }
-
+if(String(m && (m.id||m.member_id) || '')==='776a7e18-c032-42b0-a9ca-57a56a8531c6'){
+  r=r.filter(x=>{
+    const name=String(x&&x.competitionName||'').toLowerCase();
+    const date=String(x&&x.date||'').slice(0,10);
+    return !(name.includes('barnham') &&
+             date==='2026-09-14' &&
+             Number(x.diff)===15.9);
+  });
+}
   const d=getAll();
   d[memberKey()]=r;
   saveAll(d);
