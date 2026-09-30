@@ -691,42 +691,30 @@
       // If the local database ID was lost, find the EXISTING
       // Friendly Game instead of creating a duplicate.
       // This supports 2, 3 and 4 player games.
-      if(
+            if(
         game.date &&
         game.courseId &&
         Array.isArray(game.players) &&
         game.players.length
       ){
         try{
-          const r=await sb.rpc('list_friendly_games');
+          const c=typeof credentials==='function'
+            ?credentials()
+            :{name:'',pin:''};
 
-          if(!r.error && Array.isArray(r.data)){
-            const wantedPlayers=game.players
-              .map(function(x){
-                return String(x).trim().toLowerCase();
-              })
-              .sort();
+          const r=await sb.rpc(
+            'find_friendly_game_secure',
+            {
+              p_game_date:game.date,
+              p_course_id:game.courseId,
+              p_players:game.players,
+              p_member_name:c.name,
+              p_member_pin:c.pin
+            }
+          );
 
-            const match=r.data.find(function(g){
-              if(String(g.game_date||'')!==String(game.date||''))
-                return false;
-
-              if(String(g.course_id||'')!==String(game.courseId||''))
-                return false;
-
-              const dbPlayers=Array.isArray(g.players)
-                ?g.players.map(function(x){
-                    return String(x).trim().toLowerCase();
-                  }).sort()
-                :[];
-
-              if(dbPlayers.length!==wantedPlayers.length)
-                return false;
-
-              return dbPlayers.every(function(x,i){
-                return x===wantedPlayers[i];
-              });
-            });
+          if(!r.error && Array.isArray(r.data) && r.data.length){
+            const match=r.data[0];
 
             if(match?.id){
               game.dbId=match.id;
