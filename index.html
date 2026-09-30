@@ -1430,6 +1430,17 @@ function friendlySwipeScore(i,delta){
   v=Math.max(1,Math.min(15,Math.round(v)+Number(delta||0)));
   el.value=String(v);
 
+  // Show the manual change immediately.
+  const card=el.closest('.cs-score-card')||el.closest('.card')||el.parentElement?.parentElement;
+  if(card){
+    const status=card.querySelector('.cs-score-status');
+    const smalls=card.querySelectorAll('.small');
+    const helper=smalls.length?smalls[smalls.length-1]:null;
+    if(status)status.textContent='Changed — not saved';
+    if(helper)helper.textContent='Changed score • press SAVE GROUP SCORES';
+    card.classList.add('saved');
+  }
+
   // Tell V15 that this is a manually changed unsaved score.
   el.dispatchEvent(new Event('change',{bubbles:true}));
 
