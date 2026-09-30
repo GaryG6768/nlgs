@@ -104,9 +104,8 @@ if(id==='776a7e18-c032-42b0-a9ca-57a56a8531c6'){
   merged=merged.filter(x=>{
     const name=String(x&&x.competitionName||'').toLowerCase();
     const date=String(x&&x.date||'').slice(0,10);
-    return !(name.includes('barnham') &&
-             date==='2026-09-14' &&
-             Number(x.diff)===15.9);
+    return !(date==='2026-09-14' &&
+         Number(x.diff)===15.9);
   });
 }
 
