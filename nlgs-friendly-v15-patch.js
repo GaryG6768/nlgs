@@ -662,22 +662,112 @@
 })();
 
 (function(){
-  async function ensureFriendlyDbId(){
+    async function ensureFriendlyDbId(){
     try{
-      const game=typeof getFriendlyRound==='function'?getFriendlyRound():(typeof friendlyRound!=='undefined'?friendlyRound:null);
+      const game=typeof getFriendlyRound==='function'
+        ?getFriendlyRound()
+        :(typeof friendlyRound!=='undefined'?friendlyRound:null);
+
       if(!game)return null;
       if(game.dbId)return game.dbId;
 
+      // First recover an existing database game from the local fixture.
       let fixture=null;
-      try{fixture=JSON.parse(localStorage.getItem('nlgsFriendlyFixture')||'null');}catch(e){}
+      try{
+        fixture=JSON.parse(
+          localStorage.getItem('nlgsFriendlyFixture')||'null'
+        );
+      }catch(e){}
 
       if(fixture?.id){
         game.dbId=fixture.id;
-        localStorage.setItem('nlgsFriendlyRound',JSON.stringify(game));
+        localStorage.setItem(
+          'nlgsFriendlyRound',
+          JSON.stringify(game)
+        );
         return game.dbId;
       }
 
-      if(!game.courseId || !game.date || !Array.isArray(game.players)||game.players.length!==4){
+      // If the local database ID was lost, find the EXISTING
+      // Friendly Game instead of creating a duplicate.
+      // This supports 2, 3 and 4 player games.
+      if(
+        game.date &&
+        game.courseId &&
+        Array.isArray(game.players) &&
+        game.players.length
+      ){
+        try{
+          const r=await sb.rpc('list_friendly_games');
+
+          if(!r.error && Array.isArray(r.data)){
+            const wantedPlayers=game.players
+              .map(function(x){
+                return String(x).trim().toLowerCase();
+              })
+              .sort();
+
+            const match=r.data.find(function(g){
+              if(String(g.game_date||'')!==String(game.date||''))
+                return false;
+
+              if(String(g.course_id||'')!==String(game.courseId||''))
+                return false;
+
+              const dbPlayers=Array.isArray(g.players)
+                ?g.players.map(function(x){
+                    return String(x).trim().toLowerCase();
+                  }).sort()
+                :[];
+
+              if(dbPlayers.length!==wantedPlayers.length)
+                return false;
+
+              return dbPlayers.every(function(x,i){
+                return x===wantedPlayers[i];
+              });
+            });
+
+            if(match?.id){
+              game.dbId=match.id;
+
+              localStorage.setItem(
+                'nlgsFriendlyRound',
+                JSON.stringify(game)
+              );
+
+              localStorage.setItem(
+                'nlgsFriendlyFixture',
+                JSON.stringify({
+                  id:match.id,
+                  date:game.date,
+                  course:game.course,
+                  format:game.format,
+                  players:game.players,
+                  tee:game.tee
+                })
+              );
+
+              return game.dbId;
+            }
+          }
+        }catch(e){
+          console.warn(
+            'Could not recover existing Friendly Game database id',
+            e
+          );
+        }
+      }
+
+      // Only create a new database record if no existing
+      // Friendly Game could be found.
+      if(
+        !game.courseId ||
+        !game.date ||
+        !Array.isArray(game.players) ||
+        game.players.length<1 ||
+        game.players.length>4
+      ){
         return null;
       }
 
@@ -688,7 +778,13 @@
         course:game.course,
         tee:game.tee||'Yellow',
         format:game.format||'Stableford',
-        allowance:(()=>{const a=game.allowance;const n=parseFloat(String(a??95).replace('%','').trim());return Number.isFinite(n)?n:95;})(),
+        allowance:(()=>{
+          const a=game.allowance;
+          const n=parseFloat(
+            String(a??95).replace('%','').trim()
+          );
+          return Number.isFinite(n)?n:95;
+        })(),
         courseRating:Number(game.courseRating),
         slope:Number(game.slope),
         par:Number(game.par),
@@ -697,24 +793,58 @@
         holeData:game.holeData||[],
         scores:game.scores||{},
         include3s5s:!!game.include3s5s,
-        status:game.date===friendlyToday()?'in_progress':'scheduled',
-        createdBy:(typeof credentials==='function'?(credentials().name||''):'')
+        status:game.date===friendlyToday()
+          ?'in_progress'
+          :'scheduled',
+        createdBy:(
+          typeof credentials==='function'
+            ?(credentials().name||'')
+            :''
+        )
       };
 
-      const r=await sb.rpc('create_friendly_game',{p_game:payload});
+      const r=await sb.rpc(
+        'create_friendly_game',
+        {p_game:payload}
+      );
+
       if(r.error)throw r.error;
-      const id=Array.isArray(r.data)?(r.data[0]?.id||r.data[0]):r.data;
-      if(!id)throw new Error('Could not create the Friendly game database record.');
+
+      const id=Array.isArray(r.data)
+        ?(r.data[0]?.id||r.data[0])
+        :r.data;
+
+      if(!id)
+        throw new Error(
+          'Could not create the Friendly game database record.'
+        );
 
       game.dbId=id;
-      localStorage.setItem('nlgsFriendlyRound',JSON.stringify(game));
-      localStorage.setItem('nlgsFriendlyFixture',JSON.stringify({
-        id:id,date:game.date,course:game.course,format:game.format,
-        players:game.players,tee:game.tee
-      }));
+
+      localStorage.setItem(
+        'nlgsFriendlyRound',
+        JSON.stringify(game)
+      );
+
+      localStorage.setItem(
+        'nlgsFriendlyFixture',
+        JSON.stringify({
+          id:id,
+          date:game.date,
+          course:game.course,
+          format:game.format,
+          players:game.players,
+          tee:game.tee
+        })
+      );
+
       return id;
+
     }catch(e){
-      console.error('Could not prepare Friendly Game database record',e);
+      console.error(
+        'Could not prepare Friendly Game database record',
+        e
+      );
       return null;
     }
   }
