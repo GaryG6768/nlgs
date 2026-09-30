@@ -698,9 +698,7 @@
         game.players.length
       ){
         try{
-          const c=typeof credentials==='function'
-            ?credentials()
-            :{name:'',pin:''};
+          const c=window.nlgsLoginCredentials||{};
 
           const r=await sb.rpc(
             'find_friendly_game_secure',
