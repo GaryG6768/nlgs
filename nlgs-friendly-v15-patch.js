@@ -789,10 +789,16 @@
         )
       };
 
-      const r=await sb.rpc(
-        'create_friendly_game',
-        {p_game:payload}
-      );
+      const c=window.nlgsLoginCredentials||{};
+
+const r=await sb.rpc(
+  'create_friendly_game_secure',
+  {
+    p_game:payload,
+    p_member_name:c.name,
+    p_member_pin:c.pin
+  }
+);
 
       if(r.error)throw r.error;
 
