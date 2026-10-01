@@ -2182,14 +2182,7 @@ async function openCompetitionScoring(id){
   csRender();
   csStartLiveRefresh();
 
-  setTimeout(()=>{
-    const target=document.getElementById('competitionScoringNLGS');
-    const header=document.querySelector('.top');
-    if(target){
-      const top=target.getBoundingClientRect().top + window.pageYOffset - (header?.offsetHeight||0);
-      window.scrollTo(0,Math.max(0,top));
-    }
-  },50);
+  
 }
 
 function csSelectPlayer(id){ csPlayerId=id; }
@@ -2221,10 +2214,7 @@ function csSelectHole(holeNo){
   csHole=Number(holeNo)||1;
   csPlayerId=null;
   csRender();
-  requestAnimationFrame(()=>{
-    const target=document.getElementById('csPlayerCards');
-    if(target) target.scrollIntoView({behavior:'smooth',block:'start'});
-  });
+  
 }
 function csRender(){
   if(!csData)return;
@@ -2331,12 +2321,7 @@ async function csSaveAllScores(){
       if(document.activeElement && typeof document.activeElement.blur==='function') document.activeElement.blur();
       if(csHole<18){csHole++;csRender();}
       else {csRender();}
-      const scoring=document.getElementById('competitionScoringNLGS');
-      const header=document.querySelector('.top');
-      if(scoring){
-        const top=scoring.getBoundingClientRect().top + window.pageYOffset - (header?.offsetHeight||0);
-        window.scrollTo({top:Math.max(0,top),behavior:'auto'});
-      }
+      
     },50);
   }catch(e){
     toast('Scores: '+String(e.message||e).slice(0,100));
