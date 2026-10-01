@@ -2198,10 +2198,7 @@ function csSelectHole(holeNo){
   csHole=Number(holeNo)||1;
   csPlayerId=null;
   csRender();
-  requestAnimationFrame(()=>{
-    const target=document.getElementById('csPlayerCards');
-    if(target) target.scrollIntoView({behavior:'smooth',block:'start'});
-  });
+  
 }
 function csRender(){
   if(!csData)return;
