@@ -56,17 +56,27 @@ html,body{overscroll-behavior-y:none}
 </style>
 <script>
 (function(){
-  let startY=0;
-  document.addEventListener('touchstart',function(e){
-    if(e.touches&&e.touches.length) startY=e.touches[0].clientY;
-  },{passive:true});
-  document.addEventListener('touchmove',function(e){
+  function updateScoringTouchAction(){
     const s=document.getElementById('competitionScoringNLGS');
-    if(!s||!s.classList.contains('active')||!e.touches||!e.touches.length) return;
-    const y=e.touches[0].clientY;
-    const pullingDown=y-startY>8;
-    if(pullingDown && window.scrollY<=1) e.preventDefault();
-  },{passive:false});
+
+    if(!s || !s.classList.contains('active')){
+      document.documentElement.style.touchAction='auto';
+      return;
+    }
+
+    const header=document.querySelector('.top');
+    const minY=Math.max(0,s.offsetTop-(header?.offsetHeight||0));
+
+    document.documentElement.style.touchAction =
+      window.scrollY <= minY+1
+        ? 'pan-down pinch-zoom'
+        : 'pan-y pinch-zoom';
+  }
+
+  window.addEventListener('scroll',updateScoringTouchAction,{passive:true});
+  window.addEventListener('resize',updateScoringTouchAction,{passive:true});
+  document.addEventListener('touchstart',updateScoringTouchAction,{passive:true});
+  document.addEventListener('DOMContentLoaded',updateScoringTouchAction);
 })();
 </script>
 </head><body>
