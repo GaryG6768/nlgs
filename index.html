@@ -65,11 +65,7 @@ html,body{overscroll-behavior-y:none}
     if(!s||!s.classList.contains('active')||!e.touches||!e.touches.length) return;
     const y=e.touches[0].clientY;
     const pullingDown=y-startY>8;
-    const header=document.querySelector('.top');
-const minY=Math.max(0,
-  s.getBoundingClientRect().top+window.pageYOffset-
-  (header?.offsetHeight||0));
-if(pullingDown && window.scrollY<=minY+1) e.preventDefault();
+    if(pullingDown && window.scrollY<=1) e.preventDefault();
   },{passive:false});
 })();
 </script>
