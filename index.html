@@ -54,21 +54,7 @@ if ('serviceWorker' in navigator) {
 /* Prevent Android pull-to-refresh/overscroll blanking on the scoring screen, while keeping normal vertical scrolling. */
 html,body{overscroll-behavior-y:none}
 </style>
-<script>
-(function(){
-  let startY=0;
-  document.addEventListener('touchstart',function(e){
-    if(e.touches&&e.touches.length) startY=e.touches[0].clientY;
-  },{passive:true});
-  document.addEventListener('touchmove',function(e){
-    const s=document.getElementById('competitionScoringNLGS');
-    if(!s||!s.classList.contains('active')||!e.touches||!e.touches.length) return;
-    const y=e.touches[0].clientY;
-    const pullingDown=y-startY>8;
-    if(pullingDown && window.scrollY<=1) e.preventDefault();
-  },{passive:false});
-})();
-</script>
+
 </head><body>
 
 <section id="loginScreen" class="loginScreen">
