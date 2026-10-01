@@ -2317,8 +2317,13 @@ async function csSaveAllScores(){
       if(document.activeElement && typeof document.activeElement.blur==='function') document.activeElement.blur();
       if(csHole<18){csHole++;csRender();}
       else {csRender();}
-      const scoring=document.getElementById('competitionScoringNLGS');
-if(scoring) scoring.scrollTo({top:0,behavior:'auto'});
+      requestAnimationFrame(()=>{
+  requestAnimationFrame(()=>{
+    const scoring=document.getElementById('competitionScoringNLGS');
+    if(scoring) scoring.scrollTop=0;
+    window.scrollTo(0,0);
+  });
+});
     },50);
   }catch(e){
     toast('Scores: '+String(e.message||e).slice(0,100));
