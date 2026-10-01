@@ -2305,12 +2305,7 @@ async function csSaveAllScores(){
       if(document.activeElement && typeof document.activeElement.blur==='function') document.activeElement.blur();
       if(csHole<18){csHole++;csRender();}
       else {csRender();}
-      const scoring=document.getElementById('competitionScoringNLGS');
-      const header=document.querySelector('.top');
-      if(scoring){
-        const top=scoring.getBoundingClientRect().top + window.pageYOffset - (header?.offsetHeight||0);
-        window.scrollTo({top:Math.max(0,top),behavior:'auto'});
-      }
+      
     },50);
   }catch(e){
     toast('Scores: '+String(e.message||e).slice(0,100));
