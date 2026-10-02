@@ -2318,11 +2318,10 @@ async function csSaveAllScores(){
       if(csHole<18){csHole++;csRender();}
       else {csRender();}
       const scoring=document.getElementById('competitionScoringNLGS');
-      const header=document.querySelector('.top');
-      if(scoring){
-        const top=scoring.getBoundingClientRect().top + window.pageYOffset - (header?.offsetHeight||0);
-        window.scrollTo({top:Math.max(0,top),behavior:'auto'});
-      }
+if(scoring){
+  const topElement=scoring.querySelector('.label');
+  if(topElement) topElement.scrollIntoView({behavior:'instant',block:'start'});
+}
     },50);
   }catch(e){
     toast('Scores: '+String(e.message||e).slice(0,100));
