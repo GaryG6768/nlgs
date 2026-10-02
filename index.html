@@ -2493,25 +2493,95 @@ async function loadAdminCompetitions(){
   if(!m || (m.role!=='admin' && m.role!=='handicap_admin')) return;
   const wrap=document.getElementById('adminCompetitionList');
   if(!wrap)return;
+
   wrap.innerHTML='<div class="small">Loading saved competitions…</div>';
+
   const r=await competitionRpc('list_admin_competitions');
+
   if(r.error){
     wrap.innerHTML='<div class="small">Could not load saved competitions.</div>';
     toast('Competitions: '+competitionError('Competition list failed',r.error).slice(0,85));
     return;
   }
+
   const rows=r.data||[];
-  if(!rows.length){wrap.innerHTML='<div class="small">No competitions have been saved yet.</div>';return;}
+
+  if(!rows.length){
+    wrap.innerHTML='<div class="small">No competitions have been saved yet.</div>';
+    return;
+  }
+
   wrap.innerHTML='';
+
+  const now=new Date();
+  const today=now.getFullYear()+'-'+
+    String(now.getMonth()+1).padStart(2,'0')+'-'+
+    String(now.getDate()).padStart(2,'0');
+
   rows.forEach(c=>{
     const card=document.createElement('div');
     card.style.cssText='padding:12px 0;border-bottom:1px solid var(--line)';
-    const date=c.competition_date?new Date(c.competition_date+'T00:00:00').toLocaleDateString('en-GB'):'';
-    const fmt={stableford:'Stableford',medal:'Medal',match_play:'Match Play',season_league:'Season League'}[c.format]||c.format;
-    const status={draft:'Draft',open:'Open',in_progress:'In Progress',complete:'Complete',cancelled:'Cancelled'}[c.status]||c.status;
-    card.innerHTML='<div class="row"><div style="flex:1"><b>'+escAdmin(c.name)+'</b><div class="small">'+date+' • '+escAdmin(c.course_name||'')+' • '+escAdmin(c.tee_name||'')+'</div><div class="small">'+fmt+' • '+c.allowance+'% allowance • '+c.player_count+' players'+(Number(c.guest_count)?' ('+c.guest_count+' guest'+(Number(c.guest_count)===1?'':'s')+')':'')+' • '+status+'</div></div><button class="btn" style="width:auto;padding:9px 12px" onclick="viewAdminCompetition(\''+c.id+'\')">VIEW</button></div>';
+
+    const date=c.competition_date
+      ? new Date(c.competition_date+'T00:00:00').toLocaleDateString('en-GB')
+      : '';
+
+    const fmt={
+      stableford:'Stableford',
+      medal:'Medal',
+      match_play:'Match Play',
+      season_league:'Season League'
+    }[c.format]||c.format;
+
+    const status={
+      draft:'Draft',
+      open:'Open',
+      in_progress:'In Progress',
+      complete:'Complete',
+      cancelled:'Cancelled'
+    }[c.status]||c.status;
+
+    const canDelete=
+      c.competition_date &&
+      c.competition_date < today &&
+      String(c.status||'').toLowerCase()!=='complete' &&
+      String(c.status||'').toLowerCase()!=='completed';
+
+    card.innerHTML=
+      '<div class="row">'+
+        '<div style="flex:1">'+
+          '<b>'+escAdmin(c.name)+'</b>'+
+          '<div class="small">'+date+' • '+escAdmin(c.course_name||'')+' • '+escAdmin(c.tee_name||'')+'</div>'+
+          '<div class="small">'+fmt+' • '+c.allowance+'% allowance • '+c.player_count+' players'+
+          (Number(c.guest_count)?' ('+c.guest_count+' guest'+(Number(c.guest_count)===1?'':'s')+')':'')+
+          ' • '+status+'</div>'+
+        '</div>'+
+        '<div style="display:flex;gap:7px;align-items:center">'+
+          '<button class="btn" style="width:auto;padding:9px 12px" onclick="viewAdminCompetition(\''+c.id+'\')">VIEW</button>'+
+          (canDelete
+            ? '<button class="btn" style="width:auto;padding:9px 12px;background:#b42318" onclick="deleteAdminCompetition(\''+c.id+'\',\''+escAdmin(c.name).replace(/'/g,'&#39;')+'\')">DELETE</button>'
+            : '')+
+        '</div>'+
+      '</div>';
+
     wrap.appendChild(card);
   });
+}
+
+async function deleteAdminCompetition(id,name){
+  if(!confirm('DELETE '+name+'?\\n\\nThis will permanently remove the competition and its saved competition data.')) return;
+
+  const r=await competitionRpc('delete_admin_competition',{
+    p_competition_id:id
+  });
+
+  if(r.error){
+    toast('Delete failed: '+competitionError('Competition delete failed',r.error).slice(0,90));
+    return;
+  }
+
+  toast('Competition deleted');
+  await loadAdminCompetitions();
 }
 function escAdmin(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
 async function viewAdminCompetition(id){
