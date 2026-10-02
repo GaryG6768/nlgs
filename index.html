@@ -2571,9 +2571,12 @@ async function loadAdminCompetitions(){
 async function deleteAdminCompetition(id,name){
   if(!confirm('DELETE '+name+'?\\n\\nThis will permanently remove the competition and its saved competition data.')) return;
 
-  const r=await competitionRpc('delete_admin_competition',{
-    p_competition_id:id
-  });
+  const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null');
+
+const r=await competitionRpc('delete_admin_competition',{
+  p_competition_id:id,
+  p_member_id:m?.id
+});
 
   if(r.error){
     toast('Delete failed: '+competitionError('Competition delete failed',r.error).slice(0,90));
