@@ -1895,6 +1895,24 @@ async function createCompetitionDraft(){
     <div id="csPlayerCards"></div>
     <button id="csSaveAllBtn" class="btn" style="margin-top:10px" onclick="csSaveAllScores()" disabled>SAVE GROUP SCORES</button>
   </div>
+  <div class="card" id="csHolePrizeCard" style="display:none">
+  <div class="row">
+    <h3 style="margin:0">🏆 HOLE SPECIAL</h3>
+    <span class="pill" id="csHolePrizeType">SPECIAL</span>
+  </div>
+
+  <div id="csHolePrizeMessage" class="small" style="margin-top:8px"></div>
+
+  <div id="csHolePrizeCurrent" style="margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:12px;background:#f8faf7"></div>
+
+  <div id="csHolePrizeChoose" style="margin-top:12px">
+    <label class="label">CURRENT LEADER</label>
+    <select id="csHolePrizePlayer" class="input"></select>
+    <button id="csHolePrizeSetBtn" class="btn" style="margin-top:10px" onclick="csSetHolePrizeLeader()">
+      SET CURRENT LEADER
+    </button>
+  </div>
+</div>
   <div class="card">
     <div class="row"><h3 style="margin:0" id="csLeaderboardTitle">LIVE LEADERBOARD</h3><span class="small" id="csLeaderboardSub">All players</span></div>
     <div id="csLeaderboard" style="margin-top:8px"></div>
