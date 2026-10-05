@@ -1941,17 +1941,6 @@ async function createCompetitionDraft(){
   <div class="label">NLGS COMPETITION</div>
   <h2 style="margin:4px 0">Competition Scoring</h2>
   <div id="csHeader" class="small" style="margin-bottom:12px"></div>
-  <div class="card cs-group-picker" id="csGroupPicker">
-    <div class="row"><div><h3 style="margin:0">MY GROUP</h3><div class="small">Select yourself and the players you are playing with.</div></div><span class="cs-selected-pill" id="csGroupCount">0 players</span></div>
-    <div id="csGroupList" class="cs-group-list"></div>
-    <button id="csGroupSaveBtn" class="btn" style="margin-top:12px" onclick="csSaveGroup()">USE THIS GROUP</button>
-  </div>
-  <div class="card">
-    <div class="row"><h3 style="margin:0">ENTER SCORES</h3><span class="pill cs-hole-pill" id="csHoleInfo">Hole 1</span></div>
-    <div class="small" style="margin:7px 0 12px"><span class="cs-live-dot"></span>Scores are saved immediately and the shared leaderboard updates live.</div>
-    <div id="csPlayerCards"></div>
-    <button id="csSaveAllBtn" class="btn" style="margin-top:10px" onclick="csSaveAllScores()" disabled>SAVE GROUP SCORES</button>
-  </div>
   <div class="card" id="csHolePrizeCard" style="display:none">
   <div class="row">
     <h3 style="margin:0">🏆 HOLE SPECIAL</h3>
@@ -1970,6 +1959,18 @@ async function createCompetitionDraft(){
     </button>
   </div>
 </div>
+  <div class="card cs-group-picker" id="csGroupPicker">
+    <div class="row"><div><h3 style="margin:0">MY GROUP</h3><div class="small">Select yourself and the players you are playing with.</div></div><span class="cs-selected-pill" id="csGroupCount">0 players</span></div>
+    <div id="csGroupList" class="cs-group-list"></div>
+    <button id="csGroupSaveBtn" class="btn" style="margin-top:12px" onclick="csSaveGroup()">USE THIS GROUP</button>
+  </div>
+  <div class="card">
+    <div class="row"><h3 style="margin:0">ENTER SCORES</h3><span class="pill cs-hole-pill" id="csHoleInfo">Hole 1</span></div>
+    <div class="small" style="margin:7px 0 12px"><span class="cs-live-dot"></span>Scores are saved immediately and the shared leaderboard updates live.</div>
+    <div id="csPlayerCards"></div>
+    <button id="csSaveAllBtn" class="btn" style="margin-top:10px" onclick="csSaveAllScores()" disabled>SAVE GROUP SCORES</button>
+  </div>
+  
   <div class="card">
     <div class="row"><h3 style="margin:0" id="csLeaderboardTitle">LIVE LEADERBOARD</h3><span class="small" id="csLeaderboardSub">All players</span></div>
     <div id="csLeaderboard" style="margin-top:8px"></div>
