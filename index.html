@@ -2450,9 +2450,13 @@ function csSelectHole(holeNo){
   csPlayerId=null;
   csRender();
   requestAnimationFrame(()=>{
-    const target=document.getElementById('csPlayerCards');
-    if(target) target.scrollIntoView({behavior:'smooth',block:'start'});
-  });
+  const special=document.getElementById('csHolePrizeCard');
+  const target=(special && special.style.display!=='none')
+    ? special
+    : document.getElementById('csPlayerCards');
+
+  if(target) target.scrollIntoView({behavior:'smooth',block:'start'});
+});
 }
 function csRender(){
   if(!csData)return;
