@@ -1919,7 +1919,11 @@ async function createCompetitionDraft(){
       if(r.error)throw r.error;
       sessionStorage.removeItem('nlgsCompetitionDraft');
       const createdId=Array.isArray(r.data)?(r.data[0]?.id||r.data[0]):r.data;
-      if(createdId){ await nlgsSetSeasonLeagueFlag(createdId); nlgsSave3s5sCompetitionFlag(createdId); }
+      if(createdId){
+  await nlgsSetSeasonLeagueFlag(createdId);
+  nlgsSave3s5sCompetitionFlag(createdId);
+  await nlgsSetHolePrizeConfig(createdId);
+}
       toast('Competition created successfully');
       if(createdId){
         setTimeout(()=>openCompetitionScoring(createdId),500);
