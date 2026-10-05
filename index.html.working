@@ -356,7 +356,50 @@ html,body{overscroll-behavior-y:none}
       <input id="comp3s5s" type="checkbox" style="width:20px;height:20px;margin-top:1px">
       <span><b>Include 3s &amp; 5s</b><br><span class="small">3s = lowest strokes on par 3s. 5s = highest Stableford points on par 5s.</span></span>
     </label>
+    
+    </div>
+  <div class="card" style="margin-top:12px">
+  <h3>Hole Specials</h3>
+  <div class="small" style="margin-bottom:12px">
+    Choose which holes will have the three competition specials.
   </div>
+
+  <div class="player-card">
+    <div class="row">
+      <b>Special 1</b>
+      <span class="pill">LONGEST DRIVE</span>
+    </div>
+    <div style="margin-top:8px">
+      <select id="compPrizeHole1" class="input">
+        <option value="">Choose hole…</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="player-card" style="margin-top:8px">
+    <div class="row">
+      <b>Special 2</b>
+      <span class="pill">NEAREST THE PIN</span>
+    </div>
+    <div style="margin-top:8px">
+      <select id="compPrizeHole2" class="input">
+        <option value="">Choose hole…</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="player-card" style="margin-top:8px">
+    <div class="row">
+      <b>Special 3</b>
+      <span class="pill">NEAREST THE PIN IN 2</span>
+    </div>
+    <div style="margin-top:8px">
+      <select id="compPrizeHole3" class="input">
+        <option value="">Choose hole…</option>
+      </select>
+    </div>
+  </div>
+</div>
 
   <div class="card">
     <h3>Course & tees</h3>
@@ -1630,8 +1673,29 @@ function updateCompetitionPlayingHandicaps(){
     if(el) el.textContent=ph===null?'Playing HCP —':'Playing HCP '+ph+' ('+competitionAllowance+')';
   });
 }
+function loadCompetitionPrizeHoles(){
+  const selects=[
+    document.getElementById('compPrizeHole1'),
+    document.getElementById('compPrizeHole2'),
+    document.getElementById('compPrizeHole3')
+  ].filter(Boolean);
 
+  selects.forEach(select=>{
+    const current=select.value;
+    select.innerHTML='<option value="">Choose hole…</option>';
+
+    for(let hole=1;hole<=18;hole++){
+      const option=document.createElement('option');
+      option.value=String(hole);
+      option.textContent='Hole '+hole;
+      select.appendChild(option);
+    }
+
+    if(current)select.value=current;
+  });
+}
 async function loadCompetitionBuilder(){
+  loadCompetitionPrizeHoles();
   const courseSel=document.getElementById('compCourse');
   const teeSel=document.getElementById('compTee');
   if(!courseSel || !teeSel)return;
@@ -1724,7 +1788,32 @@ async function nlgsSetSeasonLeagueFlag(competitionId){
   const {data,error}=await sb.rpc('set_competition_season_league',{p_competition_id:competitionId,p_season_league:true});
   if(error) throw error;
 }
+async function nlgsSetHolePrizeConfig(competitionId){
+  const hole1=Number(document.getElementById('compPrizeHole1')?.value);
+  const hole2=Number(document.getElementById('compPrizeHole2')?.value);
+  const hole3=Number(document.getElementById('compPrizeHole3')?.value);
 
+  if(!Number.isInteger(hole1)||!Number.isInteger(hole2)||!Number.isInteger(hole3)){
+    throw new Error('Choose a hole for all three specials');
+  }
+
+  if(hole1===hole2||hole1===hole3||hole2===hole3){
+    throw new Error('Each hole special must use a different hole');
+  }
+
+  const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null');
+  if(!m?.id) throw new Error('Administrator login could not be confirmed');
+
+  const r=await competitionRpc('configure_competition_hole_prizes',{
+    p_competition_id:competitionId,
+    p_member_id:m.id,
+    p_hole_1:hole1,
+    p_hole_2:hole2,
+    p_hole_3:hole3
+  });
+
+  if(r.error) throw r.error;
+}
 async function createCompetitionDraft(){
   const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null');
   if(!m || m.role!=='admin'){toast('Only the main administrator can create competitions');return;}
@@ -1830,7 +1919,11 @@ async function createCompetitionDraft(){
       if(r.error)throw r.error;
       sessionStorage.removeItem('nlgsCompetitionDraft');
       const createdId=Array.isArray(r.data)?(r.data[0]?.id||r.data[0]):r.data;
-      if(createdId){ await nlgsSetSeasonLeagueFlag(createdId); nlgsSave3s5sCompetitionFlag(createdId); }
+      if(createdId){
+  await nlgsSetSeasonLeagueFlag(createdId);
+  nlgsSave3s5sCompetitionFlag(createdId);
+  await nlgsSetHolePrizeConfig(createdId);
+}
       toast('Competition created successfully');
       if(createdId){
         setTimeout(()=>openCompetitionScoring(createdId),500);
@@ -1848,6 +1941,24 @@ async function createCompetitionDraft(){
   <div class="label">NLGS COMPETITION</div>
   <h2 style="margin:4px 0">Competition Scoring</h2>
   <div id="csHeader" class="small" style="margin-bottom:12px"></div>
+  <div class="card" id="csHolePrizeCard" style="display:none">
+  <div class="row">
+    <h3 style="margin:0">🏆 HOLE SPECIAL</h3>
+    <span class="pill" id="csHolePrizeType">SPECIAL</span>
+  </div>
+
+  <div id="csHolePrizeMessage" class="small" style="margin-top:8px"></div>
+
+  <div id="csHolePrizeCurrent" style="margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:12px;background:#f8faf7"></div>
+
+  <div id="csHolePrizeChoose" style="margin-top:12px">
+    <label class="label">CURRENT LEADER</label>
+    <select id="csHolePrizePlayer" class="input"></select>
+    <button id="csHolePrizeSetBtn" class="btn" style="margin-top:10px" onclick="csSetHolePrizeLeader()">
+      SET CURRENT LEADER
+    </button>
+  </div>
+</div>
   <div class="card cs-group-picker" id="csGroupPicker">
     <div class="row"><div><h3 style="margin:0">MY GROUP</h3><div class="small">Select yourself and the players you are playing with.</div></div><span class="cs-selected-pill" id="csGroupCount">0 players</span></div>
     <div id="csGroupList" class="cs-group-list"></div>
@@ -1859,6 +1970,7 @@ async function createCompetitionDraft(){
     <div id="csPlayerCards"></div>
     <button id="csSaveAllBtn" class="btn" style="margin-top:10px" onclick="csSaveAllScores()" disabled>SAVE GROUP SCORES</button>
   </div>
+  
   <div class="card">
     <div class="row"><h3 style="margin:0" id="csLeaderboardTitle">LIVE LEADERBOARD</h3><span class="small" id="csLeaderboardSub">All players</span></div>
     <div id="csLeaderboard" style="margin-top:8px"></div>
@@ -2128,6 +2240,136 @@ function csPoints(strokes,par,shots){
   const net=Number(strokes)-Number(shots);
   return Math.max(0,2+Number(par)-net);
 }
+  function csRenderHolePrize(){
+  const card=document.getElementById('csHolePrizeCard');
+  const typeEl=document.getElementById('csHolePrizeType');
+  const messageEl=document.getElementById('csHolePrizeMessage');
+  const currentEl=document.getElementById('csHolePrizeCurrent');
+  const select=document.getElementById('csHolePrizePlayer');
+  const choose=document.getElementById('csHolePrizeChoose');
+  const btn=document.getElementById('csHolePrizeSetBtn');
+
+  if(!card||!csData)return;
+
+  const prize=(csData.hole_prizes||[]).find(x=>Number(x.hole_no)===Number(csHole));
+
+  if(!prize){
+    card.style.display='none';
+    return;
+  }
+
+  const labels={
+    longest_drive:'LONGEST DRIVE',
+    nearest_pin:'NEAREST THE PIN',
+    nearest_pin_in_2:'NEAREST THE PIN IN 2'
+  };
+
+  const label=labels[prize.prize_type]||'HOLE SPECIAL';
+
+  card.style.display='block';
+  if(typeEl)typeEl.textContent=label;
+
+  const groupPlayers=csGroupPlayers();
+  const finalised=!!prize.finalised;
+
+  if(finalised){
+    if(messageEl)messageEl.innerHTML='🏆 <b>'+label+' WINNER</b>';
+    if(currentEl)currentEl.innerHTML='<b>Winner: '+escAdmin(prize.winner_player_name||prize.current_player_name||'—')+'</b>';
+    if(choose)choose.style.display='none';
+    return;
+  }
+
+  if(messageEl){
+    messageEl.innerHTML='🏆 <b>'+label+'</b><br>Select the current leader from your group. A later group can replace them.';
+  }
+
+  if(currentEl){
+    currentEl.innerHTML=prize.current_player_name
+      ? '<b>Current leader: '+escAdmin(prize.current_player_name)+'</b>'
+      : '<b>Current leader: None yet</b>';
+  }
+
+  if(select){
+    select.innerHTML='<option value="">Choose current leader…</option>'+
+      groupPlayers.map(p=>'<option value="'+p.id+'">'+escAdmin(p.name)+(p.is_guest?' (Guest)':'')+'</option>').join('');
+    select.value=prize.current_player_id||'';
+  }
+
+  if(choose)choose.style.display=groupPlayers.length?'block':'none';
+  if(btn){
+    btn.disabled=!groupPlayers.length;
+    btn.textContent='SET CURRENT LEADER';
+  }
+}
+
+async function csSetHolePrizeLeader(){
+  if(!csData)return;
+
+  const select=document.getElementById('csHolePrizePlayer');
+  const playerId=select?.value;
+
+  if(!playerId){
+    toast('Choose the current leader first');
+    return;
+  }
+
+  const hole=Number(csHole);
+  const prize=(csData.hole_prizes||[]).find(x=>Number(x.hole_no)===hole);
+if(!prize){
+  toast('This hole does not have a special prize');
+  return;
+}
+
+  const c=csCredentials();
+  if(!c.name||!c.pin){
+    toast('Please log in again before setting the prize leader');
+    return;
+  }
+
+  const btn=document.getElementById('csHolePrizeSetBtn');
+  if(btn){
+    btn.disabled=true;
+    btn.textContent='SAVING…';
+  }
+
+  try{
+    const r=await competitionRpc('set_competition_hole_prize_leader',{
+      p_competition_id:csCompetitionId,
+      p_hole_no:hole,
+      p_competition_player_id:playerId,
+      p_member_name:c.name,
+      p_member_pin:c.pin
+    });
+
+    if(r.error)throw r.error;
+
+    const row=Array.isArray(r.data)?r.data[0]:r.data;
+    if(row){
+      csData.hole_prizes=csData.hole_prizes||[];
+      const i=csData.hole_prizes.findIndex(x=>Number(x.hole_no)===hole);
+      if(i>=0)csData.hole_prizes[i]={
+        ...csData.hole_prizes[i],
+        ...row
+      };
+      else csData.hole_prizes.push(row);
+    }
+
+    csRenderHolePrize();
+
+    if(row?.finalised){
+      toast('Prize finalised — '+(row.winner_player_name||'winner'));
+    }else{
+      toast('Current prize leader updated');
+    }
+  }catch(e){
+    toast('Prize: '+String(e.message||e).slice(0,120));
+  }finally{
+    if(btn){
+      btn.disabled=false;
+      btn.textContent='SET CURRENT LEADER';
+    }
+  }
+}
 async function openCompetitionScoring(id){
   const m=csMember();
   if(!m){toast('Please log in first');return;}
@@ -2208,9 +2450,13 @@ function csSelectHole(holeNo){
   csPlayerId=null;
   csRender();
   requestAnimationFrame(()=>{
-    const target=document.getElementById('csPlayerCards');
-    if(target) target.scrollIntoView({behavior:'smooth',block:'start'});
-  });
+  const special=document.getElementById('csHolePrizeCard');
+  const target=(special && special.style.display!=='none')
+    ? special
+    : document.getElementById('csPlayerCards');
+
+  if(target) target.scrollIntoView({behavior:'smooth',block:'start'});
+});
 }
 function csRender(){
   if(!csData)return;
@@ -2282,6 +2528,7 @@ function csRenderLeaderboard(){
   if(title) title.textContent=isComplete?'FINAL LEADERBOARD':'LIVE LEADERBOARD';
   if(sub) sub.innerHTML=isComplete?'All 18 holes complete':'<span class="cs-live-dot"></span>Updates every 5 seconds';
   csRenderHoleGrid();
+  csRenderHolePrize();
   const holeInstruction=document.getElementById('csHoleInstruction');
   if(holeInstruction) holeInstruction.textContent=finalised?'Tap a hole to view scores':'Tap a hole to view/edit';
 }
