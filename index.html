@@ -2313,10 +2313,11 @@ async function csSetHolePrizeLeader(){
   }
 
   const hole=Number(csHole);
-  if(![4,9,14].includes(hole)){
-    toast('This hole does not have a special prize');
-    return;
-  }
+  const prize=(csData.hole_prizes||[]).find(x=>Number(x.hole_no)===hole);
+if(!prize){
+  toast('This hole does not have a special prize');
+  return;
+}
 
   const c=csCredentials();
   if(!c.name||!c.pin){
