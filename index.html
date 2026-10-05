@@ -1788,7 +1788,32 @@ async function nlgsSetSeasonLeagueFlag(competitionId){
   const {data,error}=await sb.rpc('set_competition_season_league',{p_competition_id:competitionId,p_season_league:true});
   if(error) throw error;
 }
+async function nlgsSetHolePrizeConfig(competitionId){
+  const hole1=Number(document.getElementById('compPrizeHole1')?.value);
+  const hole2=Number(document.getElementById('compPrizeHole2')?.value);
+  const hole3=Number(document.getElementById('compPrizeHole3')?.value);
 
+  if(!Number.isInteger(hole1)||!Number.isInteger(hole2)||!Number.isInteger(hole3)){
+    throw new Error('Choose a hole for all three specials');
+  }
+
+  if(hole1===hole2||hole1===hole3||hole2===hole3){
+    throw new Error('Each hole special must use a different hole');
+  }
+
+  const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null');
+  if(!m?.id) throw new Error('Administrator login could not be confirmed');
+
+  const r=await competitionRpc('configure_competition_hole_prizes',{
+    p_competition_id:competitionId,
+    p_member_id:m.id,
+    p_hole_1:hole1,
+    p_hole_2:hole2,
+    p_hole_3:hole3
+  });
+
+  if(r.error) throw r.error;
+}
 async function createCompetitionDraft(){
   const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null');
   if(!m || m.role!=='admin'){toast('Only the main administrator can create competitions');return;}
