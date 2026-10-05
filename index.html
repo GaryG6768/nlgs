@@ -2523,6 +2523,7 @@ function csRenderLeaderboard(){
   if(title) title.textContent=isComplete?'FINAL LEADERBOARD':'LIVE LEADERBOARD';
   if(sub) sub.innerHTML=isComplete?'All 18 holes complete':'<span class="cs-live-dot"></span>Updates every 5 seconds';
   csRenderHoleGrid();
+  csRenderHolePrize();
   const holeInstruction=document.getElementById('csHoleInstruction');
   if(holeInstruction) holeInstruction.textContent=finalised?'Tap a hole to view scores':'Tap a hole to view/edit';
 }
