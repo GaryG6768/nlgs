@@ -1673,8 +1673,29 @@ function updateCompetitionPlayingHandicaps(){
     if(el) el.textContent=ph===null?'Playing HCP —':'Playing HCP '+ph+' ('+competitionAllowance+')';
   });
 }
+function loadCompetitionPrizeHoles(){
+  const selects=[
+    document.getElementById('compPrizeHole1'),
+    document.getElementById('compPrizeHole2'),
+    document.getElementById('compPrizeHole3')
+  ].filter(Boolean);
 
+  selects.forEach(select=>{
+    const current=select.value;
+    select.innerHTML='<option value="">Choose hole…</option>';
+
+    for(let hole=1;hole<=18;hole++){
+      const option=document.createElement('option');
+      option.value=String(hole);
+      option.textContent='Hole '+hole;
+      select.appendChild(option);
+    }
+
+    if(current)select.value=current;
+  });
+}
 async function loadCompetitionBuilder(){
+  loadCompetitionPrizeHoles();
   const courseSel=document.getElementById('compCourse');
   const teeSel=document.getElementById('compTee');
   if(!courseSel || !teeSel)return;
