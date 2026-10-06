@@ -425,6 +425,26 @@ html,body{overscroll-behavior-y:none}
   <h2 style="margin-top:0">NLGS Admin</h2>
   <div class="card"><h3>Players & Handicaps</h3><div class="small">Full admin access. Add members, update handicaps and manage PINs.</div><button class="btn" style="margin-top:12px" onclick="openManagePlayers()">MANAGE PLAYERS</button></div>
   <div class="card"><h3>Competitions</h3><div class="small">Create Stableford, Medal, Match Play and Season League events.</div><button class="btn" style="margin-top:12px" onclick="openCompetitionBuilder()">CREATE COMPETITION</button></div>
+  <div class="card">
+  <div class="row">
+    <div>
+      <h3 style="margin:0">Individual Competitions</h3>
+      <div class="small">Allow selected members to create their own Medal or Stableford competitions.</div>
+    </div>
+    <span class="pill" id="individualCompetitionStatus">OFF</span>
+  </div>
+
+  <button id="individualCompetitionToggle"
+          class="btn"
+          style="margin-top:12px"
+          onclick="toggleIndividualCompetitions()">
+    TURN ON
+  </button>
+
+  <div class="small" style="margin-top:8px">
+    When ON, the Individual Competitions option will be available to members.
+  </div>
+</div>
   <div class="card" style="cursor:pointer" onclick="loadAdminCompetitions()">
     <div class="row"><h3 style="margin:0">Saved Competitions</h3><button class="btn secondary" style="width:auto;padding:9px 12px" onclick="event.stopPropagation();loadAdminCompetitions()">OPEN</button></div>
     <div class="small" style="margin:8px 0 10px">Tap OPEN to view your saved competitions, or tap the section itself.</div>
@@ -505,7 +525,7 @@ function show(id){
  window.scrollTo(0,0);
 }
 function toast(t){let e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2200)}
-function toggleMenu(){const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null'); if(m && m.role==='admin'){show('admin')} else {toast('Admin access only')} }
+function toggleMenu(){const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null'); if(m && m.role==='admin'){show('admin');loadIndividualCompetitionSetting()} else {toast('Admin access only')} }
 function renderScore(){
  document.getElementById('holeTitle').textContent='Hole '+currentHole;
  document.getElementById('holeInfo').textContent='Par '+holes[currentHole-1][0]+' • SI '+holes[currentHole-1][1];
@@ -1614,7 +1634,59 @@ async function competitionRpc(name, body={}){
     return {data:null,error:new Error(e.message||'Database request failed')};
   }
 }
+async function loadIndividualCompetitionSetting(){
+  const status=document.getElementById('individualCompetitionStatus');
+  const button=document.getElementById('individualCompetitionToggle');
+  if(!status || !button)return;
 
+  const r=await competitionRpc('get_individual_competitions_enabled');
+
+  if(r.error){
+    status.textContent='ERROR';
+    button.textContent='TRY AGAIN';
+    return;
+  }
+
+  const enabled=!!r.data;
+
+  status.textContent=enabled?'ON':'OFF';
+  button.textContent=enabled?'TURN OFF':'TURN ON';
+}
+
+async function toggleIndividualCompetitions(){
+  const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null');
+
+  if(!m || m.role!=='admin'){
+    toast('Only the main administrator can change this setting');
+    return;
+  }
+
+  const r=await competitionRpc('get_individual_competitions_enabled');
+
+  if(r.error){
+    toast('Could not read Individual Competition setting');
+    return;
+  }
+
+  const enabled=!Boolean(r.data);
+
+  const save=await competitionRpc('set_individual_competitions_enabled',{
+    p_member_id:m.id,
+    p_enabled:enabled
+  });
+
+  if(save.error){
+    toast(save.error.message||'Could not change setting');
+    return;
+  }
+
+  await loadIndividualCompetitionSetting();
+
+  toast(enabled
+    ? 'Individual Competitions are now ON'
+    : 'Individual Competitions are now OFF'
+  );
+}
 function competitionError(prefix,e){
   console.error(prefix,e);
   return (e && e.message) ? e.message : String(e||'Unknown error');
