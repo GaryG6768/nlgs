@@ -855,7 +855,7 @@ function show(id){
   if(target) target.classList.add('active');
   document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.nav===id));
   
-}
+
   if(id==='score') renderScore(); if(id==='leader') renderLeader(); if(id==='admin') setTimeout(()=>{loadAdminCompetitions();loadIndividualCompetitionAccess();},0);
   window.scrollTo(0,0);
 }
