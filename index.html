@@ -809,8 +809,8 @@ function openApp(m){
 
 const individualTile=document.getElementById('individualCompetitionTile');
 if(individualTile){
-  competitionRpc('get_individual_competitions_enabled').then(r=>{
-    individualTile.style.display=!r.error && r.data===true?'block':'none';
+  sb.rpc('get_individual_competitions_enabled').then(({data,error})=>{
+    individualTile.style.display=!error && data===true?'block':'none';
   }).catch(()=>{
     individualTile.style.display='none';
   });
