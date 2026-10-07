@@ -1978,6 +1978,90 @@ function updateIndividualPlayerCount(){
   const el=document.getElementById('individualPlayerCount');
   if(el)el.textContent=n+' selected';
 }
+  async function loadIndividualCompetitionRounds(){
+  const wrap=document.getElementById('individualRoundsList');
+  if(!wrap)return;
+
+  wrap.innerHTML='<div class="small">Loading courses…</div>';
+
+  const r=await competitionRpc('list_courses_for_game');
+
+  if(r.error){
+    wrap.innerHTML='<div class="small">Courses could not be loaded.</div>';
+    toast('Courses could not be loaded');
+    return;
+  }
+
+  const courses=r.data||[];
+  wrap.innerHTML='';
+
+  for(let round=1;round<=6;round++){
+    const card=document.createElement('div');
+    card.className='player-card';
+    card.style.marginTop=round===1?'0':'8px';
+
+    card.innerHTML=
+      '<div class="row">'+
+        '<b>Round '+round+'</b>'+
+        '<span class="pill">ROUND '+round+'</span>'+
+      '</div>'+
+      '<div style="margin-top:8px">'+
+        '<label class="label">DATE</label>'+
+        '<input id="individualRoundDate'+round+'" class="input" type="date">'+
+      '</div>'+
+      '<div style="margin-top:8px">'+
+        '<label class="label">COURSE</label>'+
+        '<select id="individualRoundCourse'+round+'" class="input">'+
+          '<option value="">Choose a golf course…</option>'+
+          courses.map(c=>'<option value="'+c.id+'">'+c.name+'</option>').join('')+
+        '</select>'+
+      '</div>'+
+      '<div style="margin-top:8px">'+
+        '<label class="label">TEES</label>'+
+        '<select id="individualRoundTee'+round+'" class="input">'+
+          '<option value="">Choose tees…</option>'+
+        '</select>'+
+      '</div>';
+
+    wrap.appendChild(card);
+
+    const course=document.getElementById('individualRoundCourse'+round);
+    const tee=document.getElementById('individualRoundTee'+round);
+
+    course.addEventListener('change',async()=>{
+      tee.innerHTML='<option value="">Loading tees…</option>';
+
+      if(!course.value){
+        tee.innerHTML='<option value="">Choose tees…</option>';
+        return;
+      }
+
+      const tr=await competitionRpc('list_course_tees_for_game',{
+        p_course_id:course.value
+      });
+
+      if(tr.error){
+        tee.innerHTML='<option value="">Unable to load tees</option>';
+        return;
+      }
+
+      tee.innerHTML='<option value="">Choose tees…</option>';
+
+      (tr.data||[]).forEach(t=>{
+        const option=document.createElement('option');
+        option.value=t.id;
+        option.textContent=t.tee_name+(t.yards?' — '+Number(t.yards).toLocaleString()+' yds':'');
+        tee.appendChild(option);
+      });
+
+      const preferred=(tr.data||[]).find(t=>
+        String(t.tee_name).toLowerCase()==='yellow'
+      ) || (tr.data||[]).find(t=>t.is_default);
+
+      if(preferred)tee.value=preferred.id;
+    });
+  }
+}
 async function nlgsSetSeasonLeagueFlag(competitionId){
   const checked=!!document.getElementById('compSeasonLeague')?.checked;
   if(!checked) return;
