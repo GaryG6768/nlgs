@@ -485,21 +485,13 @@ html,body{overscroll-behavior-y:none}
   <div class="card">
   <div class="row">
     <div>
-      <h3 style="margin:0">Individual Competitions</h3>
-      <div class="small">Allow selected members to create their own Medal or Stableford competitions.</div>
+      <h3 style="margin:0">Individual Competition Access</h3>
+      <div class="small">Choose which members are allowed to use Individual Competitions.</div>
     </div>
-    <span class="pill" id="individualCompetitionStatus">OFF</span>
   </div>
 
-  <button id="individualCompetitionToggle"
-          class="btn"
-          style="margin-top:12px"
-          onclick="toggleIndividualCompetitions()">
-    TURN ON
-  </button>
-
-  <div class="small" style="margin-top:8px">
-    When ON, the Individual Competitions option will be available to members.
+  <div id="individualCompetitionAccessList" style="margin-top:12px">
+    <div class="small">Loading members…</div>
   </div>
 </div>
   <div class="card" style="cursor:pointer" onclick="loadAdminCompetitions()">
