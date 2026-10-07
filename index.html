@@ -2131,6 +2131,92 @@ async function createCompetitionDraft(){
   }catch(e){toast(competitionError('Competition save failed',e).slice(0,110));}
   finally{if(btn){btn.disabled=false;btn.textContent='CREATE COMPETITION';}}
 }
+  async function createIndividualCompetition(){
+  const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null');
+
+  if(!m?.id){
+    toast('Please log in again');
+    return;
+  }
+
+  const name=document.getElementById('individualCompName')?.value.trim();
+  const selected=[...document.querySelectorAll('.individual-player:checked')].map(x=>x.value);
+
+  if(!name){
+    toast('Enter a competition name');
+    return;
+  }
+
+  if(selected.length<2){
+    toast('Select at least two players');
+    return;
+  }
+
+  const rounds=[];
+
+  for(let round=1;round<=6;round++){
+    const roundDate=document.getElementById('individualRoundDate'+round)?.value;
+    const courseId=document.getElementById('individualRoundCourse'+round)?.value;
+    const teeId=document.getElementById('individualRoundTee'+round)?.value;
+
+    if(!roundDate){
+      toast('Choose a date for Round '+round);
+      return;
+    }
+
+    if(!courseId){
+      toast('Choose a course for Round '+round);
+      return;
+    }
+
+    if(!teeId){
+      toast('Choose tees for Round '+round);
+      return;
+    }
+
+    rounds.push({
+      round_no:round,
+      round_date:roundDate,
+      course_id:courseId,
+      tee_id:teeId
+    });
+  }
+
+  const btn=document.querySelector('#individualCompetition .btn');
+
+  if(btn){
+    btn.disabled=true;
+    btn.textContent='CREATING…';
+  }
+
+  try{
+    const format=individualCompetitionFormat.toLowerCase();
+    const allowance=individualCompetitionAllowance.replace('%','');
+
+    const r=await competitionRpc('create_individual_competition',{
+      p_member_id:m.id,
+      p_name:name,
+      p_format:format,
+      p_allowance:allowance,
+      p_counting_method:individualCompetitionCounting,
+      p_player_ids:selected,
+      p_rounds:rounds
+    });
+
+    if(r.error)throw r.error;
+
+    toast('Individual Competition created successfully');
+    show('home');
+
+  }catch(e){
+    toast(competitionError('Individual Competition failed',e).slice(0,110));
+  }finally{
+    if(btn){
+      btn.disabled=false;
+      btn.textContent='CREATE INDIVIDUAL COMPETITION';
+    }
+  }
+}
 </script>
 
 
