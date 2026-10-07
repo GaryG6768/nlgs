@@ -851,7 +851,7 @@ function show(id){
   window.scrollTo(0,0);
 }
 function toast(t){let e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2200)}
-function toggleMenu(){const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null'); if(m && m.role==='admin'){show('admin')} else {toast('Admin access only')} }
+function toggleMenu(){const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null'); if(m && m.role==='admin'){show('admin');loadIndividualCompetitionAccess()} else {toast('Admin access only')} }
 function renderScore(){
  document.getElementById('holeTitle').textContent='Hole '+currentHole;
  document.getElementById('holeInfo').textContent='Par '+holes[currentHole-1][0]+' • SI '+holes[currentHole-1][1];
