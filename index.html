@@ -115,7 +115,63 @@ html,body{overscroll-behavior-y:none}
     <button class="tile" onclick="show('admin')">⚙️<b>Admin</b><span>Manage NLGS</span></button>
   </div>
 </section>
+<section id="individualCompetition" class="screen">
+  <div class="label">INDIVIDUAL COMPETITION</div>
+  <h2 style="margin:4px 0">Create Competition</h2>
+  <div class="small" style="margin-bottom:12px">
+    Create a private competition for selected NLGS members.
+  </div>
 
+  <div class="card">
+    <h3>Competition Details</h3>
+
+    <label class="label">COMPETITION NAME</label>
+    <input id="individualCompName" class="input" placeholder="e.g. Summer Medal">
+
+    <label class="label" style="display:block;margin-top:12px">FORMAT</label>
+    <div class="seg">
+      <button id="individualFormatMedal" class="on" onclick="setIndividualFormat('Medal')">Medal</button>
+      <button id="individualFormatStableford" onclick="setIndividualFormat('Stableford')">Stableford</button>
+    </div>
+
+    <label class="label" style="display:block;margin-top:12px">HANDICAP ALLOWANCE</label>
+    <div class="seg">
+      <button id="individualAllowance100" class="on" onclick="setIndividualAllowance('100%')">100%</button>
+      <button id="individualAllowance85" onclick="setIndividualAllowance('85%')">85%</button>
+      <button id="individualAllowance75" onclick="setIndividualAllowance('75%')">75%</button>
+    </div>
+
+    <label class="label" style="display:block;margin-top:12px">COUNTING METHOD</label>
+    <div class="seg">
+      <button id="individualBest4" class="on" onclick="setIndividualCounting('best_4_of_6')">BEST 4 OF 6</button>
+      <button id="individualAll6" onclick="setIndividualCounting('all_6')">ALL 6</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <h3 style="margin:0">Players</h3>
+      <span class="pill" id="individualPlayerCount">0 selected</span>
+    </div>
+
+    <div class="small" style="margin:8px 0 10px">
+      Select the NLGS members taking part.
+    </div>
+
+    <div id="individualPlayersList"></div>
+  </div>
+
+  <div class="card">
+    <h3>Six Rounds</h3>
+    <div class="small" style="margin-bottom:10px">
+      Each round can have its own date, course and tees.
+    </div>
+    <div id="individualRoundsList"></div>
+  </div>
+
+  <button class="btn" onclick="createIndividualCompetition()">CREATE INDIVIDUAL COMPETITION</button>
+  <button class="btn secondary" style="margin-top:8px" onclick="show('home')">BACK</button>
+</section>
 
 <section id="competitionList" class="screen">
   <div class="label">NLGS COMPETITIONS</div>
