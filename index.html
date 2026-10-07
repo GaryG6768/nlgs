@@ -805,6 +805,17 @@ function openApp(m){
  const admin=document.getElementById('admin'); if(admin && (m.role==='admin'||m.role==='handicap_admin')) admin.classList.remove('adminOnly');
  const adminCard=document.getElementById('adminCard'); if(adminCard) adminCard.style.display=m.role==='admin'||m.role==='handicap_admin'?'block':'none';
  const adminTile=document.querySelector('[onclick="show(\'admin\')"]'); if(adminTile) adminTile.style.display=m.role==='admin'||m.role==='handicap_admin'?'block':'none';
+  
+
+const individualTile=document.getElementById('individualCompetitionTile');
+if(individualTile){
+  competitionRpc('get_individual_competitions_enabled').then(r=>{
+    individualTile.style.display=!r.error && r.data===true?'block':'none';
+  }).catch(()=>{
+    individualTile.style.display='none';
+  });
+}
+
 }
 function showChangePin(){const box=document.getElementById('changePinBox');if(box)box.style.display=box.style.display==='none'?'block':'none';const msg=document.getElementById('changePinMsg');if(msg){msg.className='loginMsg';msg.textContent='';}}
 async function nlgsChangePin(){const current=document.getElementById('changeCurrentPin')?.value.trim()||'',next=document.getElementById('changeNewPin')?.value.trim()||'',confirm=document.getElementById('changeConfirmPin')?.value.trim()||'',msg=document.getElementById('changePinMsg'),btn=document.getElementById('changePinBtn');if(!/^[0-9]{4}$/.test(current)||!/^[0-9]{4}$/.test(next)||!/^[0-9]{4}$/.test(confirm)){msg.textContent='All PINs must be exactly 4 digits.';return;}if(next!==confirm){msg.textContent='The new PINs do not match.';return;}if(next===current){msg.textContent='Your new PIN must be different from your current PIN.';return;}const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null');const memberName=(m&&m.full_name)||document.getElementById('loginName')?.value.trim()||'';if(!memberName){msg.textContent='Enter your member name above.';return;}btn.disabled=true;btn.textContent='CHANGING…';msg.textContent='';try{const {data,error}=await sb.rpc('member_change_pin',{p_member_name:memberName,p_current_pin:current,p_new_pin:next});if(error)throw error;msg.className='loginMsg admin-success';msg.textContent='PIN changed successfully. Logging you in…';document.getElementById('changeCurrentPin').value='';document.getElementById('changeNewPin').value='';document.getElementById('changeConfirmPin').value='';const {data:loginData,error:loginError}=await sb.rpc('login_member',{p_full_name:memberName,p_pin:next});if(loginError||!loginData||loginData.length===0)throw new Error('PIN changed, but automatic login failed. Please log in with your new PIN.');const loggedIn=loginData[0];window.nlgsLoginCredentials={name:memberName,pin:next};sessionStorage.setItem('nlgsMember',JSON.stringify(loggedIn));openApp(loggedIn);show('home');}catch(e){msg.className='loginMsg';msg.textContent=e.message||'Could not change PIN.';}finally{btn.disabled=false;btn.textContent='CHANGE PIN';}}
