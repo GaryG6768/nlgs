@@ -1874,9 +1874,15 @@ function setIndividualCounting(v){
 
         member.enabled=!member.enabled;
 
-        button.textContent=
-          member.enabled?'ALLOWED':'NOT ALLOWED';
-      };
+button.textContent=
+  member.enabled?'ALLOWED':'NOT ALLOWED';
+
+if(member.member_id===m.id){
+  const tile=document.getElementById('individualCompetitionTile');
+  if(tile){
+    tile.style.display=member.enabled?'block':'none';
+  }
+}
 
       wrap.appendChild(row);
     });
