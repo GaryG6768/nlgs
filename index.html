@@ -847,7 +847,7 @@ function show(id){
     });
   }
 }
-  if(id==='score') renderScore(); if(id==='leader') renderLeader(); if(id==='admin') setTimeout(()=>loadAdminCompetitions(),0);
+  if(id==='score') renderScore(); if(id==='leader') renderLeader(); if(id==='admin') setTimeout(()=>{loadAdminCompetitions();loadIndividualCompetitionAccess();},0);
   window.scrollTo(0,0);
 }
 function toast(t){let e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2200)}
