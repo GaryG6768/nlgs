@@ -1814,6 +1814,10 @@ function setIndividualCounting(v){
   });
 
   if(r.error){
+  wrap.innerHTML='<div class="small">ERROR: '+(r.error.message||'Unknown error')+'</div>';
+  toast(r.error.message||'Individual Competition access failed');
+  return;
+}
     wrap.innerHTML='<div class="small">Could not load member access.</div>';
     toast('Individual Competition access could not be loaded');
     return;
