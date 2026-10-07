@@ -1797,81 +1797,105 @@ function setIndividualCounting(v){
   document.getElementById('individualAll6')?.classList.toggle('on',v==='all_6');
 }
   async function loadIndividualCompetitionAccess(){
-  const wrap=document.getElementById('individualCompetitionAccessList');
-  if(!wrap)return;
+  try{
+    const wrap=document.getElementById('individualCompetitionAccessList');
+    if(!wrap)return;
 
-  const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null');
+    const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null');
 
-  if(!m || m.role!=='admin'){
-    wrap.innerHTML='<div class="small">Administrator access required.</div>';
-    return;
-  }
+    if(!m || m.role!=='admin'){
+      wrap.innerHTML='<div class="small">Administrator access required.</div>';
+      return;
+    }
 
-  wrap.innerHTML='<div class="small">Loading members…</div>';
+    wrap.innerHTML='<div class="small">Loading members…</div>';
 
-  const r=await Promise.race([
-  competitionRpc('list_individual_competition_access',{
-    p_member_id:m.id
-  }),
-  new Promise(resolve=>setTimeout(
-    ()=>resolve({data:null,error:new Error('Member access request timed out')}),
-    8000
-  ))
-]);
+    const r=await Promise.race([
+      competitionRpc('list_individual_competition_access',{
+        p_member_id:m.id
+      }),
+      new Promise(resolve=>setTimeout(
+        ()=>resolve({
+          data:null,
+          error:new Error('Member access request timed out')
+        }),
+        8000
+      ))
+    ]);
 
-  if(r.error){
-  wrap.innerHTML='<div class="small">ERROR: '+(r.error.message||'Unknown error')+'</div>';
-  toast(r.error.message||'Individual Competition access failed');
-  return;
-}
+    if(r.error){
+      wrap.innerHTML='<div class="small">ERROR: '+(r.error.message||'Unknown error')+'</div>';
+      toast(r.error.message||'Individual Competition access failed');
+      return;
+    }
 
+    wrap.innerHTML='';
 
-  wrap.innerHTML='';
+    (r.data||[]).forEach(member=>{
+      const row=document.createElement('div');
+      row.className='player-card';
+      row.style.marginTop='8px';
 
-  (r.data||[]).forEach(member=>{
-    const row=document.createElement('div');
-    row.className='player-card';
-    row.style.marginTop='8px';
-
-    row.innerHTML=
-      '<div class="row">'+
-        '<div>'+
-          '<b>'+member.full_name+'</b>'+
-          '<div class="small">Handicap Index '+
-          (Number.isFinite(Number(member.handicap))?Number(member.handicap).toFixed(1):'—')+
+      row.innerHTML=
+        '<div class="row">'+
+          '<div>'+
+            '<b>'+member.full_name+'</b>'+
+            '<div class="small">Handicap Index '+
+            (Number.isFinite(Number(member.handicap))
+              ?Number(member.handicap).toFixed(1)
+              :'—')+
+            '</div>'+
           '</div>'+
-        '</div>'+
-        '<button type="button" class="btn secondary" style="width:auto;padding:8px 12px">'+
-          (member.enabled?'ALLOWED':'NOT ALLOWED')+
-        '</button>'+
-      '</div>';
+          '<button type="button" class="btn secondary" style="width:auto;padding:8px 12px">'+
+            (member.enabled?'ALLOWED':'NOT ALLOWED')+
+          '</button>'+
+        '</div>';
 
-    const button=row.querySelector('button');
+      const button=row.querySelector('button');
 
-    button.onclick=async()=>{
-      button.disabled=true;
+      button.onclick=async()=>{
+        button.disabled=true;
 
-      const save=await competitionRpc('set_individual_competition_access',{
-        p_member_id:m.id,
-        p_target_member_id:member.member_id,
-        p_enabled:!member.enabled
-      });
+        const save=await competitionRpc(
+          'set_individual_competition_access',
+          {
+            p_member_id:m.id,
+            p_target_member_id:member.member_id,
+            p_enabled:!member.enabled
+          }
+        );
 
-      button.disabled=false;
+        button.disabled=false;
 
-      if(save.error){
-        toast(save.error.message||'Could not change access');
-        return;
-      }
+        if(save.error){
+          toast(save.error.message||'Could not change access');
+          return;
+        }
 
-      member.enabled=!member.enabled;
+        member.enabled=!member.enabled;
 
-      button.textContent=member.enabled?'ALLOWED':'NOT ALLOWED';
-    };
+        button.textContent=
+          member.enabled?'ALLOWED':'NOT ALLOWED';
+      };
 
-    wrap.appendChild(row);
-  });
+      wrap.appendChild(row);
+    });
+
+  }catch(e){
+    const wrap=document.getElementById('individualCompetitionAccessList');
+
+    if(wrap){
+      wrap.innerHTML=
+        '<div class="small">ERROR: '+
+        (e.message||String(e))+
+        '</div>';
+    }
+
+    toast(e.message||'Member access error');
+  }
 }
+
+      
   
 function competitionError(prefix,e){
   console.error(prefix,e);
