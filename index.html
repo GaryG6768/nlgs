@@ -1787,6 +1787,76 @@ function setIndividualCounting(v){
   document.getElementById('individualBest4')?.classList.toggle('on',v==='best_4_of_6');
   document.getElementById('individualAll6')?.classList.toggle('on',v==='all_6');
 }
+  async function loadIndividualCompetitionAccess(){
+  const wrap=document.getElementById('individualCompetitionAccessList');
+  if(!wrap)return;
+
+  const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null');
+
+  if(!m || m.role!=='admin'){
+    wrap.innerHTML='<div class="small">Administrator access required.</div>';
+    return;
+  }
+
+  wrap.innerHTML='<div class="small">Loading members…</div>';
+
+  const r=await competitionRpc('list_individual_competition_access',{
+    p_member_id:m.id
+  });
+
+  if(r.error){
+    wrap.innerHTML='<div class="small">Could not load member access.</div>';
+    toast('Individual Competition access could not be loaded');
+    return;
+  }
+
+  wrap.innerHTML='';
+
+  (r.data||[]).forEach(member=>{
+    const row=document.createElement('div');
+    row.className='player-card';
+    row.style.marginTop='8px';
+
+    row.innerHTML=
+      '<div class="row">'+
+        '<div>'+
+          '<b>'+member.full_name+'</b>'+
+          '<div class="small">Handicap Index '+
+          (Number.isFinite(Number(member.handicap))?Number(member.handicap).toFixed(1):'—')+
+          '</div>'+
+        '</div>'+
+        '<button type="button" class="btn secondary" style="width:auto;padding:8px 12px">'+
+          (member.enabled?'ALLOWED':'NOT ALLOWED')+
+        '</button>'+
+      '</div>';
+
+    const button=row.querySelector('button');
+
+    button.onclick=async()=>{
+      button.disabled=true;
+
+      const save=await competitionRpc('set_individual_competition_access',{
+        p_member_id:m.id,
+        p_target_member_id:member.member_id,
+        p_enabled:!member.enabled
+      });
+
+      button.disabled=false;
+
+      if(save.error){
+        toast(save.error.message||'Could not change access');
+        return;
+      }
+
+      member.enabled=!member.enabled;
+
+      button.textContent=member.enabled?'ALLOWED':'NOT ALLOWED';
+    };
+
+    wrap.appendChild(row);
+  });
+}
+  
 function competitionError(prefix,e){
   console.error(prefix,e);
   return (e && e.message) ? e.message : String(e||'Unknown error');
