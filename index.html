@@ -1204,6 +1204,10 @@ window.show=async function(id){
     buildFriendlyPlayerCards();
     await ensureFriendlyDataLoaded();
   }
+    if(id==='individualCompetition'){
+    await loadIndividualCompetitionPlayers();
+    await loadIndividualCompetitionRounds();
+  }
 };
 
 // Also initialise once the page has fully loaded.
