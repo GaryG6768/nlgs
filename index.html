@@ -112,7 +112,7 @@ html,body{overscroll-behavior-y:none}
     <button id="individualCompetitionTile" class="tile" style="display:none" onclick="show('individualCompetition')">🏆<b>Individual Competition</b><span>Play your own competition</span></button>
     <button id="friendlyResultsTile" class="tile" onclick="show('friendlyResults')">⛳<b>Friendly Game Results</b><span>Completed friendly games</span></button>
     <button id="seasonLeagueTile" class="tile" onclick="openSeasonLeagueTest()">🏆<b>Season League</b><span>Best 4 of 6 results</span></button>
-    <button class="tile" onclick="show('admin')">⚙️<b>Admin</b><span>Manage NLGS</span></button>
+    <button class="tile" onclick="show('admin');loadIndividualCompetitionAccess()">⚙️<b>Admin</b><span>Manage NLGS</span></button>
   </div>
 </section>
 <section id="individualCompetition" class="screen">
