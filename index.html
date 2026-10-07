@@ -1809,9 +1809,15 @@ function setIndividualCounting(v){
 
   wrap.innerHTML='<div class="small">Loading members…</div>';
 
-  const r=await competitionRpc('list_individual_competition_access',{
+  const r=await Promise.race([
+  competitionRpc('list_individual_competition_access',{
     p_member_id:m.id
-  });
+  }),
+  new Promise(resolve=>setTimeout(
+    ()=>resolve({data:null,error:new Error('Member access request timed out')}),
+    8000
+  ))
+]);
 
   if(r.error){
   wrap.innerHTML='<div class="small">ERROR: '+(r.error.message||'Unknown error')+'</div>';
