@@ -801,11 +801,19 @@ function openApp(m){
 
 const individualTile=document.getElementById('individualCompetitionTile');
 if(individualTile){
-  sb.rpc('get_individual_competitions_enabled').then(({data,error})=>{
-    individualTile.style.display=!error && data===true?'block':'none';
-  }).catch(()=>{
+  const memberId=m?.id;
+
+  if(!memberId){
     individualTile.style.display='none';
-  });
+  }else{
+    sb.rpc('get_individual_competition_available',{
+      p_member_id:memberId
+    }).then(({data,error})=>{
+      individualTile.style.display=!error && data===true?'block':'none';
+    }).catch(()=>{
+      individualTile.style.display='none';
+    });
+  }
 }
 
 }
@@ -837,15 +845,7 @@ function show(id){
   const target=document.getElementById(id);
   if(target) target.classList.add('active');
   document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.nav===id));
-  if(id==='home'){
-  const individualTile=document.getElementById('individualCompetitionTile');
-  if(individualTile){
-    competitionRpc('get_individual_competitions_enabled').then(r=>{
-      individualTile.style.display=!r.error && r.data===true?'block':'none';
-    }).catch(()=>{
-      individualTile.style.display='none';
-    });
-  }
+  
 }
   if(id==='score') renderScore(); if(id==='leader') renderLeader(); if(id==='admin') setTimeout(()=>{loadAdminCompetitions();loadIndividualCompetitionAccess();},0);
   window.scrollTo(0,0);
