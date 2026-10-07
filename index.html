@@ -1935,7 +1935,49 @@ function updateCompetitionPlayerCount(){
   const n=document.querySelectorAll('.comp-player:checked').length;
   const el=document.getElementById('compPlayerCount');if(el)el.textContent=n+' selected';
 }
+async function loadIndividualCompetitionPlayers(){
+  const wrap=document.getElementById('individualPlayersList');
+  if(!wrap)return;
 
+  wrap.innerHTML='<div class="small">Loading members…</div>';
+
+  const r=await competitionRpc('list_members');
+
+  if(r.error){
+    wrap.innerHTML='<div class="small">Member list could not be loaded.</div>';
+    toast('Members could not be loaded');
+    return;
+  }
+
+  wrap.innerHTML='';
+
+  (r.data||[]).forEach(m=>{
+    const row=document.createElement('label');
+
+    row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer';
+
+    row.innerHTML=
+      '<input type="checkbox" class="individual-player" value="'+m.id+'" style="width:20px;height:20px">'+
+      '<div style="flex:1"><b>'+m.full_name+'</b>'+
+      '<div class="small">Handicap Index '+
+      (Number.isFinite(Number(m.handicap))?Number(m.handicap).toFixed(1):'—')+
+      '</div></div>';
+
+    wrap.appendChild(row);
+  });
+
+  wrap.querySelectorAll('.individual-player').forEach(cb=>{
+    cb.addEventListener('change',updateIndividualPlayerCount);
+  });
+
+  updateIndividualPlayerCount();
+}
+
+function updateIndividualPlayerCount(){
+  const n=document.querySelectorAll('.individual-player:checked').length;
+  const el=document.getElementById('individualPlayerCount');
+  if(el)el.textContent=n+' selected';
+}
 async function nlgsSetSeasonLeagueFlag(competitionId){
   const checked=!!document.getElementById('compSeasonLeague')?.checked;
   if(!checked) return;
