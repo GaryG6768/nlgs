@@ -1744,6 +1744,32 @@ async function toggleIndividualCompetitions(){
     : 'Individual Competitions are now OFF'
   );
 }
+  let individualCompetitionFormat='Medal';
+let individualCompetitionAllowance='100%';
+let individualCompetitionCounting='best_4_of_6';
+
+function setIndividualFormat(v){
+  individualCompetitionFormat=v;
+
+  document.getElementById('individualFormatMedal')?.classList.toggle('on',v==='Medal');
+  document.getElementById('individualFormatStableford')?.classList.toggle('on',v==='Stableford');
+}
+
+function setIndividualAllowance(v){
+  individualCompetitionAllowance=v;
+
+  ['100%','85%','75%'].forEach(x=>{
+    const id='individualAllowance'+x.replace('%','');
+    document.getElementById(id)?.classList.toggle('on',x===v);
+  });
+}
+
+function setIndividualCounting(v){
+  individualCompetitionCounting=v;
+
+  document.getElementById('individualBest4')?.classList.toggle('on',v==='best_4_of_6');
+  document.getElementById('individualAll6')?.classList.toggle('on',v==='all_6');
+}
 function competitionError(prefix,e){
   console.error(prefix,e);
   return (e && e.message) ? e.message : String(e||'Unknown error');
