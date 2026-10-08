@@ -1811,21 +1811,32 @@ function setIndividualCounting(v){
 
     wrap.innerHTML='<div class="small">Loading members…</div>';
 
-    const r=await Promise.race([
-      competitionRpc('list_individual_competition_access',{
+    const master=await competitionRpc(
+      'get_individual_competitions_enabled'
+    );
+
+    if(master.error){
+      wrap.innerHTML=
+        '<div class="small">ERROR: '+
+        (master.error.message||'Could not read master switch')+
+        '</div>';
+      return;
+    }
+
+    const masterEnabled=Boolean(master.data);
+
+    const r=await competitionRpc(
+      'list_individual_competition_access',
+      {
         p_member_id:m.id
-      }),
-      new Promise(resolve=>setTimeout(
-        ()=>resolve({
-          data:null,
-          error:new Error('Member access request timed out')
-        }),
-        8000
-      ))
-    ]);
+      }
+    );
 
     if(r.error){
-      wrap.innerHTML='<div class="small">ERROR: '+(r.error.message||'Unknown error')+'</div>';
+      wrap.innerHTML=
+        '<div class="small">ERROR: '+
+        (r.error.message||'Unknown error')+
+        '</div>';
       toast(r.error.message||'Individual Competition access failed');
       return;
     }
@@ -1837,6 +1848,8 @@ function setIndividualCounting(v){
       row.className='player-card';
       row.style.marginTop='8px';
 
+      const canChange=masterEnabled;
+
       row.innerHTML=
         '<div class="row">'+
           '<div>'+
@@ -1847,14 +1860,21 @@ function setIndividualCounting(v){
               :'—')+
             '</div>'+
           '</div>'+
-          '<button type="button" class="btn secondary" style="width:auto;padding:8px 12px">'+
-            (member.enabled?'ALLOWED':'NOT ALLOWED')+
+          '<button type="button" class="btn secondary" '+
+          'style="width:auto;padding:8px 12px" '+
+          (canChange?'':'disabled')+
+          '>'+
+          (canChange
+            ?(member.enabled?'ALLOWED':'NOT ALLOWED')
+            :'DISABLED')+
           '</button>'+
         '</div>';
 
       const button=row.querySelector('button');
 
       button.onclick=async()=>{
+        if(!masterEnabled)return;
+
         button.disabled=true;
 
         const save=await competitionRpc(
@@ -1866,30 +1886,55 @@ function setIndividualCounting(v){
           }
         );
 
-        button.disabled=false;
-
         if(save.error){
+          button.disabled=false;
           toast(save.error.message||'Could not change access');
           return;
         }
 
         member.enabled=!member.enabled;
 
-button.textContent=
-  member.enabled?'ALLOWED':'NOT ALLOWED';
+        button.textContent=
+          member.enabled?'ALLOWED':'NOT ALLOWED';
 
-if(member.member_id===m.id){
-  const tile=document.getElementById('individualCompetitionTile');
-  if(tile){
-    tile.style.display=member.enabled?'block':'none';
-  }
-}
-};
+        button.disabled=false;
+
+        if(member.member_id===m.id){
+          const tile=document.getElementById(
+            'individualCompetitionTile'
+          );
+
+          if(tile){
+            tile.style.display=
+              (masterEnabled && member.enabled)
+                ?'block'
+                :'none';
+          }
+        }
+      };
+
       wrap.appendChild(row);
     });
 
+    const me=(r.data||[]).find(
+      member=>member.member_id===m.id
+    );
+
+    const tile=document.getElementById(
+      'individualCompetitionTile'
+    );
+
+    if(tile){
+      tile.style.display=
+        (masterEnabled && me && me.enabled)
+          ?'block'
+          :'none';
+    }
+
   }catch(e){
-    const wrap=document.getElementById('individualCompetitionAccessList');
+    const wrap=document.getElementById(
+      'individualCompetitionAccessList'
+    );
 
     if(wrap){
       wrap.innerHTML=
@@ -1900,6 +1945,7 @@ if(member.member_id===m.id){
 
     toast(e.message||'Member access error');
   }
+}
 }
 
       
