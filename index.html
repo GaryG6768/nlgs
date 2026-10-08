@@ -161,13 +161,7 @@ html,body{overscroll-behavior-y:none}
     <div id="individualPlayersList"></div>
   </div>
 
-  <div class="card">
-    <h3>Six Rounds</h3>
-    <div class="small" style="margin-bottom:10px">
-      Each round can have its own date, course and tees.
-    </div>
-    <div id="individualRoundsList"></div>
-  </div>
+  
 
   <button class="btn" onclick="createIndividualCompetition()">CREATE INDIVIDUAL COMPETITION</button>
   <button class="btn secondary" style="margin-top:8px" onclick="show('home')">BACK</button>
@@ -2325,33 +2319,9 @@ async function createCompetitionDraft(){
 
   const rounds=[];
 
-  for(let round=1;round<=6;round++){
-    const roundDate=document.getElementById('individualRoundDate'+round)?.value;
-    const courseId=document.getElementById('individualRoundCourse'+round)?.value;
-    const teeId=document.getElementById('individualRoundTee'+round)?.value;
 
-    if(!roundDate){
-      toast('Choose a date for Round '+round);
-      return;
-    }
 
-    if(!courseId){
-      toast('Choose a course for Round '+round);
-      return;
-    }
-
-    if(!teeId){
-      toast('Choose tees for Round '+round);
-      return;
-    }
-
-    rounds.push({
-      round_no:round,
-      round_date:roundDate,
-      course_id:courseId,
-      tee_id:teeId
-    });
-  }
+    
 
   const btn=document.querySelector('#individualCompetition .btn');
 
