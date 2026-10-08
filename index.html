@@ -161,7 +161,14 @@ html,body{overscroll-behavior-y:none}
     <div id="individualPlayersList"></div>
   </div>
 
-  
+    <div class="card">
+    <div class="row">
+      <h3 style="margin:0">My Individual Competitions</h3>
+    </div>
+    <div id="individualCompetitionsList" style="margin-top:10px">
+      <div class="small">No competitions created yet.</div>
+    </div>
+  </div>
 
   <button class="btn" onclick="createIndividualCompetition()">CREATE INDIVIDUAL COMPETITION</button>
   <button class="btn secondary" style="margin-top:8px" onclick="show('home')">BACK</button>
@@ -2157,6 +2164,63 @@ function updateIndividualPlayerCount(){
   const n=document.querySelectorAll('.individual-player:checked').length;
   const el=document.getElementById('individualPlayerCount');
   if(el)el.textContent=n+' selected';
+}
+  async function loadIndividualCompetitions(){
+  const wrap=document.getElementById('individualCompetitionsList');
+  if(!wrap)return;
+
+  const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null');
+
+  if(!m?.id){
+    wrap.innerHTML='<div class="small">Please log in again.</div>';
+    return;
+  }
+
+  wrap.innerHTML='<div class="small">Loading competitions…</div>';
+
+  const r=await competitionRpc(
+    'list_individual_competitions_for_member',
+    {p_member_id:m.id}
+  );
+
+  if(r.error){
+    wrap.innerHTML='<div class="small">Competitions could not be loaded.</div>';
+    toast('Individual competitions could not be loaded');
+    return;
+  }
+
+  const competitions=r.data||[];
+
+  if(!competitions.length){
+    wrap.innerHTML='<div class="small">No competitions created yet.</div>';
+    return;
+  }
+
+  wrap.innerHTML='';
+
+  competitions.forEach(comp=>{
+    const card=document.createElement('div');
+    card.className='player-card';
+    card.style.marginTop='8px';
+
+    card.innerHTML=
+      '<div class="row">'+
+        '<b>'+comp.name+'</b>'+
+        '<span class="pill">'+
+          Number(comp.rounds_added||0)+'/6 ROUNDS'+
+        '</span>'+
+      '</div>'+
+      '<div class="small" style="margin-top:6px">'+
+        comp.format+' • '+comp.allowance+
+        ' • '+(comp.counting_method==='best_4_of_6'?'Best 4 of 6':'All 6')+
+      '</div>'+
+      '<button class="btn secondary" style="margin-top:8px" '+
+        'onclick="manageIndividualCompetition(\''+comp.id+'\')">'+
+        'MANAGE ROUNDS'+
+      '</button>';
+
+    wrap.appendChild(card);
+  });
 }
   async function loadIndividualCompetitionRounds(){
   const wrap=document.getElementById('individualRoundsList');
