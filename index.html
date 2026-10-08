@@ -1848,27 +1848,26 @@ function setIndividualCounting(v){
       row.className='player-card';
       row.style.marginTop='8px';
 
-      const canChange=masterEnabled;
+      const buttonHtml=
+  '<div class="row">'+
+    '<div>'+
+      '<b>'+member.full_name+'</b>'+
+      '<div class="small">Handicap Index '+
+      (Number.isFinite(Number(member.handicap))
+        ?Number(member.handicap).toFixed(1)
+        :'—')+
+      '</div>'+
+    '</div>'+
+    '<button type="button" class="btn secondary" '+
+    'style="width:auto;padding:8px 12px">'+
+    (member.enabled?'ALLOWED':'NOT ALLOWED')+
+    '</button>'+
+  '</div>';
 
-      row.innerHTML=
-        '<div class="row">'+
-          '<div>'+
-            '<b>'+member.full_name+'</b>'+
-            '<div class="small">Handicap Index '+
-            (Number.isFinite(Number(member.handicap))
-              ?Number(member.handicap).toFixed(1)
-              :'—')+
-            '</div>'+
-          '</div>'+
-          '<button type="button" class="btn secondary" '+
-          'style="width:auto;padding:8px 12px" '+
-          (canChange?'':'disabled')+
-          '>'+
-          (canChange
-            ?(member.enabled?'ALLOWED':'NOT ALLOWED')
-            :'DISABLED')+
-          '</button>'+
-        '</div>';
+row.innerHTML=buttonHtml;
+
+const accessButton=row.querySelector('button');
+accessButton.disabled=!masterEnabled;
 
       const button=row.querySelector('button');
 
