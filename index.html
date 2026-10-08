@@ -2320,31 +2320,20 @@ async function createCompetitionDraft(){
   const rounds=[];
 
   for(let round=1;round<=6;round++){
-    const roundDate=document.getElementById('individualRoundDate'+round)?.value;
-    const courseId=document.getElementById('individualRoundCourse'+round)?.value;
-    const teeId=document.getElementById('individualRoundTee'+round)?.value;
+    const roundDate=document.getElementById('individualRoundDate'+round)?.value||'';
+    const courseId=document.getElementById('individualRoundCourse'+round)?.value||'';
+    const teeId=document.getElementById('individualRoundTee'+round)?.value||'';
 
-    if(!roundDate){
-      toast('Choose a date for Round '+round);
-      return;
+    // Only save a round if all three details have been entered.
+    // Empty rounds are allowed and can be added later.
+    if(roundDate && courseId && teeId){
+      rounds.push({
+        round_no:round,
+        round_date:roundDate,
+        course_id:courseId,
+        tee_id:teeId
+      });
     }
-
-    if(!courseId){
-      toast('Choose a course for Round '+round);
-      return;
-    }
-
-    if(!teeId){
-      toast('Choose tees for Round '+round);
-      return;
-    }
-
-    rounds.push({
-      round_no:round,
-      round_date:roundDate,
-      course_id:courseId,
-      tee_id:teeId
-    });
   }
 
   const btn=document.querySelector('#individualCompetition .btn');
@@ -2381,6 +2370,7 @@ async function createCompetitionDraft(){
       btn.textContent='CREATE INDIVIDUAL COMPETITION';
     }
   }
+}
 }
 </script>
 
