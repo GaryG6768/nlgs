@@ -1720,89 +1720,55 @@ async function competitionRpc(name, body={}){
 async function loadIndividualCompetitionSetting(){
   const status=document.getElementById('individualCompetitionStatus');
   const button=document.getElementById('individualCompetitionToggle');
-
   if(!status || !button)return;
 
-  const r=await competitionRpc(
-    'get_individual_competitions_enabled'
-  );
+  const r=await competitionRpc('get_individual_competitions_enabled');
 
   if(r.error){
     status.textContent='ERROR';
     button.textContent='TRY AGAIN';
-    return false;
+    return;
   }
 
-  const enabled=Boolean(r.data);
+  const enabled=!!r.data;
 
   status.textContent=enabled?'ON':'OFF';
   button.textContent=enabled?'TURN OFF':'TURN ON';
-
-  return enabled;
 }
 
 async function toggleIndividualCompetitions(){
-  const m=JSON.parse(
-    sessionStorage.getItem('nlgsMember')||'null'
-  );
+  const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null');
 
   if(!m || m.role!=='admin'){
     toast('Only the main administrator can change this setting');
     return;
   }
 
-  const button=document.getElementById(
-    'individualCompetitionToggle'
-  );
+  const r=await competitionRpc('get_individual_competitions_enabled');
 
-  if(button)button.disabled=true;
-
-  try{
-    const current=await competitionRpc(
-      'get_individual_competitions_enabled'
-    );
-
-    if(current.error){
-      toast('Could not read Individual Competition setting');
-      return;
-    }
-
-    const enabled=!Boolean(current.data);
-
-    const save=await competitionRpc(
-      'set_individual_competitions_enabled',
-      {
-        p_member_id:m.id,
-        p_enabled:enabled
-      }
-    );
-
-    if(save.error){
-      toast(
-        save.error.message||
-        'Could not change Individual Competition setting'
-      );
-      return;
-    }
-
-    await loadIndividualCompetitionSetting();
-
-    await loadIndividualCompetitionAccess();
-
-    toast(
-      enabled
-        ?'Individual Competitions are now ON'
-        :'Individual Competitions are now OFF'
-    );
-
-  }catch(e){
-    toast(
-      e.message||
-      'Could not change Individual Competition setting'
-    );
-  }finally{
-    if(button)button.disabled=false;
+  if(r.error){
+    toast('Could not read Individual Competition setting');
+    return;
   }
+
+  const enabled=!Boolean(r.data);
+
+  const save=await competitionRpc('set_individual_competitions_enabled',{
+    p_member_id:m.id,
+    p_enabled:enabled
+  });
+
+  if(save.error){
+    toast(save.error.message||'Could not change setting');
+    return;
+  }
+
+  await loadIndividualCompetitionSetting();
+
+  toast(enabled
+    ? 'Individual Competitions are now ON'
+    : 'Individual Competitions are now OFF'
+  );
 }
   let individualCompetitionFormat='Medal';
 let individualCompetitionAllowance='100%';
