@@ -1764,7 +1764,7 @@ async function toggleIndividualCompetitions(){
   }
 
   await loadIndividualCompetitionSetting();
-
+await loadIndividualCompetitionAccess();
   toast(enabled
     ? 'Individual Competitions are now ON'
     : 'Individual Competitions are now OFF'
