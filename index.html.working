@@ -109,12 +109,69 @@ html,body{overscroll-behavior-y:none}
     <button class="tile" onclick="show('fixtures')">📅<b>Fixtures</b><span>Upcoming events</span></button>
     <button class="tile" onclick="show('mygolf')">👤<b>My Golf</b><span>Stats & history</span></button>
     <button class="tile" onclick="show('friendly')">🏌️<b>Friendly Game</b><span>Play with friends or guests</span></button>
+    <button id="individualCompetitionTile" class="tile" style="display:none" onclick="show('individualCompetition')">🏆<b>Individual Competition</b><span>Play your own competition</span></button>
     <button id="friendlyResultsTile" class="tile" onclick="show('friendlyResults')">⛳<b>Friendly Game Results</b><span>Completed friendly games</span></button>
     <button id="seasonLeagueTile" class="tile" onclick="openSeasonLeagueTest()">🏆<b>Season League</b><span>Best 4 of 6 results</span></button>
-    <button class="tile" onclick="show('admin')">⚙️<b>Admin</b><span>Manage NLGS</span></button>
+    <button class="tile" onclick="show('admin');loadIndividualCompetitionAccess()">⚙️<b>Admin</b><span>Manage NLGS</span></button>
   </div>
 </section>
+<section id="individualCompetition" class="screen">
+  <div class="label">INDIVIDUAL COMPETITION</div>
+  <h2 style="margin:4px 0">Create Competition</h2>
+  <div class="small" style="margin-bottom:12px">
+    Create a private competition for selected NLGS members.
+  </div>
 
+  <div class="card">
+    <h3>Competition Details</h3>
+
+    <label class="label">COMPETITION NAME</label>
+    <input id="individualCompName" class="input" placeholder="e.g. Summer Medal">
+
+    <label class="label" style="display:block;margin-top:12px">FORMAT</label>
+    <div class="seg">
+      <button id="individualFormatMedal" class="on" onclick="setIndividualFormat('Medal')">Medal</button>
+      <button id="individualFormatStableford" onclick="setIndividualFormat('Stableford')">Stableford</button>
+    </div>
+
+    <label class="label" style="display:block;margin-top:12px">HANDICAP ALLOWANCE</label>
+    <div class="seg">
+      <button id="individualAllowance100" class="on" onclick="setIndividualAllowance('100%')">100%</button>
+      <button id="individualAllowance85" onclick="setIndividualAllowance('85%')">85%</button>
+      <button id="individualAllowance75" onclick="setIndividualAllowance('75%')">75%</button>
+    </div>
+
+    <label class="label" style="display:block;margin-top:12px">COUNTING METHOD</label>
+    <div class="seg">
+      <button id="individualBest4" class="on" onclick="setIndividualCounting('best_4_of_6')">BEST 4 OF 6</button>
+      <button id="individualAll6" onclick="setIndividualCounting('all_6')">ALL 6</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <h3 style="margin:0">Players</h3>
+      <span class="pill" id="individualPlayerCount">0 selected</span>
+    </div>
+
+    <div class="small" style="margin:8px 0 10px">
+      Select the NLGS members taking part.
+    </div>
+
+    <div id="individualPlayersList"></div>
+  </div>
+
+  <div class="card">
+    <h3>Six Rounds</h3>
+    <div class="small" style="margin-bottom:10px">
+      Each round can have its own date, course and tees.
+    </div>
+    <div id="individualRoundsList"></div>
+  </div>
+
+  <button class="btn" onclick="createIndividualCompetition()">CREATE INDIVIDUAL COMPETITION</button>
+  <button class="btn secondary" style="margin-top:8px" onclick="show('home')">BACK</button>
+</section>
 
 <section id="competitionList" class="screen">
   <div class="label">NLGS COMPETITIONS</div>
@@ -425,6 +482,27 @@ html,body{overscroll-behavior-y:none}
   <h2 style="margin-top:0">NLGS Admin</h2>
   <div class="card"><h3>Players & Handicaps</h3><div class="small">Full admin access. Add members, update handicaps and manage PINs.</div><button class="btn" style="margin-top:12px" onclick="openManagePlayers()">MANAGE PLAYERS</button></div>
   <div class="card"><h3>Competitions</h3><div class="small">Create Stableford, Medal, Match Play and Season League events.</div><button class="btn" style="margin-top:12px" onclick="openCompetitionBuilder()">CREATE COMPETITION</button></div>
+  <div class="card">
+  <div class="row">
+    <div>
+      <h3 style="margin:0">Individual Competition Access</h3>
+      <div class="small">Choose which members are allowed to use Individual Competitions.</div>
+    </div>
+      <div class="row" style="margin-top:12px">
+    <span class="pill" id="individualCompetitionStatus">OFF</span>
+    <button id="individualCompetitionToggle"
+            class="btn secondary"
+            style="width:auto;padding:9px 14px"
+            onclick="toggleIndividualCompetitions()">
+      TURN ON
+    </button>
+  </div>
+  </div>
+
+  <div id="individualCompetitionAccessList" style="margin-top:12px">
+    <div class="small">Loading members…</div>
+  </div>
+</div>
   <div class="card" style="cursor:pointer" onclick="loadAdminCompetitions()">
     <div class="row"><h3 style="margin:0">Saved Competitions</h3><button class="btn secondary" style="width:auto;padding:9px 12px" onclick="event.stopPropagation();loadAdminCompetitions()">OPEN</button></div>
     <div class="small" style="margin:8px 0 10px">Tap OPEN to view your saved competitions, or tap the section itself.</div>
@@ -505,7 +583,7 @@ function show(id){
  window.scrollTo(0,0);
 }
 function toast(t){let e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2200)}
-function toggleMenu(){const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null'); if(m && m.role==='admin'){show('admin')} else {toast('Admin access only')} }
+function toggleMenu(){const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null'); if(m && m.role==='admin'){show('admin');loadIndividualCompetitionSetting()} else {toast('Admin access only')} }
 function renderScore(){
  document.getElementById('holeTitle').textContent='Hole '+currentHole;
  document.getElementById('holeInfo').textContent='Par '+holes[currentHole-1][0]+' • SI '+holes[currentHole-1][1];
@@ -728,6 +806,25 @@ function openApp(m){
  const admin=document.getElementById('admin'); if(admin && (m.role==='admin'||m.role==='handicap_admin')) admin.classList.remove('adminOnly');
  const adminCard=document.getElementById('adminCard'); if(adminCard) adminCard.style.display=m.role==='admin'||m.role==='handicap_admin'?'block':'none';
  const adminTile=document.querySelector('[onclick="show(\'admin\')"]'); if(adminTile) adminTile.style.display=m.role==='admin'||m.role==='handicap_admin'?'block':'none';
+  
+
+const individualTile=document.getElementById('individualCompetitionTile');
+if(individualTile){
+  const memberId=m?.id;
+
+  if(!memberId){
+    individualTile.style.display='none';
+  }else{
+    sb.rpc('get_individual_competition_available',{
+      p_member_id:memberId
+    }).then(({data,error})=>{
+      individualTile.style.display=!error && data===true?'block':'none';
+    }).catch(()=>{
+      individualTile.style.display='none';
+    });
+  }
+}
+
 }
 function showChangePin(){const box=document.getElementById('changePinBox');if(box)box.style.display=box.style.display==='none'?'block':'none';const msg=document.getElementById('changePinMsg');if(msg){msg.className='loginMsg';msg.textContent='';}}
 async function nlgsChangePin(){const current=document.getElementById('changeCurrentPin')?.value.trim()||'',next=document.getElementById('changeNewPin')?.value.trim()||'',confirm=document.getElementById('changeConfirmPin')?.value.trim()||'',msg=document.getElementById('changePinMsg'),btn=document.getElementById('changePinBtn');if(!/^[0-9]{4}$/.test(current)||!/^[0-9]{4}$/.test(next)||!/^[0-9]{4}$/.test(confirm)){msg.textContent='All PINs must be exactly 4 digits.';return;}if(next!==confirm){msg.textContent='The new PINs do not match.';return;}if(next===current){msg.textContent='Your new PIN must be different from your current PIN.';return;}const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null');const memberName=(m&&m.full_name)||document.getElementById('loginName')?.value.trim()||'';if(!memberName){msg.textContent='Enter your member name above.';return;}btn.disabled=true;btn.textContent='CHANGING…';msg.textContent='';try{const {data,error}=await sb.rpc('member_change_pin',{p_member_name:memberName,p_current_pin:current,p_new_pin:next});if(error)throw error;msg.className='loginMsg admin-success';msg.textContent='PIN changed successfully. Logging you in…';document.getElementById('changeCurrentPin').value='';document.getElementById('changeNewPin').value='';document.getElementById('changeConfirmPin').value='';const {data:loginData,error:loginError}=await sb.rpc('login_member',{p_full_name:memberName,p_pin:next});if(loginError||!loginData||loginData.length===0)throw new Error('PIN changed, but automatic login failed. Please log in with your new PIN.');const loggedIn=loginData[0];window.nlgsLoginCredentials={name:memberName,pin:next};sessionStorage.setItem('nlgsMember',JSON.stringify(loggedIn));openApp(loggedIn);show('home');}catch(e){msg.className='loginMsg';msg.textContent=e.message||'Could not change PIN.';}finally{btn.disabled=false;btn.textContent='CHANGE PIN';}}
@@ -757,11 +854,13 @@ function show(id){
   const target=document.getElementById(id);
   if(target) target.classList.add('active');
   document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active',b.dataset.nav===id));
-  if(id==='score') renderScore(); if(id==='leader') renderLeader(); if(id==='admin') setTimeout(()=>loadAdminCompetitions(),0);
+  
+
+  if(id==='score') renderScore(); if(id==='leader') renderLeader(); if(id==='admin') setTimeout(()=>{loadIndividualCompetitionAccess();loadAdminCompetitions();},0);
   window.scrollTo(0,0);
 }
 function toast(t){let e=document.getElementById('toast');e.textContent=t;e.style.display='block';setTimeout(()=>e.style.display='none',2200)}
-function toggleMenu(){const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null'); if(m && m.role==='admin'){show('admin')} else {toast('Admin access only')} }
+function toggleMenu(){const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null'); if(m && m.role==='admin'){show('admin');loadIndividualCompetitionAccess()} else {toast('Admin access only')} }
 function renderScore(){
  document.getElementById('holeTitle').textContent='Hole '+currentHole;
  document.getElementById('holeInfo').textContent='Par '+holes[currentHole-1][0]+' • SI '+holes[currentHole-1][1];
@@ -1115,6 +1214,10 @@ window.show=async function(id){
   if(id==='friendly'){
     buildFriendlyPlayerCards();
     await ensureFriendlyDataLoaded();
+  }
+    if(id==='individualCompetition'){
+    await loadIndividualCompetitionPlayers();
+    await loadIndividualCompetitionRounds();
   }
 };
 
@@ -1614,7 +1717,193 @@ async function competitionRpc(name, body={}){
     return {data:null,error:new Error(e.message||'Database request failed')};
   }
 }
+async function loadIndividualCompetitionSetting(){
+  const status=document.getElementById('individualCompetitionStatus');
+  const button=document.getElementById('individualCompetitionToggle');
+  if(!status || !button)return;
 
+  const r=await competitionRpc('get_individual_competitions_enabled');
+
+  if(r.error){
+    status.textContent='ERROR';
+    button.textContent='TRY AGAIN';
+    return;
+  }
+
+  const enabled=!!r.data;
+
+  status.textContent=enabled?'ON':'OFF';
+  button.textContent=enabled?'TURN OFF':'TURN ON';
+}
+
+async function toggleIndividualCompetitions(){
+  const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null');
+
+  if(!m || m.role!=='admin'){
+    toast('Only the main administrator can change this setting');
+    return;
+  }
+
+  const r=await competitionRpc('get_individual_competitions_enabled');
+
+  if(r.error){
+    toast('Could not read Individual Competition setting');
+    return;
+  }
+
+  const enabled=!Boolean(r.data);
+
+  const save=await competitionRpc('set_individual_competitions_enabled',{
+    p_member_id:m.id,
+    p_enabled:enabled
+  });
+
+  if(save.error){
+    toast(save.error.message||'Could not change setting');
+    return;
+  }
+
+  await loadIndividualCompetitionSetting();
+
+  toast(enabled
+    ? 'Individual Competitions are now ON'
+    : 'Individual Competitions are now OFF'
+  );
+}
+  window.toggleIndividualCompetitions=toggleIndividualCompetitions;
+  let individualCompetitionFormat='Medal';
+let individualCompetitionAllowance='100%';
+let individualCompetitionCounting='best_4_of_6';
+
+function setIndividualFormat(v){
+  individualCompetitionFormat=v;
+
+  document.getElementById('individualFormatMedal')?.classList.toggle('on',v==='Medal');
+  document.getElementById('individualFormatStableford')?.classList.toggle('on',v==='Stableford');
+}
+
+function setIndividualAllowance(v){
+  individualCompetitionAllowance=v;
+
+  ['100%','85%','75%'].forEach(x=>{
+    const id='individualAllowance'+x.replace('%','');
+    document.getElementById(id)?.classList.toggle('on',x===v);
+  });
+}
+
+function setIndividualCounting(v){
+  individualCompetitionCounting=v;
+
+  document.getElementById('individualBest4')?.classList.toggle('on',v==='best_4_of_6');
+  document.getElementById('individualAll6')?.classList.toggle('on',v==='all_6');
+}
+  async function loadIndividualCompetitionAccess(){
+  try{
+    const wrap=document.getElementById('individualCompetitionAccessList');
+    if(!wrap)return;
+
+    const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null');
+
+    if(!m || m.role!=='admin'){
+      wrap.innerHTML='<div class="small">Administrator access required.</div>';
+      return;
+    }
+
+    wrap.innerHTML='<div class="small">Loading members…</div>';
+
+    const r=await Promise.race([
+      competitionRpc('list_individual_competition_access',{
+        p_member_id:m.id
+      }),
+      new Promise(resolve=>setTimeout(
+        ()=>resolve({
+          data:null,
+          error:new Error('Member access request timed out')
+        }),
+        8000
+      ))
+    ]);
+
+    if(r.error){
+      wrap.innerHTML='<div class="small">ERROR: '+(r.error.message||'Unknown error')+'</div>';
+      toast(r.error.message||'Individual Competition access failed');
+      return;
+    }
+
+    wrap.innerHTML='';
+
+    (r.data||[]).forEach(member=>{
+      const row=document.createElement('div');
+      row.className='player-card';
+      row.style.marginTop='8px';
+
+      row.innerHTML=
+        '<div class="row">'+
+          '<div>'+
+            '<b>'+member.full_name+'</b>'+
+            '<div class="small">Handicap Index '+
+            (Number.isFinite(Number(member.handicap))
+              ?Number(member.handicap).toFixed(1)
+              :'—')+
+            '</div>'+
+          '</div>'+
+          '<button type="button" class="btn secondary" style="width:auto;padding:8px 12px">'+
+            (member.enabled?'ALLOWED':'NOT ALLOWED')+
+          '</button>'+
+        '</div>';
+
+      const button=row.querySelector('button');
+
+      button.onclick=async()=>{
+        button.disabled=true;
+
+        const save=await competitionRpc(
+          'set_individual_competition_access',
+          {
+            p_member_id:m.id,
+            p_target_member_id:member.member_id,
+            p_enabled:!member.enabled
+          }
+        );
+
+        button.disabled=false;
+
+        if(save.error){
+          toast(save.error.message||'Could not change access');
+          return;
+        }
+
+        member.enabled=!member.enabled;
+
+button.textContent=
+  member.enabled?'ALLOWED':'NOT ALLOWED';
+
+if(member.member_id===m.id){
+  const tile=document.getElementById('individualCompetitionTile');
+  if(tile){
+    tile.style.display=member.enabled?'block':'none';
+  }
+}
+};
+      wrap.appendChild(row);
+    });
+
+  }catch(e){
+    const wrap=document.getElementById('individualCompetitionAccessList');
+
+    if(wrap){
+      wrap.innerHTML=
+        '<div class="small">ERROR: '+
+        (e.message||String(e))+
+        '</div>';
+    }
+
+    toast(e.message||'Member access error');
+  }
+}
+
+      
+  
 function competitionError(prefix,e){
   console.error(prefix,e);
   return (e && e.message) ? e.message : String(e||'Unknown error');
@@ -1780,7 +2069,133 @@ function updateCompetitionPlayerCount(){
   const n=document.querySelectorAll('.comp-player:checked').length;
   const el=document.getElementById('compPlayerCount');if(el)el.textContent=n+' selected';
 }
+async function loadIndividualCompetitionPlayers(){
+  const wrap=document.getElementById('individualPlayersList');
+  if(!wrap)return;
 
+  wrap.innerHTML='<div class="small">Loading members…</div>';
+
+  const r=await competitionRpc('list_members');
+
+  if(r.error){
+    wrap.innerHTML='<div class="small">Member list could not be loaded.</div>';
+    toast('Members could not be loaded');
+    return;
+  }
+
+  wrap.innerHTML='';
+
+  (r.data||[]).forEach(m=>{
+    const row=document.createElement('label');
+
+    row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer';
+
+    row.innerHTML=
+      '<input type="checkbox" class="individual-player" value="'+m.id+'" style="width:20px;height:20px">'+
+      '<div style="flex:1"><b>'+m.full_name+'</b>'+
+      '<div class="small">Handicap Index '+
+      (Number.isFinite(Number(m.handicap))?Number(m.handicap).toFixed(1):'—')+
+      '</div></div>';
+
+    wrap.appendChild(row);
+  });
+
+  wrap.querySelectorAll('.individual-player').forEach(cb=>{
+    cb.addEventListener('change',updateIndividualPlayerCount);
+  });
+
+  updateIndividualPlayerCount();
+}
+
+function updateIndividualPlayerCount(){
+  const n=document.querySelectorAll('.individual-player:checked').length;
+  const el=document.getElementById('individualPlayerCount');
+  if(el)el.textContent=n+' selected';
+}
+  async function loadIndividualCompetitionRounds(){
+  const wrap=document.getElementById('individualRoundsList');
+  if(!wrap)return;
+
+  wrap.innerHTML='<div class="small">Loading courses…</div>';
+
+  const r=await competitionRpc('list_courses_for_game');
+
+  if(r.error){
+    wrap.innerHTML='<div class="small">Courses could not be loaded.</div>';
+    toast('Courses could not be loaded');
+    return;
+  }
+
+  const courses=r.data||[];
+  wrap.innerHTML='';
+
+  for(let round=1;round<=6;round++){
+    const card=document.createElement('div');
+    card.className='player-card';
+    card.style.marginTop=round===1?'0':'8px';
+
+    card.innerHTML=
+      '<div class="row">'+
+        '<b>Round '+round+'</b>'+
+        '<span class="pill">ROUND '+round+'</span>'+
+      '</div>'+
+      '<div style="margin-top:8px">'+
+        '<label class="label">DATE</label>'+
+        '<input id="individualRoundDate'+round+'" class="input" type="date">'+
+      '</div>'+
+      '<div style="margin-top:8px">'+
+        '<label class="label">COURSE</label>'+
+        '<select id="individualRoundCourse'+round+'" class="input">'+
+          '<option value="">Choose a golf course…</option>'+
+          courses.map(c=>'<option value="'+c.id+'">'+c.name+'</option>').join('')+
+        '</select>'+
+      '</div>'+
+      '<div style="margin-top:8px">'+
+        '<label class="label">TEES</label>'+
+        '<select id="individualRoundTee'+round+'" class="input">'+
+          '<option value="">Choose tees…</option>'+
+        '</select>'+
+      '</div>';
+
+    wrap.appendChild(card);
+
+    const course=document.getElementById('individualRoundCourse'+round);
+    const tee=document.getElementById('individualRoundTee'+round);
+
+    course.addEventListener('change',async()=>{
+      tee.innerHTML='<option value="">Loading tees…</option>';
+
+      if(!course.value){
+        tee.innerHTML='<option value="">Choose tees…</option>';
+        return;
+      }
+
+      const tr=await competitionRpc('list_course_tees_for_game',{
+        p_course_id:course.value
+      });
+
+      if(tr.error){
+        tee.innerHTML='<option value="">Unable to load tees</option>';
+        return;
+      }
+
+      tee.innerHTML='<option value="">Choose tees…</option>';
+
+      (tr.data||[]).forEach(t=>{
+        const option=document.createElement('option');
+        option.value=t.id;
+        option.textContent=t.tee_name+(t.yards?' — '+Number(t.yards).toLocaleString()+' yds':'');
+        tee.appendChild(option);
+      });
+
+      const preferred=(tr.data||[]).find(t=>
+        String(t.tee_name).toLowerCase()==='yellow'
+      ) || (tr.data||[]).find(t=>t.is_default);
+
+      if(preferred)tee.value=preferred.id;
+    });
+  }
+}
 async function nlgsSetSeasonLeagueFlag(competitionId){
   const checked=!!document.getElementById('compSeasonLeague')?.checked;
   if(!checked) return;
@@ -1834,6 +2249,92 @@ async function createCompetitionDraft(){
     sessionStorage.removeItem('nlgsCompetitionDraft');const createdId=Array.isArray(r.data)?(r.data[0]?.id||r.data[0]):r.data;if(createdId){await nlgsSetSeasonLeagueFlag(createdId);nlgsSave3s5sCompetitionFlag(createdId);}toast('Competition created successfully');if(createdId)setTimeout(()=>openCompetitionScoring(createdId),500);else setTimeout(()=>show('admin'),600);
   }catch(e){toast(competitionError('Competition save failed',e).slice(0,110));}
   finally{if(btn){btn.disabled=false;btn.textContent='CREATE COMPETITION';}}
+}
+  async function createIndividualCompetition(){
+  const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null');
+
+  if(!m?.id){
+    toast('Please log in again');
+    return;
+  }
+
+  const name=document.getElementById('individualCompName')?.value.trim();
+  const selected=[...document.querySelectorAll('.individual-player:checked')].map(x=>x.value);
+
+  if(!name){
+    toast('Enter a competition name');
+    return;
+  }
+
+  if(selected.length<2){
+    toast('Select at least two players');
+    return;
+  }
+
+  const rounds=[];
+
+  for(let round=1;round<=6;round++){
+    const roundDate=document.getElementById('individualRoundDate'+round)?.value;
+    const courseId=document.getElementById('individualRoundCourse'+round)?.value;
+    const teeId=document.getElementById('individualRoundTee'+round)?.value;
+
+    if(!roundDate){
+      toast('Choose a date for Round '+round);
+      return;
+    }
+
+    if(!courseId){
+      toast('Choose a course for Round '+round);
+      return;
+    }
+
+    if(!teeId){
+      toast('Choose tees for Round '+round);
+      return;
+    }
+
+    rounds.push({
+      round_no:round,
+      round_date:roundDate,
+      course_id:courseId,
+      tee_id:teeId
+    });
+  }
+
+  const btn=document.querySelector('#individualCompetition .btn');
+
+  if(btn){
+    btn.disabled=true;
+    btn.textContent='CREATING…';
+  }
+
+  try{
+    const format=individualCompetitionFormat.toLowerCase();
+    const allowance=individualCompetitionAllowance.replace('%','');
+
+    const r=await competitionRpc('create_individual_competition',{
+      p_member_id:m.id,
+      p_name:name,
+      p_format:format,
+      p_allowance:allowance,
+      p_counting_method:individualCompetitionCounting,
+      p_player_ids:selected,
+      p_rounds:rounds
+    });
+
+    if(r.error)throw r.error;
+
+    toast('Individual Competition created successfully');
+    show('home');
+
+  }catch(e){
+    toast(competitionError('Individual Competition failed',e).slice(0,110));
+  }finally{
+    if(btn){
+      btn.disabled=false;
+      btn.textContent='CREATE INDIVIDUAL COMPETITION';
+    }
+  }
 }
 </script>
 
