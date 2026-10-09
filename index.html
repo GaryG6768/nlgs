@@ -2684,6 +2684,58 @@ async function individualSaveHoleScores() {
   if (individualScoringHole < 18) individualScoringHole++;
   individualRenderScoring();
 }
+  async function finishIndividualCompetitionRound() {
+  if (!individualScoringData || !individualScoringRoundId) {
+    toast('No round is open');
+    return;
+  }
+
+  const players = individualScoringData.players || [];
+  const scores = individualScoreMap();
+
+  const incomplete = players.filter(player =>
+    Array.from({length: 18}, (_, i) => i + 1)
+      .some(hole => scores[player.id + ':' + hole] == null)
+  );
+
+  if (incomplete.length) {
+    toast('Every player must have all 18 holes saved');
+    return;
+  }
+
+  if (!confirm('Finish this round? Scores will be locked and cannot be changed.')) {
+    return;
+  }
+
+  const m = JSON.parse(sessionStorage.getItem('nlgsMember') || 'null');
+  if (!m?.id) {
+    toast('Please log in again');
+    return;
+  }
+
+  const btn = document.getElementById('individualScoringFinishBtn');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = 'FINISHING…';
+  }
+
+  const r = await competitionRpc('finish_individual_competition_round', {
+    p_member_id: m.id,
+    p_round_id: individualScoringRoundId
+  });
+
+  if (r.error) {
+    toast(r.error.message || 'Could not finish round');
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = 'FINISH ROUND';
+    }
+    return;
+  }
+
+  toast('Round finished. Scores are now locked.');
+  await openIndividualCompetitionScoring(individualScoringRoundId);
+}
 async function loadIndividualCompetitionResults(competitionId) {
   const m = JSON.parse(sessionStorage.getItem('nlgsMember') || 'null');
 
