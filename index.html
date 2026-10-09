@@ -2677,7 +2677,187 @@ async function individualSaveHoleScores() {
   if (individualScoringHole < 18) individualScoringHole++;
   individualRenderScoring();
 }
+async function loadIndividualCompetitionResults(competitionId) {
+  const m = JSON.parse(sessionStorage.getItem('nlgsMember') || 'null');
 
+  if (!m?.id) {
+    toast('Please log in again');
+    return;
+  }
+
+  show('individualCompetitionResults');
+
+  const header = document.getElementById('individualResultsHeader');
+  const leaderboard = document.getElementById('individualResultsLeaderboard');
+  const roundSelect = document.getElementById('individualResultsRoundSelect');
+  const roundTable = document.getElementById('individualResultsRoundTable');
+
+  header.textContent = 'Loading results…';
+  leaderboard.innerHTML = '';
+  roundTable.innerHTML = '';
+
+  const r = await competitionRpc('get_individual_competition_results', {
+    p_member_id: m.id,
+    p_individual_competition_id: competitionId
+  });
+
+  if (r.error) {
+    header.textContent = 'Results could not be loaded.';
+    toast(r.error.message || 'Could not load results');
+    return;
+  }
+
+  const data = typeof r.data === 'string' ? JSON.parse(r.data) : r.data;
+  const comp = data?.competition;
+  const players = data?.players || [];
+
+  if (!comp) {
+    header.textContent = 'Competition details unavailable.';
+    return;
+  }
+
+  header.textContent =
+    comp.name + ' • ' +
+    String(comp.format).toUpperCase() + ' • ' +
+    (comp.counting_method === 'best_4_of_6' ? 'Best 4 of 6' : 'All 6');
+
+  const stableford = String(comp.format).toLowerCase() === 'stableford';
+
+  players.sort((a, b) => {
+    const aTotal = Number(a.season_total || 0);
+    const bTotal = Number(b.season_total || 0);
+
+    if (a.completed_rounds === 0 && b.completed_rounds > 0) return 1;
+    if (b.completed_rounds === 0 && a.completed_rounds > 0) return -1;
+
+    return stableford ? bTotal - aTotal : aTotal - bTotal;
+  });
+
+  if (!players.length) {
+    leaderboard.innerHTML = '<div class="small">No players found.</div>';
+  } else {
+    const table = document.createElement('div');
+
+    players.forEach((p, i) => {
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.style.padding = '10px 0';
+      row.style.borderBottom = '1px solid var(--line)';
+
+      const name = document.createElement('div');
+      name.style.flex = '1';
+      name.innerHTML = '<b></b><div class="small"></div>';
+      name.querySelector('b').textContent = (i + 1) + '. ' + p.name;
+      name.querySelector('.small').textContent =
+        (p.completed_rounds || 0) + ' completed rounds';
+
+      const total = document.createElement('b');
+      total.textContent = p.completed_rounds > 0
+        ? Number(p.season_total || 0).toFixed(0) +
+          (stableford ? ' pts' : ' net')
+        : '—';
+
+      row.appendChild(name);
+      row.appendChild(total);
+      table.appendChild(row);
+    });
+
+    leaderboard.appendChild(table);
+  }
+
+  roundSelect.innerHTML = '';
+
+  const rounds = [];
+  players.forEach(p => {
+    (p.rounds || []).forEach(round => {
+      if (!rounds.some(x => x.round_id === round.round_id)) {
+        rounds.push(round);
+      }
+    });
+  });
+
+  rounds.sort((a, b) => Number(a.round_no) - Number(b.round_no));
+
+  if (!rounds.length) {
+    roundTable.innerHTML = '<div class="small">No round results available yet.</div>';
+    return;
+  }
+
+  rounds.forEach(round => {
+    const option = document.createElement('option');
+    option.value = round.round_id;
+    option.textContent =
+      'Round ' + round.round_no +
+      (round.course_name ? ' — ' + round.course_name : '');
+    roundSelect.appendChild(option);
+  });
+
+  function renderRound() {
+    const selected = rounds.find(x => x.round_id === roundSelect.value);
+    if (!selected) return;
+
+    roundTable.innerHTML = '';
+
+    const title = document.createElement('div');
+    title.className = 'small';
+    title.style.marginBottom = '8px';
+    title.textContent =
+      (selected.round_date || '') +
+      (selected.course_name ? ' • ' + selected.course_name : '') +
+      (selected.tee_name ? ' • ' + selected.tee_name : '');
+
+    roundTable.appendChild(title);
+
+    const table = document.createElement('div');
+
+    const heading = document.createElement('div');
+    heading.className = 'row';
+    heading.style.padding = '8px 0';
+    heading.style.borderBottom = '1px solid var(--line)';
+    heading.innerHTML =
+      '<b>Player</b><b>Holes</b><b>Gross</b><b>Result</b>';
+    table.appendChild(heading);
+
+    players.forEach(p => {
+      const result = (p.rounds || []).find(
+        x => x.round_id === selected.round_id
+      );
+      if (!result) return;
+
+      const row = document.createElement('div');
+      row.className = 'row';
+      row.style.padding = '9px 0';
+      row.style.borderBottom = '1px solid var(--line)';
+
+      const name = document.createElement('span');
+      name.style.flex = '1';
+      name.textContent = p.name;
+
+      const holes = document.createElement('span');
+      holes.textContent = result.holes_played || 0;
+
+      const gross = document.createElement('span');
+      gross.textContent = result.gross ?? '—';
+
+      const score = document.createElement('b');
+      score.textContent = result.holes_played === 18
+        ? String(result.result ?? '—')
+        : 'Incomplete';
+
+      row.appendChild(name);
+      row.appendChild(holes);
+      row.appendChild(gross);
+      row.appendChild(score);
+      table.appendChild(row);
+    });
+
+    roundTable.appendChild(table);
+  }
+
+  roundSelect.onchange = renderRound;
+  roundSelect.selectedIndex = 0;
+  renderRound();
+}
   async function loadIndividualCompetitionRounds(){
   const wrap=document.getElementById('individualRoundsList');
   if(!wrap)return;
