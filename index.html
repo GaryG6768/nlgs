@@ -2444,6 +2444,215 @@ async function saveIndividualCompetitionRound(n){
   toast(date?'Round '+n+' saved':'Round '+n+' cleared');
   await manageIndividualCompetition(currentIndividualCompetitionId);
 }
+ let individualScoringData = null;
+let individualScoringRoundId = null;
+let individualScoringHole = 1;
+
+async function openIndividualCompetitionScoring(roundId) {
+  const m = JSON.parse(sessionStorage.getItem('nlgsMember') || 'null');
+  if (!m?.id) { toast('Please log in again'); return; }
+
+  individualScoringRoundId = roundId;
+  individualScoringHole = 1;
+  individualScoringData = null;
+  show('individualCompetitionScoring');
+
+  const header = document.getElementById('individualScoringHeader');
+  const cards = document.getElementById('individualScoringPlayerCards');
+  if (header) header.textContent = 'Loading round…';
+  if (cards) cards.innerHTML = '<div class="small">Loading scores…</div>';
+
+  const r = await competitionRpc('get_individual_competition_scoring', {
+    p_member_id: m.id, p_round_id: roundId
+  });
+
+  if (r.error) {
+    toast(r.error.message || 'Could not load scores');
+    if (cards) cards.textContent = 'Unable to load scores.';
+    return;
+  }
+
+  individualScoringData = typeof r.data === 'string' ? JSON.parse(r.data) : r.data;
+  const c = individualScoringData?.competition;
+  if (!c) { toast('Round details were not returned'); return; }
+
+  if (header) header.textContent =
+    c.name + ' • Round ' + c.round_no + ' • ' + c.course_name +
+    ' • ' + c.tee_name + ' • ' + c.round_date;
+
+  const format = document.getElementById('individualScoringFormat');
+  if (format) format.textContent = String(c.format).toUpperCase();
+  individualRenderScoring();
+}
+
+function individualScoreMap() {
+  const map = {};
+  (individualScoringData?.scores || []).forEach(s => {
+    map[s.individual_competition_player_id + ':' + s.hole_no] = Number(s.strokes);
+  });
+  return map;
+}
+
+function individualSelectScoringHole(n) {
+  if (n < 1 || n > 18) return;
+  individualScoringHole = n;
+  individualRenderScoring();
+}
+
+function individualChangeScore(playerId, change) {
+  const input = document.getElementById('individualScore_' + playerId);
+  if (!input) return;
+  input.value = Math.max(1, Math.min(15, (Number(input.value) || 0) + change));
+}
+
+function individualRenderScoring() {
+  if (!individualScoringData) return;
+
+  const holeNo = individualScoringHole;
+  const hole = (individualScoringData.holes || []).find(h => Number(h.hole_no) === holeNo);
+  const scores = individualScoreMap();
+
+  const heading = document.querySelector('#individualCompetitionScoring .card h3');
+  if (heading) heading.textContent = 'HOLE ' + holeNo;
+
+  const info = document.getElementById('individualScoringHoleInfo');
+  if (info) info.textContent = hole
+    ? 'Par ' + hole.par + ' • Stroke Index ' + hole.stroke_index +
+      ' • ' + (hole.yards || '-') + ' yards'
+    : 'Hole information unavailable';
+
+  const cards = document.getElementById('individualScoringPlayerCards');
+  if (!cards) return;
+  cards.innerHTML = '';
+
+  (individualScoringData.players || []).forEach(player => {
+    const saved = scores[player.id + ':' + holeNo];
+    const initial = saved || Number(hole?.par) || 4;
+
+    const card = document.createElement('div');
+    card.className = 'player-card';
+    card.style.marginBottom = '10px';
+
+    const name = document.createElement('div');
+    name.innerHTML = '<b></b><div class="small"></div>';
+    name.querySelector('b').textContent = player.name;
+    name.querySelector('.small').textContent = 'Playing Handicap: ' + player.playing_handicap;
+    card.appendChild(name);
+
+    const controls = document.createElement('div');
+    controls.className = 'row';
+    controls.style.marginTop = '10px';
+
+    const minus = document.createElement('button');
+    minus.className = 'btn secondary';
+    minus.textContent = '−';
+    minus.style.width = '60px';
+    minus.onclick = () => individualChangeScore(player.id, -1);
+
+    const input = document.createElement('input');
+    input.type = 'number';
+    input.min = '1';
+    input.max = '15';
+    input.value = initial;
+    input.id = 'individualScore_' + player.id;
+    input.className = 'input';
+    input.style.width = '75px';
+    input.style.textAlign = 'center';
+
+    const plus = document.createElement('button');
+    plus.className = 'btn secondary';
+    plus.textContent = '+';
+    plus.style.width = '60px';
+    plus.onclick = () => individualChangeScore(player.id, 1);
+
+    controls.appendChild(minus);
+    controls.appendChild(input);
+    controls.appendChild(plus);
+    card.appendChild(controls);
+    cards.appendChild(card);
+  });
+
+  const grid = document.getElementById('individualScoringHoleGrid');
+  if (grid) {
+    grid.innerHTML = '';
+    for (let n = 1; n <= 18; n++) {
+      const btn = document.createElement('button');
+      btn.textContent = n;
+      btn.className = n === holeNo ? 'active' : '';
+      const allSaved = (individualScoringData.players || []).every(p => scores[p.id + ':' + n] != null);
+      if (allSaved) btn.style.borderColor = '#22c55e';
+      btn.onclick = () => individualSelectScoringHole(n);
+      grid.appendChild(btn);
+    }
+  }
+
+  const save = document.getElementById('individualScoringSaveBtn');
+  if (save) {
+    save.disabled = false;
+    save.textContent = 'SAVE HOLE ' + holeNo + ' SCORES';
+    save.onclick = individualSaveHoleScores;
+  }
+}
+
+async function individualSaveHoleScores() {
+  if (!individualScoringData || !individualScoringRoundId) return;
+  const m = JSON.parse(sessionStorage.getItem('nlgsMember') || 'null');
+  if (!m?.id) { toast('Please log in again'); return; }
+
+  const players = individualScoringData.players || [];
+  const entries = [];
+
+  for (const player of players) {
+    const input = document.getElementById('individualScore_' + player.id);
+    const raw = input?.value?.trim();
+    const strokes = Number(raw);
+    if (!raw || !Number.isInteger(strokes) || strokes < 1 || strokes > 15) {
+      toast('Enter a score between 1 and 15 for ' + player.name);
+      return;
+    }
+    entries.push({ player, strokes });
+  }
+
+  const saveBtn = document.getElementById('individualScoringSaveBtn');
+  if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'SAVING…'; }
+
+  for (const entry of entries) {
+    const r = await competitionRpc('save_individual_competition_score', {
+      p_member_id: m.id,
+      p_round_id: individualScoringRoundId,
+      p_individual_competition_player_id: entry.player.id,
+      p_hole_no: individualScoringHole,
+      p_strokes: entry.strokes
+    });
+
+    if (r.error) {
+      toast(r.error.message || 'Could not save scores');
+      if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = 'RETRY SAVE'; }
+      return;
+    }
+
+    const existing = (individualScoringData.scores || []).find(s =>
+      s.individual_competition_player_id === entry.player.id &&
+      Number(s.hole_no) === individualScoringHole
+    );
+
+    if (existing) {
+      existing.strokes = entry.strokes;
+    } else {
+      if (!individualScoringData.scores) individualScoringData.scores = [];
+      individualScoringData.scores.push({
+        individual_competition_player_id: entry.player.id,
+        hole_no: individualScoringHole,
+        strokes: entry.strokes
+      });
+    }
+  }
+
+  toast('Hole ' + individualScoringHole + ' scores saved');
+  if (individualScoringHole < 18) individualScoringHole++;
+  individualRenderScoring();
+}
+
   async function loadIndividualCompetitionRounds(){
   const wrap=document.getElementById('individualRoundsList');
   if(!wrap)return;
