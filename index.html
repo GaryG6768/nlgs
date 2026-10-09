@@ -173,7 +173,21 @@ html,body{overscroll-behavior-y:none}
   <button class="btn" onclick="createIndividualCompetition()">CREATE INDIVIDUAL COMPETITION</button>
   <button class="btn secondary" style="margin-top:8px" onclick="show('home')">BACK</button>
 </section>
+<section id="individualCompetitionManage" class="screen">
+  <div class="label">INDIVIDUAL COMPETITION</div>
+  <h2 style="margin:4px 0">Manage Rounds</h2>
+  <div id="individualCompetitionManageHeader" class="small" style="margin-bottom:12px"></div>
 
+  <div class="card">
+    <h3>Six Rounds</h3>
+    <div class="small" style="margin-bottom:10px">
+      Add each round when the date, course and tees are known.
+    </div>
+    <div id="individualManageRoundsList"></div>
+  </div>
+
+  <button class="btn secondary" style="margin-top:8px" onclick="show('individualCompetition')">BACK</button>
+</section>
 <section id="competitionList" class="screen">
   <div class="label">NLGS COMPETITIONS</div>
   <h2 style="margin:4px 0">Competitions</h2>
