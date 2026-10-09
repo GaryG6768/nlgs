@@ -216,6 +216,31 @@ html,body{overscroll-behavior-y:none}
   <button class="btn secondary" style="margin-top:8px"
     onclick="show('individualCompetitionManage')">BACK TO ROUNDS</button>
 </section>
+  <section id="individualCompetitionResults" class="screen">
+  <div class="label">INDIVIDUAL COMPETITION</div>
+  <h2 style="margin:4px 0">Results &amp; Leaderboard</h2>
+  <div id="individualResultsHeader" class="small" style="margin-bottom:12px"></div>
+
+  <div class="card">
+    <h3>Season Leaderboard</h3>
+    <div class="small" style="margin-bottom:8px">
+      Only completed 18-hole rounds count towards the season total.
+    </div>
+    <div id="individualResultsLeaderboard"></div>
+  </div>
+
+  <div class="card">
+    <h3>Round Results</h3>
+    <label class="label" for="individualResultsRoundSelect">SELECT ROUND</label>
+    <select id="individualResultsRoundSelect" class="input" style="margin-top:6px"></select>
+    <div id="individualResultsRoundTable" style="margin-top:12px"></div>
+  </div>
+
+  <button class="btn secondary" style="margin-top:8px"
+    onclick="show('individualCompetitionManage')">BACK TO ROUNDS</button>
+</section>
+
+
 <section id="competitionList" class="screen">
   <div class="label">NLGS COMPETITIONS</div>
   <h2 style="margin:4px 0">Competitions</h2>
