@@ -2539,7 +2539,9 @@ function individualChangeScore(playerId, change) {
 
 function individualRenderScoring() {
   if (!individualScoringData) return;
-
+  const finishBtn = document.getElementById('individualScoringFinishBtn');
+  const roundFinished = individualScoringData.round?.is_finished === true;
+  if (roundFinished) toast('This round has been finished.');
   const holeNo = individualScoringHole;
   const hole = (individualScoringData.holes || []).find(h => Number(h.hole_no) === holeNo);
   const scores = individualScoreMap();
