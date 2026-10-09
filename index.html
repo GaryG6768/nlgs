@@ -2363,7 +2363,13 @@ async function manageIndividualCompetition(id){
     save.textContent='SAVE ROUND '+n;
     save.onclick=()=>saveIndividualCompetitionRound(n);
     card.appendChild(save);
-
+const enter=document.createElement('button');
+    enter.className='btn';
+    enter.style.marginTop='8px';
+    enter.textContent='ENTER SCORES';
+    enter.disabled=!(round?.round_date&&round?.course_id&&round?.tee_id);
+    enter.onclick=()=>openIndividualCompetitionScoring(round.id);
+    card.appendChild(enter);
     wrap.appendChild(card);
 
     const loadTees=async(selected)=>{
