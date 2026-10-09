@@ -2237,6 +2237,179 @@ function updateIndividualPlayerCount(){
     wrap.appendChild(card);
   });
 }
+  let currentIndividualCompetitionId=null;
+
+async function manageIndividualCompetition(id){
+  const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null');
+  if(!m?.id){
+    toast('Please log in again');
+    return;
+  }
+
+  currentIndividualCompetitionId=id;
+  show('individualCompetitionManage');
+
+  const header=document.getElementById('individualCompetitionManageHeader');
+  const wrap=document.getElementById('individualManageRoundsList');
+
+  if(header)header.textContent='Loading competition…';
+  if(wrap)wrap.innerHTML='<div class="small">Loading rounds…</div>';
+
+  const [cr,rr,courseResult]=await Promise.all([
+    competitionRpc('list_individual_competitions_for_member',{p_member_id:m.id}),
+    competitionRpc('list_individual_competition_rounds',{
+      p_member_id:m.id,
+      p_individual_competition_id:id
+    }),
+    competitionRpc('list_courses_for_game')
+  ]);
+
+  if(cr.error||rr.error||courseResult.error){
+    if(header)header.textContent='Could not load this competition.';
+    if(wrap)wrap.innerHTML='<div class="small">Please try again.</div>';
+    toast('Could not load rounds');
+    return;
+  }
+
+  const comp=(cr.data||[]).find(x=>x.id===id);
+  if(!comp){
+    if(header)header.textContent='Competition not found.';
+    return;
+  }
+
+  if(header)header.textContent=comp.name+' • '+comp.format+' • '+comp.allowance;
+
+  const courses=courseResult.data||[];
+  const saved=rr.data||[];
+  wrap.innerHTML='';
+
+  for(let n=1;n<=6;n++){
+    const round=saved.find(x=>Number(x.round_no)===n);
+    const card=document.createElement('div');
+    card.className='player-card';
+    card.style.marginTop='8px';
+
+    const heading=document.createElement('b');
+    heading.textContent='Round '+n+(round?' — Saved':' — Not added');
+    card.appendChild(heading);
+
+    const date=document.createElement('input');
+    date.type='date';
+    date.className='input';
+    date.id='individualManageDate'+n;
+    date.value=round?.round_date||'';
+    date.style.marginTop='8px';
+    card.appendChild(date);
+
+    const course=document.createElement('select');
+    course.className='input';
+    course.id='individualManageCourse'+n;
+    course.style.marginTop='8px';
+    course.innerHTML='<option value="">Choose a golf course…</option>';
+
+    courses.forEach(c=>{
+      const o=document.createElement('option');
+      o.value=c.id;
+      o.textContent=c.name;
+      course.appendChild(o);
+    });
+
+    course.value=round?.course_id||'';
+    card.appendChild(course);
+
+    const tee=document.createElement('select');
+    tee.className='input';
+    tee.id='individualManageTee'+n;
+    tee.style.marginTop='8px';
+    tee.innerHTML='<option value="">Choose tees…</option>';
+    card.appendChild(tee);
+
+    const message=document.createElement('div');
+    message.className='small';
+    message.style.marginTop='6px';
+    card.appendChild(message);
+
+    const save=document.createElement('button');
+    save.className='btn';
+    save.style.marginTop='8px';
+    save.textContent='SAVE ROUND '+n;
+    save.onclick=()=>saveIndividualCompetitionRound(n);
+    card.appendChild(save);
+
+    wrap.appendChild(card);
+
+    const loadTees=async(selected)=>{
+      tee.innerHTML='<option value="">Loading tees…</option>';
+      if(!course.value){
+        tee.innerHTML='<option value="">Choose tees…</option>';
+        return;
+      }
+
+      const tr=await competitionRpc('list_course_tees_for_game',{
+        p_course_id:course.value
+      });
+
+      if(tr.error){
+        tee.innerHTML='<option value="">Unable to load tees</option>';
+        return;
+      }
+
+      tee.innerHTML='<option value="">Choose tees…</option>';
+      (tr.data||[]).forEach(t=>{
+        const o=document.createElement('option');
+        o.value=t.id;
+        o.textContent=t.tee_name+(t.yards?' — '+Number(t.yards).toLocaleString()+' yds':'');
+        tee.appendChild(o);
+      });
+
+      const preferred=(tr.data||[]).find(t=>
+        String(t.tee_name).toLowerCase()==='yellow'
+      )||(tr.data||[]).find(t=>t.is_default);
+
+      tee.value=selected||preferred?.id||'';
+    };
+
+    course.addEventListener('change',()=>loadTees(''));
+
+    if(round?.course_id)await loadTees(round.tee_id||'');
+  }
+}
+
+async function saveIndividualCompetitionRound(n){
+  const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null');
+  if(!m?.id||!currentIndividualCompetitionId){
+    toast('Please reopen the competition');
+    return;
+  }
+
+  const date=document.getElementById('individualManageDate'+n)?.value||null;
+  const course=document.getElementById('individualManageCourse'+n)?.value||null;
+  const tee=document.getElementById('individualManageTee'+n)?.value||null;
+
+  if(!date&&!course&&!tee){
+    // An entirely empty round is allowed; saving it removes any saved details.
+  }else if(!date||!course||!tee){
+    toast('Choose the date, course and tees for Round '+n);
+    return;
+  }
+
+  const r=await competitionRpc('set_individual_competition_round',{
+    p_member_id:m.id,
+    p_individual_competition_id:currentIndividualCompetitionId,
+    p_round_no:n,
+    p_round_date:date,
+    p_course_id:course,
+    p_tee_id:tee
+  });
+
+  if(r.error){
+    toast(r.error.message||'Could not save round');
+    return;
+  }
+
+  toast(date?'Round '+n+' saved':'Round '+n+' cleared');
+  await manageIndividualCompetition(currentIndividualCompetitionId);
+}
   async function loadIndividualCompetitionRounds(){
   const wrap=document.getElementById('individualRoundsList');
   if(!wrap)return;
