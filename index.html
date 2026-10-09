@@ -188,6 +188,34 @@ html,body{overscroll-behavior-y:none}
 
   <button class="btn secondary" style="margin-top:8px" onclick="show('individualCompetition')">BACK</button>
 </section>
+  <section id="individualCompetitionScoring" class="screen">
+  <div class="label">INDIVIDUAL COMPETITION</div>
+  <h2 style="margin:4px 0">Enter Scores</h2>
+  <div id="individualScoringHeader" class="small" style="margin-bottom:12px"></div>
+
+  <div class="card">
+    <div class="row">
+      <h3 style="margin:0">HOLE 1</h3>
+      <span class="pill" id="individualScoringFormat">MEDAL</span>
+    </div>
+    <div id="individualScoringHoleInfo" class="small" style="margin-top:8px"></div>
+    <div id="individualScoringPlayerCards" style="margin-top:12px"></div>
+    <button id="individualScoringSaveBtn" class="btn" style="margin-top:10px" disabled>
+      SAVE GROUP SCORES
+    </button>
+  </div>
+
+  <div class="card">
+    <div class="row">
+      <h3 style="margin:0">HOLES</h3>
+      <span class="small">Tap a hole to view/edit</span>
+    </div>
+    <div id="individualScoringHoleGrid" class="holegrid" style="margin-top:12px"></div>
+  </div>
+
+  <button class="btn secondary" style="margin-top:8px"
+    onclick="show('individualCompetitionManage')">BACK TO ROUNDS</button>
+</section>
 <section id="competitionList" class="screen">
   <div class="label">NLGS COMPETITIONS</div>
   <h2 style="margin:4px 0">Competitions</h2>
