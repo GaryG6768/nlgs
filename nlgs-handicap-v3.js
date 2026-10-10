@@ -632,10 +632,25 @@ return '<div style="padding:9px 0;border-bottom:1px solid #ddd">' +
       if(pi<0)continue;
 
       const pd=playerData[pi]||{name:players[pi]||m.full_name||m.name};
-      const scoreMap=friendlyScoreMap(game,pd,pi);
+      let scoreMap=friendlyScoreMap(game,pd,pi);
       const holes=jsonValue(game.hole_data,[]);
       if(!Array.isArray(holes)||holes.length!==18)continue;
+if(!Array.from({length:18},(_,i)=>Number(scoreMap[i+1])).every(v=>Number.isFinite(v)&&v>=1)){
+  const recovered=await sb.from('friendly_score_submissions')
+    .select('hole_no,strokes')
+    .eq('friendly_game_id',gid)
+    .eq('player_index',pi);
 
+  if(!recovered.error&&Array.isArray(recovered.data)){
+    const fixed={};
+    recovered.data.forEach(r=>{
+      fixed[Number(r.hole_no)]=Number(r.strokes);
+    });
+    if(Array.from({length:18},(_,i)=>fixed[i+1]).every(v=>Number.isFinite(v)&&v>=1)){
+      scoreMap=fixed;
+    }
+  }
+}
       let validScores=0;
       for(const h of holes){
         let v=scoreMap[String(h.hole_no)];
