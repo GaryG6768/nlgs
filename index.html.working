@@ -204,7 +204,7 @@ html,body{overscroll-behavior-y:none}
       SAVE GROUP SCORES
     </button>
     <button id="individualScoringFinishBtn" class="btn"
-style="margin-top:10px;background:#b42318;color:white;width:100%"
+style="display:none;margin-top:10px;background:#b42318;color:white;width:100%"
 onclick="finishIndividualCompetitionRound()">FINISH ROUND</button>
   </div>
 
@@ -2603,15 +2603,22 @@ function individualChangeScore(playerId, change) {
 
 function individualRenderScoring() {
   if (!individualScoringData) return;
-    const finishBtn = document.getElementById('individualScoringFinishBtn');
+  const finishBtn = document.getElementById('individualScoringFinishBtn');
   const roundFinished = individualScoringData.round?.is_finished === true;
+  const scores = individualScoreMap();
+  const players = individualScoringData.players || [];
+  const allScoresSaved = players.length > 0 && players.every(player =>
+    Array.from({ length: 18 }, (_, i) => i + 1).every(holeNo =>
+      scores[player.id + ':' + holeNo] != null
+    )
+  );
   if (finishBtn) {
-    finishBtn.disabled = roundFinished;
-    finishBtn.textContent = roundFinished ? 'ROUND FINISHED' : 'FINISH ROUND';
+    finishBtn.style.display = (!roundFinished && allScoresSaved) ? 'block' : 'none';
+    finishBtn.disabled = roundFinished || !allScoresSaved;
+    finishBtn.textContent = 'FINISH ROUND';
   }
   const holeNo = individualScoringHole;
   const hole = (individualScoringData.holes || []).find(h => Number(h.hole_no) === holeNo);
-  const scores = individualScoreMap();
 
   const heading = document.querySelector('#individualCompetitionScoring .card h3');
   if (heading) heading.textContent = 'HOLE ' + holeNo;
