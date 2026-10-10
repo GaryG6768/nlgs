@@ -636,18 +636,28 @@ return '<div style="padding:9px 0;border-bottom:1px solid #ddd">' +
       const holes=jsonValue(game.hole_data,[]);
       if(!Array.isArray(holes)||holes.length!==18)continue;
 if(!Array.from({length:18},(_,i)=>Number(scoreMap[i+1])).every(v=>Number.isFinite(v)&&v>=1)){
-  const recovered=await sb.from('friendly_score_submissions')
-    .select('hole_no,strokes')
-    .eq('friendly_game_id',gid)
-    .eq('player_index',pi);
+  const creds=window.nlgsLoginCredentials;
 
-  if(!recovered.error&&Array.isArray(recovered.data)){
-    const fixed={};
-    recovered.data.forEach(r=>{
-      fixed[Number(r.hole_no)]=Number(r.strokes);
+  if(creds&&creds.name&&creds.pin){
+    const recovered=await sb.rpc('get_friendly_submission_status',{
+      p_friendly_game_id:gid,
+      p_member_name:creds.name,
+      p_member_pin:creds.pin
     });
-    if(Array.from({length:18},(_,i)=>fixed[i+1]).every(v=>Number.isFinite(v)&&v>=1)){
-      scoreMap=fixed;
+
+    if(!recovered.error&&recovered.data){
+      const submissions=recovered.data.submissions||[];
+      const fixed={};
+
+      submissions.forEach(r=>{
+        if(Number(r.player_index)===pi){
+          fixed[Number(r.hole_no)]=Number(r.strokes);
+        }
+      });
+
+      if(Array.from({length:18},(_,i)=>fixed[i+1]).every(v=>Number.isFinite(v)&&v>=1)){
+        scoreMap=fixed;
+      }
     }
   }
 }
