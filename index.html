@@ -2601,7 +2601,9 @@ function individualRenderScoring() {
     plus.textContent = '+';
     plus.style.width = '60px';
     plus.onclick = () => individualChangeScore(player.id, 1);
-
+    minus.disabled = roundFinished;
+    input.disabled = roundFinished;
+    plus.disabled = roundFinished;
     controls.appendChild(minus);
     controls.appendChild(input);
     controls.appendChild(plus);
@@ -2625,7 +2627,7 @@ function individualRenderScoring() {
 
   const save = document.getElementById('individualScoringSaveBtn');
   if (save) {
-    save.disabled = false;
+    save.disabled = roundFinished;
     save.textContent = 'SAVE HOLE ' + holeNo + ' SCORES';
     save.onclick = individualSaveHoleScores;
   }
