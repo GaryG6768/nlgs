@@ -259,7 +259,8 @@ if(String(m && (m.id||m.member_id) || '')==='776a7e18-c032-42b0-a9ca-57a56a8531c
 
         if(v.source==='friendly')
           label=v.friendlyName||v.competitionName||'Friendly Game';
-
+if(v.source==='individual')
+  label=v.competitionName||'Individual Competition';
         let date='';
         if(v.date){
           const d=new Date(v.date);
@@ -288,7 +289,8 @@ if(String(m && (m.id||m.member_id) || '')==='776a7e18-c032-42b0-a9ca-57a56a8531c
 
       if(v.source==='friendly')
         label=v.friendlyName||v.competitionName||'Friendly Game';
-
+if(v.source==='individual')
+  label=v.competitionName||'Individual Competition';
       const actualIndex=x.r.length-1-i;
 
 const roundDate=v.date
@@ -783,6 +785,70 @@ if(!Number.isFinite(diff))continue;
         });
       }
       // New: Friendly Game import.
+       
+      // Import completed Individual Competition rounds.
+      try{
+        const individualResult=await sb.rpc(
+          'list_completed_individual_competition_rounds',
+          {p_member_id:m.id}
+        );
+
+        if(!individualResult.error &&
+           Array.isArray(individualResult.data)){
+
+          for(const item of individualResult.data){
+            const roundId=String(item.round_id||'');
+            const comp=item.competition||{};
+            const player=item.player||{};
+            const scores=item.scores||[];
+            const holes=item.holes||[];
+
+            if(!roundId || scores.length!==18 || holes.length!==18)
+              continue;
+
+            const diff=courseRoundDiff(
+              player,scores,holes,comp
+            );
+
+            if(!Number.isFinite(diff))continue;
+
+            const existing=rounds.find(r=>
+              r.source==='individual' &&
+              String(r.individualCompetitionRoundId||'')===roundId
+            );
+
+            const entry={
+              diff:Math.round(diff*10)/10,
+              source:'individual',
+              individualCompetitionRoundId:roundId,
+              individualCompetitionId:item.individual_competition_id,
+              competitionName:
+                String(comp.name||'Individual Competition')+
+                ' — Round '+item.round_no,
+              date:comp.round_date,
+              gross:scores.reduce((sum,s)=>sum+Number(s.strokes||0),0)
+            };
+
+            if(existing){
+              Object.assign(existing,entry);
+            }else{
+              rounds.push(entry);
+              competitionAdded++;
+            }
+          }
+        }else if(individualResult.error){
+          console.warn(
+            'Individual Competition import skipped:',
+            individualResult.error
+          );
+        }
+      }catch(e){
+        console.warn(
+          'Individual Competition import skipped:',
+          e
+        );
+      }
+
       try{
         friendlyAdded=await syncFriendlyGames(rounds,m);
       }catch(e){
