@@ -2354,6 +2354,25 @@ async function manageIndividualCompetition(id){
     heading.textContent='Round '+n+(round?' — Saved':' — Not added');
     card.appendChild(heading);
 
+    const allowance=document.createElement('select');
+    allowance.className='input';
+    allowance.id='individualManageAllowance'+n;
+    allowance.style.marginTop='8px';
+
+    [
+      {value:'100',label:'100% handicap allowance'},
+      {value:'85',label:'85% handicap allowance'},
+      {value:'75',label:'75% handicap allowance'}
+    ].forEach(item=>{
+      const option=document.createElement('option');
+      option.value=item.value;
+      option.textContent=item.label;
+      allowance.appendChild(option);
+    });
+
+    allowance.value=String(round?.allowance ?? comp.allowance ?? '100').replace('%','');
+    card.appendChild(allowance);
+
     const date=document.createElement('input');
     date.type='date';
     date.className='input';
@@ -2460,7 +2479,7 @@ async function saveIndividualCompetitionRound(n){
   const date=document.getElementById('individualManageDate'+n)?.value||null;
   const course=document.getElementById('individualManageCourse'+n)?.value||null;
   const tee=document.getElementById('individualManageTee'+n)?.value||null;
-
+const allowance=document.getElementById('individualManageAllowance'+n)?.value||'100';
   if(!date&&!course&&!tee){
     // An entirely empty round is allowed; saving it removes any saved details.
   }else if(!date||!course||!tee){
@@ -2477,10 +2496,24 @@ async function saveIndividualCompetitionRound(n){
     p_tee_id:tee
   });
 
-  if(r.error){
-    toast(r.error.message||'Could not save round');
-    return;
-  }
+if(r.error){
+  toast(r.error.message||'Could not save round');
+  return;
+}
+
+const ar=await competitionRpc('set_individual_competition_round_allowance',{
+  p_member_id:m.id,
+  p_individual_competition_id:currentIndividualCompetitionId,
+  p_round_no:n,
+  p_allowance:allowance
+});
+
+if(ar.error){
+  toast(ar.error.message||'Could not save allowance');
+  return;
+}
+
+  
 
   toast(date?'Round '+n+' saved':'Round '+n+' cleared');
   await manageIndividualCompetition(currentIndividualCompetitionId);
