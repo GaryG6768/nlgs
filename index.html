@@ -110,6 +110,7 @@ html,body{overscroll-behavior-y:none}
     <button class="tile" onclick="show('mygolf')">👤<b>My Golf</b><span>Stats & history</span></button>
     <button class="tile" onclick="show('friendly')">🏌️<b>Friendly Game</b><span>Play with friends or guests</span></button>
     <button id="individualCompetitionTile" class="tile" style="display:none" onclick="show('individualCompetition')">🏆<b>Individual Competition</b><span>Play your own competition</span></button>
+    <button id="individualLeagueTile" class="tile" style="display:none" onclick="openIndividualLeagueTable()">📊<b>Individual League Table</b><span>View your competition standings</span></button>
     <button id="friendlyResultsTile" class="tile" onclick="show('friendlyResults')">⛳<b>Friendly Game Results</b><span>Completed friendly games</span></button>
     <button id="seasonLeagueTile" class="tile" onclick="openSeasonLeagueTest()">🏆<b>Season League</b><span>Best 4 of 6 results</span></button>
     <button class="tile" onclick="show('admin');loadIndividualCompetitionAccess()">⚙️<b>Admin</b><span>Manage NLGS</span></button>
@@ -243,6 +244,15 @@ onclick="finishIndividualCompetitionRound()">FINISH ROUND</button>
     onclick="show('individualCompetitionManage')">BACK TO ROUNDS</button>
 </section>
 
+<section id="individualLeagueTable" class="screen">
+  <div class="label">INDIVIDUAL COMPETITIONS</div>
+  <h2 style="margin:4px 0">My League Tables</h2>
+  <div class="small" style="margin-bottom:12px">Choose a competition to view its existing results and leaderboard.</div>
+  <div id="individualLeagueCompetitionList">
+    <div class="card"><div class="small">Loading competitions…</div></div>
+  </div>
+  <button class="btn secondary" style="margin-top:8px" onclick="show('home')">BACK TO HOME</button>
+</section>
 
 <section id="competitionList" class="screen">
   <div class="label">NLGS COMPETITIONS</div>
@@ -896,6 +906,7 @@ if(individualTile){
   }
 }
 
+  loadIndividualLeagueTile(m);
 }
 function showChangePin(){const box=document.getElementById('changePinBox');if(box)box.style.display=box.style.display==='none'?'block':'none';const msg=document.getElementById('changePinMsg');if(msg){msg.className='loginMsg';msg.textContent='';}}
 async function nlgsChangePin(){const current=document.getElementById('changeCurrentPin')?.value.trim()||'',next=document.getElementById('changeNewPin')?.value.trim()||'',confirm=document.getElementById('changeConfirmPin')?.value.trim()||'',msg=document.getElementById('changePinMsg'),btn=document.getElementById('changePinBtn');if(!/^[0-9]{4}$/.test(current)||!/^[0-9]{4}$/.test(next)||!/^[0-9]{4}$/.test(confirm)){msg.textContent='All PINs must be exactly 4 digits.';return;}if(next!==confirm){msg.textContent='The new PINs do not match.';return;}if(next===current){msg.textContent='Your new PIN must be different from your current PIN.';return;}const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null');const memberName=(m&&m.full_name)||document.getElementById('loginName')?.value.trim()||'';if(!memberName){msg.textContent='Enter your member name above.';return;}btn.disabled=true;btn.textContent='CHANGING…';msg.textContent='';try{const {data,error}=await sb.rpc('member_change_pin',{p_member_name:memberName,p_current_pin:current,p_new_pin:next});if(error)throw error;msg.className='loginMsg admin-success';msg.textContent='PIN changed successfully. Logging you in…';document.getElementById('changeCurrentPin').value='';document.getElementById('changeNewPin').value='';document.getElementById('changeConfirmPin').value='';const {data:loginData,error:loginError}=await sb.rpc('login_member',{p_full_name:memberName,p_pin:next});if(loginError||!loginData||loginData.length===0)throw new Error('PIN changed, but automatic login failed. Please log in with your new PIN.');const loggedIn=loginData[0];window.nlgsLoginCredentials={name:memberName,pin:next};sessionStorage.setItem('nlgsMember',JSON.stringify(loggedIn));openApp(loggedIn);show('home');}catch(e){msg.className='loginMsg';msg.textContent=e.message||'Could not change PIN.';}finally{btn.disabled=false;btn.textContent='CHANGE PIN';}}
@@ -2236,7 +2247,78 @@ function updateIndividualPlayerCount(){
   const el=document.getElementById('individualPlayerCount');
   if(el)el.textContent=n+' selected';
 }
-  async function loadIndividualCompetitions(){
+async function loadIndividualLeagueTile(member){
+  const tile=document.getElementById('individualLeagueTile');
+  if(!tile)return;
+  if(!member?.id){
+    tile.style.display='none';
+    return;
+  }
+  try{
+    const r=await competitionRpc(
+      'list_individual_competitions_for_member',
+      {p_member_id:member.id}
+    );
+    tile.style.display=!r.error && Array.isArray(r.data) && r.data.length>0?'block':'none';
+  }catch(e){
+    tile.style.display='none';
+  }
+}
+
+async function openIndividualLeagueTable(){
+  show('individualLeagueTable');
+  const wrap=document.getElementById('individualLeagueCompetitionList');
+  const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null');
+  if(!wrap)return;
+  if(!m?.id){
+    wrap.innerHTML='<div class="card"><div class="small">Please log in again.</div></div>';
+    return;
+  }
+  wrap.innerHTML='<div class="card"><div class="small">Loading competitions…</div></div>';
+  try{
+    const r=await competitionRpc(
+      'list_individual_competitions_for_member',
+      {p_member_id:m.id}
+    );
+    if(r.error){
+      wrap.innerHTML='<div class="card"><div class="small">Your league tables could not be loaded.</div></div>';
+      toast('League tables could not be loaded');
+      return;
+    }
+    const competitions=r.data||[];
+    if(!competitions.length){
+      wrap.innerHTML='<div class="card"><div class="small">You have no individual league tables available yet.</div></div>';
+      return;
+    }
+    wrap.innerHTML='';
+    competitions.forEach(comp=>{
+      const card=document.createElement('div');
+      card.className='card';
+      const title=document.createElement('h3');
+      title.textContent=comp.name||'Individual Competition';
+      title.style.margin='0 0 8px';
+      const details=document.createElement('div');
+      details.className='small';
+      details.textContent=(comp.format||'')+' • '+(comp.allowance||'')+' • '+(comp.counting_method==='best_4_of_6'?'Best 4 of 6':'All 6');
+      const rounds=document.createElement('div');
+      rounds.className='small';
+      rounds.style.marginTop='5px';
+      rounds.textContent=Number(comp.rounds_added||0)+'/6 rounds added';
+      const button=document.createElement('button');
+      button.className='btn';
+      button.style.marginTop='10px';
+      button.textContent='VIEW RESULTS & LEADERBOARD';
+      button.onclick=()=>loadIndividualCompetitionResults(comp.id);
+      card.append(title,details,rounds,button);
+      wrap.appendChild(card);
+    });
+  }catch(e){
+    wrap.innerHTML='<div class="card"><div class="small">Your league tables could not be loaded.</div></div>';
+    toast('League tables could not be loaded');
+  }
+}
+
+async function loadIndividualCompetitions(){
   const wrap=document.getElementById('individualCompetitionsList');
   if(!wrap)return;
 
