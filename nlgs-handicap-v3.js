@@ -701,6 +701,18 @@ return '<div style="padding:9px 0;border-bottom:1px solid #ddd">' +
 
     try{
       let rounds=getRounds();
+       // Permanently exclude the two test competitions from handicap stats.
+rounds=rounds.filter(r=>{
+  const id=String(r.individualCompetitionId||'');
+  const name=String(r.competitionName||'').toLowerCase();
+
+  return !(
+    id==='d7b3eb3e-6d0c-4715-999d-4aca51fc61b4' ||
+    id==='2edcb886-1fda-4b40-a3cc-efcec090d95b' ||
+    name.includes('testing competition') ||
+    name.includes('stapleford test')
+  );
+});
       let competitionAdded=0;
       let friendlyAdded=0;
 
