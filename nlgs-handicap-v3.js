@@ -797,6 +797,14 @@ if(!Number.isFinite(diff))continue;
            Array.isArray(individualResult.data)){
 
           for(const item of individualResult.data){
+             const testCompetitionIds=[
+  'd7b3eb3e-6d0c-4715-999d-4aca51fc61b4',
+  '2edcb886-1fda-4b40-a3cc-efcec090d95b'
+];
+
+if(testCompetitionIds.includes(
+  String(item.individual_competition_id||'')
+))continue;
             const roundId=String(item.round_id||'');
             const comp=item.competition||{};
             const player=item.player||{};
