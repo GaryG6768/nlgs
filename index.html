@@ -2604,6 +2604,9 @@ function individualRenderScoring() {
     minus.disabled = roundFinished;
     input.disabled = roundFinished;
     plus.disabled = roundFinished;
+        minus.style.opacity = roundFinished ? '0.4' : '1';
+    input.style.opacity = roundFinished ? '0.5' : '1';
+    plus.style.opacity = roundFinished ? '0.4' : '1';
     controls.appendChild(minus);
     controls.appendChild(input);
     controls.appendChild(plus);
@@ -2628,6 +2631,7 @@ function individualRenderScoring() {
   const save = document.getElementById('individualScoringSaveBtn');
   if (save) {
     save.disabled = roundFinished;
+    save.style.opacity = roundFinished ? '0.5' : '1';
     save.textContent = 'SAVE HOLE ' + holeNo + ' SCORES';
     save.onclick = individualSaveHoleScores;
   }
