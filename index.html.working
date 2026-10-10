@@ -2343,9 +2343,24 @@ async function manageIndividualCompetition(id){
   const saved=rr.data||[];
   wrap.innerHTML='';
 
+  // Completed rounds are kept in Supabase/results, but removed from the
+  // round-management list. Only the first round not formally finished can
+  // be edited or opened for scoring; later rounds wait their turn.
+  const nextRoundNo = Array.from({length:6}, (_,i)=>i+1).find(n=>{
+    const r=saved.find(x=>Number(x.round_no)===n);
+    return !r?.completed_at;
+  }) || 7;
+
+  if(nextRoundNo===7){
+    wrap.innerHTML='<div class="small">All six rounds are finished. Completed rounds remain available in Results &amp; Leaderboard.</div>';
+    return;
+  }
+
   for(let n=1;n<=6;n++){
     const round=saved.find(x=>Number(x.round_no)===n);
     const roundFinished=Boolean(round?.completed_at);
+    if(roundFinished) continue;
+    const roundLocked=n!==nextRoundNo;
     const card=document.createElement('div');
     card.className='player-card';
     card.style.marginTop='8px';
@@ -2353,6 +2368,14 @@ async function manageIndividualCompetition(id){
     const heading=document.createElement('b');
     heading.textContent='Round '+n+(round?' — Saved':' — Not added');
     card.appendChild(heading);
+
+    if(roundLocked){
+      const lockNote=document.createElement('div');
+      lockNote.className='small';
+      lockNote.style.marginTop='6px';
+      lockNote.textContent='Available after Round '+nextRoundNo+' is finished.';
+      card.appendChild(lockNote);
+    }
 
     const allowance=document.createElement('select');
     allowance.className='input';
@@ -2371,6 +2394,7 @@ async function manageIndividualCompetition(id){
     });
 
     allowance.value=String(round?.allowance ?? comp.allowance ?? '100').replace('%','');
+    allowance.disabled=roundLocked;
     card.appendChild(allowance);
 
     const date=document.createElement('input');
@@ -2379,6 +2403,7 @@ async function manageIndividualCompetition(id){
     date.id='individualManageDate'+n;
     date.value=round?.round_date||'';
     date.style.marginTop='8px';
+    date.disabled=roundLocked;
     card.appendChild(date);
 
     const course=document.createElement('select');
@@ -2395,6 +2420,7 @@ async function manageIndividualCompetition(id){
     });
 
     course.value=round?.course_id||'';
+    course.disabled=roundLocked;
     card.appendChild(course);
 
     const tee=document.createElement('select');
@@ -2402,6 +2428,7 @@ async function manageIndividualCompetition(id){
     tee.id='individualManageTee'+n;
     tee.style.marginTop='8px';
     tee.innerHTML='<option value="">Choose tees…</option>';
+    tee.disabled=roundLocked;
     card.appendChild(tee);
 
     const message=document.createElement('div');
@@ -2412,22 +2439,17 @@ async function manageIndividualCompetition(id){
     const save=document.createElement('button');
     save.className='btn';
     save.style.marginTop='8px';
-    save.textContent='SAVE ROUND '+n;
+    save.textContent=roundLocked?'LOCKED — FINISH ROUND '+nextRoundNo+' FIRST':'SAVE ROUND '+n;
+    save.disabled=roundLocked;
+    save.style.opacity=roundLocked?'0.5':'1';
     save.onclick=()=>saveIndividualCompetitionRound(n);
-    if(roundFinished){
-  date.disabled=true;
-  course.disabled=true;
-  tee.disabled=true;
-  save.disabled=true;
-  save.textContent='ROUND FINISHED — LOCKED';
-  save.style.opacity='0.5';
-}
     card.appendChild(save);
-const enter=document.createElement('button');
+    const enter=document.createElement('button');
     enter.className='btn';
     enter.style.marginTop='8px';
     enter.textContent='ENTER SCORES';
-    enter.disabled=!(round?.round_date&&round?.course_id&&round?.tee_id);
+    enter.disabled=roundLocked||!(round?.round_date&&round?.course_id&&round?.tee_id);
+    enter.style.opacity=enter.disabled?'0.5':'1';
     enter.onclick=()=>openIndividualCompetitionScoring(round.id);
     card.appendChild(enter);
     wrap.appendChild(card);
@@ -2787,7 +2809,13 @@ async function individualSaveHoleScores() {
   }
 
   toast('Round finished. Scores are now locked.');
-  await openIndividualCompetitionScoring(individualScoringRoundId);
+  // Return to round management: the completed round disappears and the
+  // next unfinished round becomes the active one.
+  if(currentIndividualCompetitionId){
+    await manageIndividualCompetition(currentIndividualCompetitionId);
+  }else{
+    await openIndividualCompetitionScoring(individualScoringRoundId);
+  }
 }
 async function loadIndividualCompetitionResults(competitionId) {
   const m = JSON.parse(sessionStorage.getItem('nlgsMember') || 'null');
