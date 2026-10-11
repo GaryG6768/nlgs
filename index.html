@@ -4655,11 +4655,11 @@ function nlgsAdminEsc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;
           byName.get(p.name).scores.push({id:c.id,value:fmt==='medal'?Number(p.net_score):Number(p.points),playingHcp:p.playing_handicap,handicapIndex:p.handicap_index,date:c.competition_date});
         });
       });
-      rows=[...byName.values()].filter(p=>p.scores.length>=4).map(p=>{
+      rows=[...byName.values()].map(p=>{
         const ordered=[...p.scores].sort((a,b)=>fmt==='medal'?a.value-b.value:b.value-a.value);
         const keep=ordered.slice(0,4);
         return {...p,keep,total:keep.reduce((sum,x)=>sum+x.value,0)};
-      }).sort((a,b)=>fmt==='medal'?a.total-b.total:b.total-a.total);
+      }).sort((a,b)=>(Number(b.scores.length>=4)-Number(a.scores.length>=4))||(fmt==='medal'?a.total-b.total:b.total-a.total));
       renderTable();
     }catch(e){
       comps=[];rows=[];
