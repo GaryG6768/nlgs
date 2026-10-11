@@ -4659,7 +4659,14 @@ function nlgsAdminEsc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;
         const ordered=[...p.scores].sort((a,b)=>fmt==='medal'?a.value-b.value:b.value-a.value);
         const keep=ordered.slice(0,4);
         return {...p,keep,total:keep.reduce((sum,x)=>sum+x.value,0)};
-      }).sort((a,b)=>(Number(b.scores.length>=4)-Number(a.scores.length>=4))||(fmt==='medal'?a.total-b.total:b.total-a.total));
+      
+      }).sort((a,b)=>{
+        const aQualified=a.scores.length>=4, bQualified=b.scores.length>=4;
+        if(aQualified!==bQualified) return aQualified?-1:1;
+        if(!aQualified && a.scores.length!==b.scores.length) return b.scores.length-a.scores.length;
+        return fmt==='medal'?a.total-b.total:b.total-a.total;
+      });
+
       renderTable();
     }catch(e){
       comps=[];rows=[];
