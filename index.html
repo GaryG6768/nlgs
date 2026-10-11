@@ -4655,7 +4655,7 @@ function nlgsAdminEsc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;
           byName.get(p.name).scores.push({id:c.id,value:fmt==='medal'?Number(p.net_score):Number(p.points),playingHcp:p.playing_handicap,handicapIndex:p.handicap_index,date:c.competition_date});
         });
       });
-      rows=[...byName.values()].map(p=>{
+      rows=[...byName.values()].filter(p=>p.scores.length>=4).map(p=>{
         const ordered=[...p.scores].sort((a,b)=>fmt==='medal'?a.value-b.value:b.value-a.value);
         const keep=ordered.slice(0,4);
         return {...p,keep,total:keep.reduce((sum,x)=>sum+x.value,0)};
