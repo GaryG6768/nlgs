@@ -465,6 +465,32 @@ onclick="finishIndividualCompetitionRound()">FINISH ROUND</button>
   <button id="nlgsHandicapMyGolfButton" class="btn" onclick="show('handicapTracker')">
     OPEN HANDICAP TRACKER
   </button>
+    <div class="card">
+    <h3>🔐 Change my PIN</h3>
+    <div class="small">Change the 4-digit PIN you use to sign in.</div>
+    <button class="btn secondary" style="margin-top:10px"
+      onclick="showMyGolfChangePin()">CHANGE PIN</button>
+
+    <div id="myGolfChangePinBox" style="display:none;margin-top:12px">
+      <label class="label">CURRENT PIN</label>
+      <input id="myGolfCurrentPin" class="input" type="password"
+        inputmode="numeric" maxlength="4" placeholder="Current PIN">
+
+      <label class="label">NEW 4-DIGIT PIN</label>
+      <input id="myGolfNewPin" class="input" type="password"
+        inputmode="numeric" maxlength="4" placeholder="New PIN">
+
+      <label class="label">CONFIRM NEW PIN</label>
+      <input id="myGolfConfirmPin" class="input" type="password"
+        inputmode="numeric" maxlength="4" placeholder="Confirm new PIN">
+
+      <button id="myGolfChangePinBtn" class="btn"
+        style="margin-top:10px"
+        onclick="nlgsChangePinAfterLogin()">SAVE NEW PIN</button>
+
+      <div id="myGolfChangePinMsg" class="loginMsg"></div>
+    </div>
+  </div>
 </section>
 
 <section id="competitionBuilder" class="screen adminOnly">
