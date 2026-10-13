@@ -465,6 +465,32 @@ onclick="finishIndividualCompetitionRound()">FINISH ROUND</button>
   <button id="nlgsHandicapMyGolfButton" class="btn" onclick="show('handicapTracker')">
     OPEN HANDICAP TRACKER
   </button>
+    <div class="card">
+    <h3>🔐 Change my PIN</h3>
+    <div class="small">Change the 4-digit PIN you use to sign in.</div>
+    <button class="btn secondary" style="margin-top:10px"
+      onclick="showMyGolfChangePin()">CHANGE PIN</button>
+
+    <div id="myGolfChangePinBox" style="display:none;margin-top:12px">
+      <label class="label">CURRENT PIN</label>
+      <input id="myGolfCurrentPin" class="input" type="password"
+        inputmode="numeric" maxlength="4" placeholder="Current PIN">
+
+      <label class="label">NEW 4-DIGIT PIN</label>
+      <input id="myGolfNewPin" class="input" type="password"
+        inputmode="numeric" maxlength="4" placeholder="New PIN">
+
+      <label class="label">CONFIRM NEW PIN</label>
+      <input id="myGolfConfirmPin" class="input" type="password"
+        inputmode="numeric" maxlength="4" placeholder="Confirm new PIN">
+
+      <button id="myGolfChangePinBtn" class="btn"
+        style="margin-top:10px"
+        onclick="nlgsChangePinAfterLogin()">SAVE NEW PIN</button>
+
+      <div id="myGolfChangePinMsg" class="loginMsg"></div>
+    </div>
+  </div>
 </section>
 
 <section id="competitionBuilder" class="screen adminOnly">
@@ -910,6 +936,66 @@ if(individualTile){
 }
 function showChangePin(){const box=document.getElementById('changePinBox');if(box)box.style.display=box.style.display==='none'?'block':'none';const msg=document.getElementById('changePinMsg');if(msg){msg.className='loginMsg';msg.textContent='';}}
 async function nlgsChangePin(){const current=document.getElementById('changeCurrentPin')?.value.trim()||'',next=document.getElementById('changeNewPin')?.value.trim()||'',confirm=document.getElementById('changeConfirmPin')?.value.trim()||'',msg=document.getElementById('changePinMsg'),btn=document.getElementById('changePinBtn');if(!/^[0-9]{4}$/.test(current)||!/^[0-9]{4}$/.test(next)||!/^[0-9]{4}$/.test(confirm)){msg.textContent='All PINs must be exactly 4 digits.';return;}if(next!==confirm){msg.textContent='The new PINs do not match.';return;}if(next===current){msg.textContent='Your new PIN must be different from your current PIN.';return;}const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null');const memberName=(m&&m.full_name)||document.getElementById('loginName')?.value.trim()||'';if(!memberName){msg.textContent='Enter your member name above.';return;}btn.disabled=true;btn.textContent='CHANGING…';msg.textContent='';try{const {data,error}=await sb.rpc('member_change_pin',{p_member_name:memberName,p_current_pin:current,p_new_pin:next});if(error)throw error;msg.className='loginMsg admin-success';msg.textContent='PIN changed successfully. Logging you in…';document.getElementById('changeCurrentPin').value='';document.getElementById('changeNewPin').value='';document.getElementById('changeConfirmPin').value='';const {data:loginData,error:loginError}=await sb.rpc('login_member',{p_full_name:memberName,p_pin:next});if(loginError||!loginData||loginData.length===0)throw new Error('PIN changed, but automatic login failed. Please log in with your new PIN.');const loggedIn=loginData[0];window.nlgsLoginCredentials={name:memberName,pin:next};sessionStorage.setItem('nlgsMember',JSON.stringify(loggedIn));openApp(loggedIn);show('home');}catch(e){msg.className='loginMsg';msg.textContent=e.message||'Could not change PIN.';}finally{btn.disabled=false;btn.textContent='CHANGE PIN';}}
+  
+function showMyGolfChangePin(){
+ const box=document.getElementById('myGolfChangePinBox');
+ if(box) box.style.display=box.style.display==='none'?'block':'none';
+ const msg=document.getElementById('myGolfChangePinMsg');
+ if(msg){msg.className='loginMsg';msg.textContent='';}
+}
+
+async function nlgsChangePinAfterLogin(){
+ const current=document.getElementById('myGolfCurrentPin').value.trim();
+ const next=document.getElementById('myGolfNewPin').value.trim();
+ const confirm=document.getElementById('myGolfConfirmPin').value.trim();
+ const msg=document.getElementById('myGolfChangePinMsg');
+ const btn=document.getElementById('myGolfChangePinBtn');
+ const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null');
+ const name=m&&m.full_name;
+
+ if(!name){msg.textContent='Please log in again.';return;}
+ if(!/^[0-9]{4}$/.test(current)||!/^[0-9]{4}$/.test(next)||!/^[0-9]{4}$/.test(confirm)){
+  msg.textContent='All PINs must be exactly 4 digits.';return;
+ }
+ if(next!==confirm){msg.textContent='The new PINs do not match.';return;}
+ if(next===current){msg.textContent='Choose a different PIN.';return;}
+
+ btn.disabled=true;
+ btn.textContent='SAVING…';
+ msg.textContent='';
+
+ try{
+  const {error}=await sb.rpc('member_change_pin',{
+   p_member_name:name,
+   p_current_pin:current,
+   p_new_pin:next
+  });
+  if(error)throw error;
+
+  const {data,error:loginError}=await sb.rpc('login_member',{
+   p_full_name:name,
+   p_pin:next
+  });
+  if(loginError||!data||!data.length){
+   throw new Error('PIN changed. Please sign in again with your new PIN.');
+  }
+
+  window.nlgsLoginCredentials={name:name,pin:next};
+  sessionStorage.setItem('nlgsMember',JSON.stringify(data[0]));
+  msg.className='loginMsg admin-success';
+  msg.textContent='Your PIN has been changed successfully.';
+  document.getElementById('myGolfCurrentPin').value='';
+  document.getElementById('myGolfNewPin').value='';
+  document.getElementById('myGolfConfirmPin').value='';
+ }catch(e){
+  msg.className='loginMsg';
+  msg.textContent=e.message||'Could not change PIN.';
+ }finally{
+  btn.disabled=false;
+  btn.textContent='SAVE NEW PIN';
+ }
+}
+
 function nlgsLogout(){window.nlgsLoginCredentials=null;sessionStorage.removeItem('nlgsMember');location.reload();}
 const oldToast=window.toast;
 // Preserve prototype functions by leaving them in the following script.
@@ -2193,7 +2279,7 @@ async function loadCompetitionMembers(){
   competitionMembers.forEach(m=>{
     const row=document.createElement('label');
     row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer';
-    row.innerHTML='<input type="checkbox" class="comp-player" value="'+m.id+'" style="width:20px;height:20px"><div style="flex:1"><b>'+m.name+'</b><div class="small">Handicap Index '+(Number.isFinite(m.hcp)?m.hcp.toFixed(1):'—')+' • <span class="comp-playing-hcp">Playing HCP —</span></div><label class="small" style="display:flex;align-items:center;gap:6px;margin-top:6px"><input type="checkbox" class="comp-season-exclude" value="'+m.id+'" style="width:16px;height:16px"> Exclude from Season League</label></div>';
+    row.innerHTML='<input type="checkbox" class="comp-player" value="'+m.id+'" style="width:20px;height:20px"><div style="flex:1"><b>'+m.name+'</b><div class="small">Handicap Index '+(Number.isFinite(m.hcp)?m.hcp.toFixed(1):'—')+' • <span class="comp-playing-hcp">Playing HCP —</span></div></div>';
     wrap.appendChild(row);
   });
   wrap.querySelectorAll('.comp-player').forEach(x=>x.addEventListener('change',updateCompetitionPlayerCount));
@@ -3221,7 +3307,7 @@ async function createCompetitionDraft(){
   try{
     const r=await competitionRpc('create_competition',{p_name:name,p_competition_date:date,p_course_id:courseId,p_tee_id:teeId,p_format:format,p_allowance:allowance,p_player_ids:selected});
     if(r.error)throw r.error;
-    sessionStorage.removeItem('nlgsCompetitionDraft');const createdId=Array.isArray(r.data)?(r.data[0]?.id||r.data[0]):r.data;if(createdId){await nlgsSetSeasonLeagueFlag(createdId);if(document.getElementById('compSeasonLeague')?.checked){const excludedIds=[...document.querySelectorAll('#compPlayersList .comp-season-exclude:checked')].map(x=>x.value);const saved=await competitionRpc('set_competition_players_season_exclusions',{p_competition_id:createdId,p_excluded_member_ids:excludedIds});if(saved.error)throw saved.error;}nlgsSave3s5sCompetitionFlag(createdId);}toast('Competition created successfully');if(createdId)setTimeout(()=>openCompetitionScoring(createdId),500);else setTimeout(()=>show('admin'),600);
+    sessionStorage.removeItem('nlgsCompetitionDraft');const createdId=Array.isArray(r.data)?(r.data[0]?.id||r.data[0]):r.data;if(createdId){await nlgsSetSeasonLeagueFlag(createdId);nlgsSave3s5sCompetitionFlag(createdId);}toast('Competition created successfully');if(createdId)setTimeout(()=>openCompetitionScoring(createdId),500);else setTimeout(()=>show('admin'),600);
   }catch(e){toast(competitionError('Competition save failed',e).slice(0,110));}
   finally{if(btn){btn.disabled=false;btn.textContent='CREATE COMPETITION';}}
 }
@@ -3373,11 +3459,6 @@ async function createCompetitionDraft(){
       const createdId=Array.isArray(r.data)?(r.data[0]?.id||r.data[0]):r.data;
       if(createdId){
   await nlgsSetSeasonLeagueFlag(createdId);
-  if(document.getElementById('compSeasonLeague')?.checked){
-    const excludedIds=[...document.querySelectorAll('#compPlayersList .comp-season-exclude:checked')].map(x=>x.value);
-    const saved=await competitionRpc('set_competition_players_season_exclusions',{p_competition_id:createdId,p_excluded_member_ids:excludedIds});
-    if(saved.error)throw saved.error;
-  }
   nlgsSave3s5sCompetitionFlag(createdId);
   await nlgsSetHolePrizeConfig(createdId);
 }
@@ -4617,12 +4698,17 @@ function nlgsAdminEsc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;
     }
     body.innerHTML=rows.map((p,idx)=>{
       const kept=new Set(p.keep.map(x=>x.id));
-      const cells=comps.map(c=>{
+      // Keep the six published Season League rounds in their fixed slots.
+      // Missing/unrecorded rounds stay blank; a later completed event must not
+      // slide into R1 merely because earlier rounds are not returned by Supabase.
+      const roundDates=['2026-04-10','2026-05-27','2026-07-03','2026-08-06','2026-09-14','2026-10-16'];
+      const cells=roundDates.map(date=>{
+        const c=comps.find(x=>String(x.competition_date||'').slice(0,10)===date);
+        if(!c)return '<td>—</td>';
         const sc=p.scores.find(x=>x.id===c.id);
         if(!sc)return '<td>—</td>';
         return '<td class="'+(kept.has(c.id)?'':'drop')+'">'+sc.value+'</td>';
       });
-      while(cells.length<6)cells.push('<td>—</td>');
       return '<tr><td>'+((idx+1)+'. '+esc(p.name))+'</td>'+cells.join('')+'<td><b>'+p.total+'</b></td></tr>';
     }).join('');
   }
@@ -4646,14 +4732,11 @@ function nlgsAdminEsc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;
           (comps.length?comps.map(c=>'<div class="row" style="padding:9px 0;border-bottom:1px solid var(--line)"><div><b>'+esc(c.name)+'</b><div class="small">'+new Date(c.competition_date+'T00:00:00').toLocaleDateString('en-GB')+' • '+esc(c.course_name||'')+'</div></div><span class="pill">'+(fmt==='medal'?'MEDAL':'STABLEFORD')+'</span></div>').join(''):'<div class="small" style="margin-top:8px">None found for '+year+' yet.</div>');
       }
       const resultSets=await Promise.all(comps.map(c=>competitionRpc('get_competition_results',{p_competition_id:c.id})));
-      const exclusionSets=await Promise.all(comps.map(c=>competitionRpc('get_competition_season_exclusions',{p_competition_id:c.id})));
       const byName=new Map();
       resultSets.forEach((rr,i)=>{
         if(rr.error)throw rr.error;
-        if(exclusionSets[i].error)throw exclusionSets[i].error;
         const c=comps[i];
-        const excludedPlayerIds=new Set((exclusionSets[i].data||[]).map(x=>x.competition_player_id));
-        (rr.data?.players||[]).filter(p=>!p.is_guest && Number(p.holes_played)>=18 && !excludedPlayerIds.has(p.competition_player_id)).forEach(p=>{
+        (rr.data?.players||[]).filter(p=>!p.is_guest && Number(p.holes_played)>=18).forEach(p=>{
           if(!byName.has(p.name))byName.set(p.name,{name:p.name,scores:[]});
           byName.get(p.name).scores.push({id:c.id,value:fmt==='medal'?Number(p.net_score):Number(p.points),playingHcp:p.playing_handicap,handicapIndex:p.handicap_index,date:c.competition_date});
         });
@@ -4662,7 +4745,14 @@ function nlgsAdminEsc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;
         const ordered=[...p.scores].sort((a,b)=>fmt==='medal'?a.value-b.value:b.value-a.value);
         const keep=ordered.slice(0,4);
         return {...p,keep,total:keep.reduce((sum,x)=>sum+x.value,0)};
-      }).sort((a,b)=>fmt==='medal'?a.total-b.total:b.total-a.total);
+      
+      }).sort((a,b)=>{
+        const aQualified=a.scores.length>=4, bQualified=b.scores.length>=4;
+        if(aQualified!==bQualified) return aQualified?-1:1;
+        if(!aQualified && a.scores.length!==b.scores.length) return b.scores.length-a.scores.length;
+        return fmt==='medal'?a.total-b.total:b.total-a.total;
+      });
+
       renderTable();
     }catch(e){
       comps=[];rows=[];
