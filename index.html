@@ -4124,7 +4124,7 @@ async function csSyncPendingScores(){
 
 window.addEventListener('online',csSyncPendingScores);
 window.addEventListener('pageshow',csSyncPendingScores);
-
+setInterval(csSyncPendingScores,15000);
 function csApplyPendingScoresToData(data,competitionId){
   if(!data)return data;
   if(!Array.isArray(data.scores))data.scores=[];
