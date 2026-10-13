@@ -519,7 +519,7 @@
     const game=round(),login=credentials();
     if(!game?.dbId)throw new Error('Friendly game database record not found.');
     if(!login.name||!login.pin)throw new Error('Please log in before scoring.');
-    const inputs=[...document.querySelectorAll('.friendly-hole-score')];
+    const inputs=[...document.querySelectorAll('#friendlyHolePlayers .friendly-hole-score')];
     if(inputs.length!==game.players.length)throw new Error('Enter a score for every player.');
     const scores=inputs.map(input=>({player_index:Number(input.dataset.player),strokes:Number(input.value)}));
     if(scores.some(x=>!Number.isInteger(x.strokes)||x.strokes<1||x.strokes>15))throw new Error('Enter a valid score for every player.');
