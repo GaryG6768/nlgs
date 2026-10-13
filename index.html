@@ -4125,52 +4125,102 @@ async function csSyncPendingScores(){
 window.addEventListener('online',csSyncPendingScores);
 window.addEventListener('pageshow',csSyncPendingScores);
 
+
 async function csSaveAllScores(){
   if(!csData)return;
-  if(['complete','completed'].includes(String(csData.competition?.status||'').toLowerCase())){toast('This competition has been finalised. Scores cannot be changed.');return;}
+  if(['complete','completed'].includes(String(csData.competition?.status||'').toLowerCase())){
+    toast('This competition has been finalised. Scores cannot be changed.');
+    return;
+  }
+
   const players=csGroupPlayers();
   const entries=players.map(p=>{
     const el=document.getElementById('csScoreInput_'+p.id);
     return {p,el,v:Number(el?.value)};
   });
+
   if(!entries.length || entries.some(x=>!Number.isInteger(x.v)||x.v<1||x.v>15)){
     toast('Enter a valid score for every player');
     return;
   }
+
   const btn=document.getElementById('csSaveAllBtn');
   if(btn){btn.disabled=true;btn.textContent='SAVING…';}
+
   try{
+    const pending=csGetPendingScores();
+
     for(const x of entries){
-      const r=await competitionRpc('save_competition_score',{p_competition_id:csCompetitionId,p_competition_player_id:x.p.id,p_hole_no:csHole,p_strokes:x.v});
-      if(r.error) throw new Error(competitionError('Save failed',r.error));
-      const old=(csData.scores||[]).find(s=>s.competition_player_id===x.p.id&&Number(s.hole_no)===csHole);
+      const score={
+        p_competition_id:csCompetitionId,
+        p_competition_player_id:x.p.id,
+        p_hole_no:csHole,
+        p_strokes:x.v
+      };
+
+      csQueuePendingScore(score);
+
+      const old=(csData.scores||[]).find(s=>
+        s.competition_player_id===x.p.id &&
+        Number(s.hole_no)===csHole
+      );
+
       if(old) old.strokes=x.v;
-      else csData.scores.push({competition_player_id:x.p.id,hole_no:csHole,strokes:x.v});
+      else csData.scores.push({
+        competition_player_id:x.p.id,
+        hole_no:csHole,
+        strokes:x.v
+      });
     }
-    toast('All player scores for hole '+csHole+' saved');
-    // Explicitly dismiss Android/iOS keyboard before rendering the next hole.
+
+    if(navigator.onLine){
+      await csSyncPendingScores();
+    }
+
+    const remaining=csGetPendingScores();
+    const thisHolePending=remaining.some(s=>
+      s.p_competition_id===csCompetitionId &&
+      Number(s.p_hole_no)===csHole
+    );
+
+    if(thisHolePending){
+      toast('Scores saved on this device. Waiting to sync.');
+    }else{
+      toast('All player scores for hole '+csHole+' saved');
+    }
+
     entries.forEach(x=>x.el?.blur());
-    const saveButton=document.getElementById('csSaveAllBtn');
-    if(saveButton) saveButton.blur();
-    if(document.activeElement && typeof document.activeElement.blur==='function') document.activeElement.blur();
+    btn?.blur();
+    if(document.activeElement && typeof document.activeElement.blur==='function'){
+      document.activeElement.blur();
+    }
+
     setTimeout(()=>{
-      if(document.activeElement && typeof document.activeElement.blur==='function') document.activeElement.blur();
-      if(csHole<18){csHole++;csRender();}
-      else {csRender();}
+      if(document.activeElement && typeof document.activeElement.blur==='function'){
+        document.activeElement.blur();
+      }
+      if(csHole<18){
+        csHole++;
+        csRender();
+      }else{
+        csRender();
+      }
+
       const scoring=document.getElementById('competitionScoringNLGS');
-if(scoring){
-  const topElement=scoring.querySelector('.label');
-  if(topElement) topElement.scrollIntoView({behavior:'instant',block:'start'});
-}
+      if(scoring){
+        const topElement=scoring.querySelector('.label');
+        if(topElement) topElement.scrollIntoView({behavior:'instant',block:'start'});
+      }
     },50);
+
   }catch(e){
-    toast('Scores: '+String(e.message||e).slice(0,100));
-    csUpdateSaveAllState();
+    toast('Could not save locally: '+String(e.message||e).slice(0,80));
   }finally{
-    if(btn){btn.textContent='SAVE ALL SCORES';}
+    if(btn) btn.textContent='SAVE ALL SCORES';
     csUpdateSaveAllState();
   }
 }
+
 async function csSaveScoreFor(playerId){
   if(['complete','completed'].includes(String(csData?.competition?.status||'').toLowerCase())){toast('This competition has been finalised. Scores cannot be changed.');return;}
   csPlayerId=playerId;
