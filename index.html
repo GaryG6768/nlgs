@@ -4281,6 +4281,16 @@ async function csAdminResetGroups(id){
 
 async function csCompleteCompetition(){
   if(!csData)return;
+  
+  const pendingForCompetition=csGetPendingScores().filter(s=>
+    s.p_competition_id===csCompetitionId
+  );
+  if(pendingForCompetition.length){
+    toast('Cannot finish yet: '+pendingForCompetition.length+' score(s) still waiting to sync.');
+    await csSyncPendingScores();
+    return;
+  }
+
   const total=(csData.players||[]).length*18; const entered=(csData.scores||[]).length;
   if(entered<total){toast('Enter all 18 holes for every player before completing');return;}
   if(!confirm('Complete this competition? Scores will be final.'))return;
