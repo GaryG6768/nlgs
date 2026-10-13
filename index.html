@@ -4125,6 +4125,31 @@ async function csSyncPendingScores(){
 window.addEventListener('online',csSyncPendingScores);
 window.addEventListener('pageshow',csSyncPendingScores);
 
+function csApplyPendingScoresToData(data,competitionId){
+  if(!data)return data;
+  if(!Array.isArray(data.scores))data.scores=[];
+
+  const pending=csGetPendingScores().filter(s=>
+    s.p_competition_id===competitionId
+  );
+
+  pending.forEach(s=>{
+    const old=data.scores.find(x=>
+      String(x.competition_player_id)===String(s.p_competition_player_id) &&
+      Number(x.hole_no)===Number(s.p_hole_no)
+    );
+
+    if(old)old.strokes=Number(s.p_strokes);
+    else data.scores.push({
+      competition_player_id:s.p_competition_player_id,
+      hole_no:Number(s.p_hole_no),
+      strokes:Number(s.p_strokes)
+    });
+  });
+
+  return data;
+}
+
 
 async function csSaveAllScores(){
   if(!csData)return;
