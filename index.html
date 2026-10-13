@@ -4070,6 +4070,61 @@ function csRenderLeaderboard(){
   const holeInstruction=document.getElementById('csHoleInstruction');
   if(holeInstruction) holeInstruction.textContent=finalised?'Tap a hole to view scores':'Tap a hole to view/edit';
 }
+  
+const CS_PENDING_SCORES_KEY = 'nlgs_pending_competition_scores_v1';
+
+function csGetPendingScores(){
+  try{
+    return JSON.parse(localStorage.getItem(CS_PENDING_SCORES_KEY)||'[]');
+  }catch(e){
+    return [];
+  }
+}
+
+function csStorePendingScores(scores){
+  localStorage.setItem(CS_PENDING_SCORES_KEY,JSON.stringify(scores));
+}
+
+function csQueuePendingScore(score){
+  const pending=csGetPendingScores();
+  const index=pending.findIndex(x=>
+    x.p_competition_id===score.p_competition_id &&
+    x.p_competition_player_id===score.p_competition_player_id &&
+    Number(x.p_hole_no)===Number(score.p_hole_no)
+  );
+  if(index>=0) pending[index]=score;
+  else pending.push(score);
+  csStorePendingScores(pending);
+}
+
+async function csSyncPendingScores(){
+  if(!navigator.onLine || window.csSyncPendingScoresRunning) return;
+  window.csSyncPendingScoresRunning=true;
+  try{
+    const pending=csGetPendingScores();
+    const failed=[];
+    for(const score of pending){
+      try{
+        const result=await competitionRpc('save_competition_score',score);
+        if(result.error) failed.push(score);
+      }catch(e){
+        failed.push(score);
+      }
+    }
+    csStorePendingScores(failed);
+    if(pending.length>0 && failed.length===0){
+      toast('Offline scores synchronised');
+    }
+  }catch(e){
+    console.error('Offline score sync failed',e);
+  }finally{
+    window.csSyncPendingScoresRunning=false;
+  }
+}
+
+window.addEventListener('online',csSyncPendingScores);
+window.addEventListener('pageshow',csSyncPendingScores);
+
 async function csSaveAllScores(){
   if(!csData)return;
   if(['complete','completed'].includes(String(csData.competition?.status||'').toLowerCase())){toast('This competition has been finalised. Scores cannot be changed.');return;}
