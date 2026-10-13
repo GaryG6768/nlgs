@@ -3916,7 +3916,7 @@ async function openCompetitionScoring(id){
   show('competitionScoringNLGS');
   const r=await competitionRpc('get_competition_scoring',{p_competition_id:id});
   if(r.error){toast('Scoring: '+competitionError('Load failed',r.error).slice(0,90));return;}
-  csData=r.data;
+  csData=csApplyPendingScoresToData(r.data,id);
   if(!csData?.competition){toast('Competition not found');return;}
 
   const meId=String(m.id||m.member_id||'');
