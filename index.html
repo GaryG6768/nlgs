@@ -3677,7 +3677,7 @@ async function csRefreshFromServer(){
   if(!csCompetitionId || document.hidden || !document.getElementById('competitionScoringNLGS')?.classList.contains('active')) return;
   const r=await competitionRpc('get_competition_scoring',{p_competition_id:csCompetitionId});
   if(r.error||!r.data)return;
-  csData=r.data;
+  csData=csApplyPendingScoresToData(r.data,csCompetitionId);
   await csLoadGroupStatus();
   csSelectedPlayerIds=csSelectedPlayerIds.filter(id=>(csData.players||[]).some(p=>String(p.id)===String(id)));
   csRenderGroupPicker();
