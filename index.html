@@ -936,6 +936,66 @@ if(individualTile){
 }
 function showChangePin(){const box=document.getElementById('changePinBox');if(box)box.style.display=box.style.display==='none'?'block':'none';const msg=document.getElementById('changePinMsg');if(msg){msg.className='loginMsg';msg.textContent='';}}
 async function nlgsChangePin(){const current=document.getElementById('changeCurrentPin')?.value.trim()||'',next=document.getElementById('changeNewPin')?.value.trim()||'',confirm=document.getElementById('changeConfirmPin')?.value.trim()||'',msg=document.getElementById('changePinMsg'),btn=document.getElementById('changePinBtn');if(!/^[0-9]{4}$/.test(current)||!/^[0-9]{4}$/.test(next)||!/^[0-9]{4}$/.test(confirm)){msg.textContent='All PINs must be exactly 4 digits.';return;}if(next!==confirm){msg.textContent='The new PINs do not match.';return;}if(next===current){msg.textContent='Your new PIN must be different from your current PIN.';return;}const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null');const memberName=(m&&m.full_name)||document.getElementById('loginName')?.value.trim()||'';if(!memberName){msg.textContent='Enter your member name above.';return;}btn.disabled=true;btn.textContent='CHANGING…';msg.textContent='';try{const {data,error}=await sb.rpc('member_change_pin',{p_member_name:memberName,p_current_pin:current,p_new_pin:next});if(error)throw error;msg.className='loginMsg admin-success';msg.textContent='PIN changed successfully. Logging you in…';document.getElementById('changeCurrentPin').value='';document.getElementById('changeNewPin').value='';document.getElementById('changeConfirmPin').value='';const {data:loginData,error:loginError}=await sb.rpc('login_member',{p_full_name:memberName,p_pin:next});if(loginError||!loginData||loginData.length===0)throw new Error('PIN changed, but automatic login failed. Please log in with your new PIN.');const loggedIn=loginData[0];window.nlgsLoginCredentials={name:memberName,pin:next};sessionStorage.setItem('nlgsMember',JSON.stringify(loggedIn));openApp(loggedIn);show('home');}catch(e){msg.className='loginMsg';msg.textContent=e.message||'Could not change PIN.';}finally{btn.disabled=false;btn.textContent='CHANGE PIN';}}
+  
+function showMyGolfChangePin(){
+ const box=document.getElementById('myGolfChangePinBox');
+ if(box) box.style.display=box.style.display==='none'?'block':'none';
+ const msg=document.getElementById('myGolfChangePinMsg');
+ if(msg){msg.className='loginMsg';msg.textContent='';}
+}
+
+async function nlgsChangePinAfterLogin(){
+ const current=document.getElementById('myGolfCurrentPin').value.trim();
+ const next=document.getElementById('myGolfNewPin').value.trim();
+ const confirm=document.getElementById('myGolfConfirmPin').value.trim();
+ const msg=document.getElementById('myGolfChangePinMsg');
+ const btn=document.getElementById('myGolfChangePinBtn');
+ const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null');
+ const name=m&&m.full_name;
+
+ if(!name){msg.textContent='Please log in again.';return;}
+ if(!/^[0-9]{4}$/.test(current)||!/^[0-9]{4}$/.test(next)||!/^[0-9]{4}$/.test(confirm)){
+  msg.textContent='All PINs must be exactly 4 digits.';return;
+ }
+ if(next!==confirm){msg.textContent='The new PINs do not match.';return;}
+ if(next===current){msg.textContent='Choose a different PIN.';return;}
+
+ btn.disabled=true;
+ btn.textContent='SAVING…';
+ msg.textContent='';
+
+ try{
+  const {error}=await sb.rpc('member_change_pin',{
+   p_member_name:name,
+   p_current_pin:current,
+   p_new_pin:next
+  });
+  if(error)throw error;
+
+  const {data,error:loginError}=await sb.rpc('login_member',{
+   p_full_name:name,
+   p_pin:next
+  });
+  if(loginError||!data||!data.length){
+   throw new Error('PIN changed. Please sign in again with your new PIN.');
+  }
+
+  window.nlgsLoginCredentials={name:name,pin:next};
+  sessionStorage.setItem('nlgsMember',JSON.stringify(data[0]));
+  msg.className='loginMsg admin-success';
+  msg.textContent='Your PIN has been changed successfully.';
+  document.getElementById('myGolfCurrentPin').value='';
+  document.getElementById('myGolfNewPin').value='';
+  document.getElementById('myGolfConfirmPin').value='';
+ }catch(e){
+  msg.className='loginMsg';
+  msg.textContent=e.message||'Could not change PIN.';
+ }finally{
+  btn.disabled=false;
+  btn.textContent='SAVE NEW PIN';
+ }
+}
+
 function nlgsLogout(){window.nlgsLoginCredentials=null;sessionStorage.removeItem('nlgsMember');location.reload();}
 const oldToast=window.toast;
 // Preserve prototype functions by leaving them in the following script.
