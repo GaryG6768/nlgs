@@ -4985,7 +4985,7 @@ function nlgsAdminEsc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;
           const players=Array.isArray(g.players)?g.players.join(' • '):'';
           const id=g.id;
           const button=g.game_date===today?'START FRIENDLY GAME':'GAME SET UP';
-          const deleteButton=(g.game_date>today && (g.status||'scheduled')==='scheduled') ? '<button class="btn" style="margin-top:10px;background:#a33" onclick="event.stopPropagation();deleteScheduledFriendlyV120(\''+id+'\')">DELETE FIXTURE</button>' : '';
+          (g.game_date>today)
           return '<div class="card" onclick="startScheduledFriendlyV117(\''+id+'\')" style="cursor:pointer"><span class="pill">FRIENDLY</span><h3 style="margin:10px 0 4px">Friendly Game</h3><div class="big">'+dateLabel+'</div><div class="small" style="margin-top:5px">'+(g.course_name||'Golf course')+' • '+(g.format||'Stableford')+'</div>'+(players?'<div class="small" style="margin-top:8px">'+players+'</div>':'')+'<button class="btn" style="margin-top:14px" onclick="event.stopPropagation();startScheduledFriendlyV117(\''+id+'\')">'+button+'</button>'+deleteButton+'</div>';
         }).join('');
         return;
