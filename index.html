@@ -3752,17 +3752,44 @@ function csExpectedScore(p,h){
   return Number(h.par)+csShotsOnHole(ph,h.stroke_index);
 }
 function csClampScore(v){ return Math.max(1,Math.min(15,Math.round(Number(v)||1))); }
+
 function csSwipeScore(id,delta){
-  if(['complete','completed'].includes(String(csData?.competition?.status||'').toLowerCase())){toast('This competition has been finalised. Scores cannot be changed.');return;}
+  if(['complete','completed'].includes(String(csData?.competition?.status||'').toLowerCase())){
+    toast('This competition has been finalised. Scores cannot be changed.');
+    return;
+  }
   const el=document.getElementById('csScoreInput_'+id);
   if(!el)return;
   const current=Number(el.value)||1;
   const next=csClampScore(current+delta);
   el.value=String(next);
   csPlayerId=id;
-  // Update only the score control. Do not re-render the player cards.
+
+  const card=el.closest('.cs-score-card');
+  if(card){
+    const saved=csScoreMap().get(id+':'+csHole);
+    const hole=(csData?.holes||[]).find(h=>Number(h.hole_no)===Number(csHole));
+    const player=csGroupPlayers().find(p=>String(p.id)===String(id));
+    const expected=(player&&hole)?csExpectedScore(player,hole):next;
+    const status=saved===undefined
+      ? (next===expected?'Not entered':'Changed — not saved')
+      : (next===Number(saved)?'Saved':'Changed — not saved');
+
+    const badge=card.querySelector('.cs-score-status');
+    if(badge)badge.textContent=status;
+
+    const note=card.querySelector('.small[style*="margin-top:6px"]');
+    if(note){
+      note.textContent=status==='Saved'
+        ? 'Saved score • use + / − or swipe ← / →'
+        : status==='Not entered'
+          ? 'Expected handicap score • use + / − or swipe ← / →'
+          : 'Changed — not saved';
+    }
+  }
   csUpdateSaveAllState();
 }
+
 function csHandleScoreTouch(e,id){
   const t=e.changedTouches&&e.changedTouches[0];
   if(!t)return;
