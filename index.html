@@ -3677,7 +3677,7 @@ async function csRefreshFromServer(){
   if(!csCompetitionId || document.hidden || !document.getElementById('competitionScoringNLGS')?.classList.contains('active')) return;
   const r=await competitionRpc('get_competition_scoring',{p_competition_id:csCompetitionId});
   if(r.error||!r.data)return;
-  csData=csApplyPendingScoresToData(r.data,csCompetitionId);
+  csData=r.data;
   await csLoadGroupStatus();
   csSelectedPlayerIds=csSelectedPlayerIds.filter(id=>(csData.players||[]).some(p=>String(p.id)===String(id)));
   csRenderGroupPicker();
@@ -3916,7 +3916,7 @@ async function openCompetitionScoring(id){
   show('competitionScoringNLGS');
   const r=await competitionRpc('get_competition_scoring',{p_competition_id:id});
   if(r.error){toast('Scoring: '+competitionError('Load failed',r.error).slice(0,90));return;}
-  csData=csApplyPendingScoresToData(r.data,id);
+  csData=r.data;
   if(!csData?.competition){toast('Competition not found');return;}
 
   const meId=String(m.id||m.member_id||'');
@@ -4070,182 +4070,52 @@ function csRenderLeaderboard(){
   const holeInstruction=document.getElementById('csHoleInstruction');
   if(holeInstruction) holeInstruction.textContent=finalised?'Tap a hole to view scores':'Tap a hole to view/edit';
 }
-  
-const CS_PENDING_SCORES_KEY = 'nlgs_pending_competition_scores_v1';
-
-function csGetPendingScores(){
-  try{
-    return JSON.parse(localStorage.getItem(CS_PENDING_SCORES_KEY)||'[]');
-  }catch(e){
-    return [];
-  }
-}
-
-function csStorePendingScores(scores){
-  localStorage.setItem(CS_PENDING_SCORES_KEY,JSON.stringify(scores));
-}
-
-function csQueuePendingScore(score){
-  const pending=csGetPendingScores();
-  const index=pending.findIndex(x=>
-    x.p_competition_id===score.p_competition_id &&
-    x.p_competition_player_id===score.p_competition_player_id &&
-    Number(x.p_hole_no)===Number(score.p_hole_no)
-  );
-  if(index>=0) pending[index]=score;
-  else pending.push(score);
-  csStorePendingScores(pending);
-}
-
-async function csSyncPendingScores(){
-  if(!navigator.onLine || window.csSyncPendingScoresRunning) return;
-  window.csSyncPendingScoresRunning=true;
-  try{
-    const pending=csGetPendingScores();
-    const failed=[];
-    for(const score of pending){
-      try{
-        const result=await competitionRpc('save_competition_score',score);
-        if(result.error) failed.push(score);
-      }catch(e){
-        failed.push(score);
-      }
-    }
-    csStorePendingScores(failed);
-    if(pending.length>0 && failed.length===0){
-      toast('Offline scores synchronised');
-    }
-  }catch(e){
-    console.error('Offline score sync failed',e);
-  }finally{
-    window.csSyncPendingScoresRunning=false;
-  }
-}
-
-window.addEventListener('online',csSyncPendingScores);
-window.addEventListener('pageshow',csSyncPendingScores);
-setInterval(csSyncPendingScores,15000);
-function csApplyPendingScoresToData(data,competitionId){
-  if(!data)return data;
-  if(!Array.isArray(data.scores))data.scores=[];
-
-  const pending=csGetPendingScores().filter(s=>
-    s.p_competition_id===competitionId
-  );
-
-  pending.forEach(s=>{
-    const old=data.scores.find(x=>
-      String(x.competition_player_id)===String(s.p_competition_player_id) &&
-      Number(x.hole_no)===Number(s.p_hole_no)
-    );
-
-    if(old)old.strokes=Number(s.p_strokes);
-    else data.scores.push({
-      competition_player_id:s.p_competition_player_id,
-      hole_no:Number(s.p_hole_no),
-      strokes:Number(s.p_strokes)
-    });
-  });
-
-  return data;
-}
-
-
 async function csSaveAllScores(){
   if(!csData)return;
-  if(['complete','completed'].includes(String(csData.competition?.status||'').toLowerCase())){
-    toast('This competition has been finalised. Scores cannot be changed.');
-    return;
-  }
-
+  if(['complete','completed'].includes(String(csData.competition?.status||'').toLowerCase())){toast('This competition has been finalised. Scores cannot be changed.');return;}
   const players=csGroupPlayers();
   const entries=players.map(p=>{
     const el=document.getElementById('csScoreInput_'+p.id);
     return {p,el,v:Number(el?.value)};
   });
-
   if(!entries.length || entries.some(x=>!Number.isInteger(x.v)||x.v<1||x.v>15)){
     toast('Enter a valid score for every player');
     return;
   }
-
   const btn=document.getElementById('csSaveAllBtn');
   if(btn){btn.disabled=true;btn.textContent='SAVING…';}
-
   try{
-    const pending=csGetPendingScores();
-
     for(const x of entries){
-      const score={
-        p_competition_id:csCompetitionId,
-        p_competition_player_id:x.p.id,
-        p_hole_no:csHole,
-        p_strokes:x.v
-      };
-
-      csQueuePendingScore(score);
-
-      const old=(csData.scores||[]).find(s=>
-        s.competition_player_id===x.p.id &&
-        Number(s.hole_no)===csHole
-      );
-
+      const r=await competitionRpc('save_competition_score',{p_competition_id:csCompetitionId,p_competition_player_id:x.p.id,p_hole_no:csHole,p_strokes:x.v});
+      if(r.error) throw new Error(competitionError('Save failed',r.error));
+      const old=(csData.scores||[]).find(s=>s.competition_player_id===x.p.id&&Number(s.hole_no)===csHole);
       if(old) old.strokes=x.v;
-      else csData.scores.push({
-        competition_player_id:x.p.id,
-        hole_no:csHole,
-        strokes:x.v
-      });
+      else csData.scores.push({competition_player_id:x.p.id,hole_no:csHole,strokes:x.v});
     }
-
-    if(navigator.onLine){
-      await csSyncPendingScores();
-    }
-
-    const remaining=csGetPendingScores();
-    const thisHolePending=remaining.some(s=>
-      s.p_competition_id===csCompetitionId &&
-      Number(s.p_hole_no)===csHole
-    );
-
-    if(thisHolePending){
-      toast('Scores saved on this device. Waiting to sync.');
-    }else{
-      toast('All player scores for hole '+csHole+' saved');
-    }
-
+    toast('All player scores for hole '+csHole+' saved');
+    // Explicitly dismiss Android/iOS keyboard before rendering the next hole.
     entries.forEach(x=>x.el?.blur());
-    btn?.blur();
-    if(document.activeElement && typeof document.activeElement.blur==='function'){
-      document.activeElement.blur();
-    }
-
+    const saveButton=document.getElementById('csSaveAllBtn');
+    if(saveButton) saveButton.blur();
+    if(document.activeElement && typeof document.activeElement.blur==='function') document.activeElement.blur();
     setTimeout(()=>{
-      if(document.activeElement && typeof document.activeElement.blur==='function'){
-        document.activeElement.blur();
-      }
-      if(csHole<18){
-        csHole++;
-        csRender();
-      }else{
-        csRender();
-      }
-
+      if(document.activeElement && typeof document.activeElement.blur==='function') document.activeElement.blur();
+      if(csHole<18){csHole++;csRender();}
+      else {csRender();}
       const scoring=document.getElementById('competitionScoringNLGS');
-      if(scoring){
-        const topElement=scoring.querySelector('.label');
-        if(topElement) topElement.scrollIntoView({behavior:'instant',block:'start'});
-      }
+if(scoring){
+  const topElement=scoring.querySelector('.label');
+  if(topElement) topElement.scrollIntoView({behavior:'instant',block:'start'});
+}
     },50);
-
   }catch(e){
-    toast('Could not save locally: '+String(e.message||e).slice(0,80));
+    toast('Scores: '+String(e.message||e).slice(0,100));
+    csUpdateSaveAllState();
   }finally{
-    if(btn) btn.textContent='SAVE ALL SCORES';
+    if(btn){btn.textContent='SAVE ALL SCORES';}
     csUpdateSaveAllState();
   }
 }
-
 async function csSaveScoreFor(playerId){
   if(['complete','completed'].includes(String(csData?.competition?.status||'').toLowerCase())){toast('This competition has been finalised. Scores cannot be changed.');return;}
   csPlayerId=playerId;
@@ -4281,16 +4151,6 @@ async function csAdminResetGroups(id){
 
 async function csCompleteCompetition(){
   if(!csData)return;
-  
-  const pendingForCompetition=csGetPendingScores().filter(s=>
-    s.p_competition_id===csCompetitionId
-  );
-  if(pendingForCompetition.length){
-    toast('Cannot finish yet: '+pendingForCompetition.length+' score(s) still waiting to sync.');
-    await csSyncPendingScores();
-    return;
-  }
-
   const total=(csData.players||[]).length*18; const entered=(csData.scores||[]).length;
   if(entered<total){toast('Enter all 18 holes for every player before completing');return;}
   if(!confirm('Complete this competition? Scores will be final.'))return;
