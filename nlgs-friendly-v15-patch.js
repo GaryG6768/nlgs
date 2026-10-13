@@ -519,10 +519,14 @@
     const game=round(),login=credentials();
     if(!game?.dbId)throw new Error('Friendly game database record not found.');
     if(!login.name||!login.pin)throw new Error('Please log in before scoring.');
-    const inputs=[...document.querySelectorAll('#friendlyHolePlayers .friendly-hole-score')];
-    if(inputs.length!==game.players.length)throw new Error('Enter a score for every player.');
-    const scores=inputs.map(input=>({player_index:Number(input.dataset.player),strokes:Number(input.value)}));
-    if(scores.some(x=>!Number.isInteger(x.strokes)||x.strokes<1||x.strokes>15))throw new Error('Enter a valid score for every player.');
+        const inputs=[...document.querySelectorAll('#friendlyHolePlayers .friendly-hole-score')];
+    const playerCount=Array.isArray(game.players)?game.players.length:0;
+    if(!playerCount||inputs.length!==playerCount)throw new Error('The scoring screen does not match this game’s player list. Reopen this game from View Fixtures.');
+    const scores=inputs.map((input,index)=>({
+      player_index:Number(input.dataset.player),
+      strokes:Number(input.value)
+    }));
+        if(scores.some((x,index)=>x.player_index!==index||!Number.isInteger(x.strokes)||x.strokes<1||x.strokes>15))throw new Error('The player order or a score is invalid. Reopen this game from View Fixtures.');
     const hole=Number(game.currentHole||1);
     const r=await sb.rpc('save_friendly_hole_submission',{p_friendly_game_id:game.dbId,p_member_name:login.name,p_member_pin:login.pin,p_hole_no:hole,p_scores:scores});
     if(r.error)throw r.error;if(r.data?.error)throw new Error(r.data.error);
