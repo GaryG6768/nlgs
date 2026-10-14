@@ -3307,7 +3307,7 @@ async function createCompetitionDraft(){
   try{
     const r=await competitionRpc('create_competition',{p_name:name,p_competition_date:date,p_course_id:courseId,p_tee_id:teeId,p_format:format,p_allowance:allowance,p_player_ids:selected});
     if(r.error)throw r.error;
-    sessionStorage.removeItem('nlgsCompetitionDraft');const createdId=Array.isArray(r.data)?(r.data[0]?.id||r.data[0]):r.data;if(createdId){await nlgsSetSeasonLeagueFlag(createdId);nlgsSave3s5sCompetitionFlag(createdId);}toast('Competition created successfully');if(createdId)setTimeout(()=>openCompetitionScoring(createdId),500);else setTimeout(()=>show('admin'),600);
+    toast('Competition created successfully');show('admin');await loadAdminCompetitions();
   }catch(e){toast(competitionError('Competition save failed',e).slice(0,110));}
   finally{if(btn){btn.disabled=false;btn.textContent='CREATE COMPETITION';}}
 }
