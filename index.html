@@ -4382,7 +4382,86 @@ async function loadAdminCompetitions(){
     wrap.appendChild(card);
   });
 }
+async function openAdminCompetitionEdit(id){
+  const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null');
 
+  if(!m || m.role!=='admin'){
+    toast('Only the main administrator can edit competitions');
+    return;
+  }
+
+  const r=await competitionRpc('get_admin_competition_edit',{
+    p_member_id:m.id,
+    p_competition_id:id
+  });
+
+  if(r.error){
+    toast('Could not load competition: '+competitionError('Edit failed',r.error).slice(0,90));
+    return;
+  }
+
+  const c=typeof r.data==='string'?JSON.parse(r.data):r.data;
+
+  if(!c || !c.id){
+    toast('Competition details could not be loaded');
+    return;
+  }
+
+  editingCompetitionId=id;
+
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+
+  const screen=document.getElementById('competitionBuilder');
+  if(!screen){
+    toast('Competition screen could not be opened');
+    return;
+  }
+
+  screen.classList.remove('adminOnly');
+  screen.classList.add('active');
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+  window.scrollTo(0,0);
+
+  const heading=screen.querySelector('h2');
+  if(heading)heading.textContent='Edit Competition';
+
+  const description=screen.querySelector('.small');
+  if(description)description.textContent='Update the details of this draft competition.';
+
+  const saveBtn=document.getElementById('competitionBuilderSaveBtn');
+  if(saveBtn){
+    saveBtn.textContent='SAVE COMPETITION CHANGES';
+    saveBtn.onclick=updateCompetitionDraft;
+  }
+
+  await loadCompetitionBuilder();
+
+  document.getElementById('compName').value=c.name||'';
+  document.getElementById('compDate').value=c.competition_date||'';
+
+  const formats={
+    stableford:'Stableford',
+    medal:'Medal',
+    match_play:'Match Play',
+    season_league:'Season League'
+  };
+
+  setCompetitionFormat(formats[c.format]||'Stableford');
+  setCompetitionAllowance(String(c.allowance||100).replace('%','')+'%');
+
+  const course=document.getElementById('compCourse');
+  course.value=c.course_id||'';
+
+  await applyCompetitionCourse();
+
+  const tee=document.getElementById('compTee');
+  tee.value=c.tee_id||'';
+
+  updateCompetitionTeeInfo();
+  updateCompetitionPlayingHandicaps();
+
+  toast('Draft loaded for editing');
+}
 async function deleteAdminCompetition(id,name){
   if(!confirm('DELETE '+name+'?\\n\\nThis will permanently remove the competition and its saved competition data.')) return;
 
