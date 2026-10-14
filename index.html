@@ -5215,6 +5215,7 @@ async function editScheduledFriendlyV121(id) {
       if (i > players.length) continue;
 
       
+      
       const p = playerData[i - 1] || {};
       const memberId = p.memberId || p.member_id || '';
       const savedName = String(players[i - 1] || '')
@@ -5228,6 +5229,20 @@ async function editScheduledFriendlyV121(id) {
           String(m.full_name || '').trim().toLowerCase() === savedName
         );
 
+      if (member) {
+        select.value = member.id;
+        friendlyMemberChanged(i);
+      } else {
+        select.value = '__guest__';
+        friendlyMemberChanged(i);
+        nameInput.value = players[i - 1] || p.name || '';
+        hcpInput.value = p.handicapIndex ?? p.handicap_index ?? '';
+      }
+
+      if (p.override) {
+        overrideInput.value = p.playingHandicap ?? '';
+      }
+    }
 
     refreshFriendlyHandicaps();
     updateFriendlyStartButton();
