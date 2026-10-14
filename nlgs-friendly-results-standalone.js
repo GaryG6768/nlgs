@@ -382,7 +382,70 @@
         '</tr>';
     });
 
-    const sideRows =
+  // Hole-by-hole scorecards for completed Friendly Games
+const holeNumbers = Array.from({length:18}, function(_,i){ return i+1; });
+let scorecardsHtml = '';
+
+p.forEach(function(name, pi){
+  const player = Array.isArray(pd) ? (pd[pi] || {}) : {};
+  const sc = s[name] || {};
+
+  const vals = holeNumbers.map(function(h){
+    const value = Number(sc[h] ?? sc[String(h)]);
+    return Number.isFinite(value) && value > 0 ? value : null;
+  });
+
+  const grossTotal = vals.reduce(function(sum,v){
+    return sum + (v || 0);
+  }, 0);
+
+  const netTotal = vals.reduce(function(sum,v,hIndex){
+    if(v === null) return sum;
+    const hole = holeData(hIndex+1);
+    return sum + v - shotsOnHole(player.playingHandicap, hole.stroke_index);
+  }, 0);
+
+  scorecardsHtml +=
+    '<div class="card" style="margin-top:12px">' +
+      '<div class="row"><div><b>' + esc(name) + '</b>' +
+        '<div class="small">PH ' + esc(player.playingHandicap ?? '—') +
+        ' • Gross ' + grossTotal + ' • Net ' + netTotal + '</div></div>' +
+        '<span class="pill">SCORECARD</span></div>' +
+      '<div style="overflow-x:auto;margin-top:10px">' +
+        '<table style="min-width:620px;width:100%;border-collapse:collapse">' +
+          '<thead><tr><th style="padding:7px 5px">Hole</th>' +
+            holeNumbers.map(function(h){
+              return '<th style="padding:7px 5px">' + h + '</th>';
+            }).join('') +
+            '<th style="padding:7px 5px">Total</th></tr></thead>' +
+          '<tbody>' +
+            '<tr><td style="padding:7px 5px">Par</td>' +
+              holeNumbers.map(function(h){
+                return '<td style="padding:7px 5px;text-align:center">' +
+                  esc(holeData(h).par ?? '—') + '</td>';
+              }).join('') +
+              '<td style="padding:7px 5px;text-align:center">' +
+                holeNumbers.reduce(function(sum,h){
+                  return sum + (Number(holeData(h).par)||0);
+                },0) + '</td></tr>' +
+            '<tr><td style="padding:7px 5px">SI</td>' +
+              holeNumbers.map(function(h){
+                return '<td style="padding:7px 5px;text-align:center">' +
+                  esc(holeData(h).stroke_index ?? '—') + '</td>';
+              }).join('') +
+              '<td style="padding:7px 5px;text-align:center">—</td></tr>' +
+            '<tr><td style="padding:7px 5px"><b>Score</b></td>' +
+              vals.map(function(v){
+                return '<td style="padding:7px 5px;text-align:center"><b>' +
+                  (v === null ? '—' : v) + '</b></td>';
+              }).join('') +
+              '<td style="padding:7px 5px;text-align:center"><b>' +
+                grossTotal + '</b></td></tr>' +
+          '</tbody>' +
+        '</table>' +
+      '</div>' +
+    '</div>';
+});  const sideRows =
       row.include_3s5s
         ? p.map(function (name, pi) {
 
@@ -610,7 +673,8 @@
     html +=
       '</tbody></table></div>' +
 
-      sideHtml +
+      scorecardsHtml +
+sideHtml +
 
       '<button class="btn secondary" style="margin-top:12px" id="friendlyResultsBackBtn">' +
         '← BACK TO FRIENDLY RESULTS' +
