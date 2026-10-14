@@ -2279,7 +2279,9 @@ async function loadCompetitionMembers(){
   competitionMembers.forEach(m=>{
     const row=document.createElement('label');
     row.style.cssText='display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);cursor:pointer';
-    row.innerHTML='<input type="checkbox" class="comp-player" value="'+m.id+'" style="width:20px;height:20px"><div style="flex:1"><b>'+m.name+'</b><div class="small">Handicap Index '+(Number.isFinite(m.hcp)?m.hcp.toFixed(1):'—')+' • <span class="comp-playing-hcp">Playing HCP —</span></div></div>';
+    
+    row.innerHTML='<input type="checkbox" class="comp-player" value="'+m.id+'" style="width:20px;height:20px"><div style="flex:1"><b>'+m.name+'</b><div class="small">Handicap Index '+(Number.isFinite(m.hcp)?m.hcp.toFixed(1):'—')+' • <span class="comp-playing-hcp">Playing HCP —</span></div><label class="small" style="display:flex;align-items:center;gap:6px;margin-top:6px"><input type="checkbox" class="comp-season-exclude" value="'+m.id+'" style="width:16px;height:16px"> Exclude from Season League</label></div>';
+
     wrap.appendChild(row);
   });
   wrap.querySelectorAll('.comp-player').forEach(x=>x.addEventListener('change',updateCompetitionPlayerCount));
@@ -3459,6 +3461,13 @@ async function createCompetitionDraft(){
       const createdId=Array.isArray(r.data)?(r.data[0]?.id||r.data[0]):r.data;
       if(createdId){
   await nlgsSetSeasonLeagueFlag(createdId);
+        
+   if(document.getElementById('compSeasonLeague')?.checked){
+     const excludedIds=[...document.querySelectorAll('#compPlayersList .comp-season-exclude:checked')].map(x=>x.value);
+     const saved=await competitionRpc('set_competition_players_season_exclusions',{p_competition_id:createdId,p_excluded_member_ids:excludedIds});
+     if(saved.error)throw saved.error;
+   }
+
   nlgsSave3s5sCompetitionFlag(createdId);
   await nlgsSetHolePrizeConfig(createdId);
 }
