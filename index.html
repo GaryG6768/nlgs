@@ -4542,7 +4542,19 @@ async function openAdminCompetitionEdit(id){
       p_allowance:allowance
     });
 
-    if(r.error)throw r.error;
+        if(r.error)throw r.error;
+
+    const selectedPlayerIds=[
+      ...document.querySelectorAll('#compPlayersList .comp-player:checked')
+    ].map(cb=>cb.value);
+
+    const playersResult=await competitionRpc('set_draft_competition_players',{
+      p_member_id:m.id,
+      p_competition_id:editingCompetitionId,
+      p_player_ids:selectedPlayerIds
+    });
+
+    if(playersResult.error)throw playersResult.error;
 
     editingCompetitionId=null;
 
