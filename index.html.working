@@ -4959,15 +4959,84 @@ function nlgsAdminEsc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;
     }
   }
 
-  async function startFriendlyRoundV117(){
-    if(typeof legacyStartFriendly==='function') await legacyStartFriendly();
-    const r=typeof getFriendlyRound==='function'?getFriendlyRound():null;
-    if(!r) return;
-    // If this is already a database-backed game, don't create another row.
-    if(r.dbId) return;
-    await saveFriendlyToDatabase(r, r.date===friendlyToday()?'in_progress':'scheduled');
-    if(r.date>friendlyToday()) await renderFixturesV117();
+  
+async function startFriendlyRoundV117(){
+  if(typeof legacyStartFriendly==='function') {
+    await legacyStartFriendly();
   }
+
+  const r=typeof getFriendlyRound==='function'
+    ? getFriendlyRound() : null;
+
+  if(!r) return;
+
+  if(editingFriendlyFixtureId){
+    try{
+      if(r.date<=friendlyToday()){
+        toast('Please choose a future date');
+        return;
+      }
+
+      const payload={
+        date:r.date,
+        courseId:r.courseId,
+        teeId:r.teeId||null,
+        course:r.course,
+        tee:r.tee||'Yellow',
+        format:r.format||'Stableford',
+        allowance:parseFloat(String(r.allowance||100).replace('%','')),
+        courseRating:r.courseRating,
+        slope:r.slope,
+        par:r.par,
+        players:r.players||[],
+        playerData:r.playerData||[],
+        holeData:r.holeData||[],
+        scores:{},
+        include3s5s:!!document.getElementById('friendly3s5s')?.checked,
+        status:'scheduled'
+      };
+
+      const {data,error}=await sb.rpc('update_friendly_fixture',{
+        p_id:editingFriendlyFixtureId,
+        p_game:payload
+      });
+
+      if(error) throw error;
+
+      const updated=Array.isArray(data)?data[0]:data;
+
+      if(updated!==true && updated!==1 && updated!=='true'){
+        toast('Fixture was not updated. It may have saved scores.');
+        return;
+      }
+
+      editingFriendlyFixtureId=null;
+
+      const button=document.getElementById('friendlyStartBtn');
+      if(button) button.textContent='START FRIENDLY ROUND';
+
+      toast('Friendly fixture updated');
+      await renderFixturesV117();
+      show('fixtures');
+      return;
+
+    }catch(e){
+      console.error('Could not update Friendly fixture',e);
+      toast('Fixture update failed: '+(e.message||String(e)));
+      return;
+    }
+  }
+
+  if(r.dbId) return;
+
+  await saveFriendlyToDatabase(
+    r,
+    r.date===friendlyToday()?'in_progress':'scheduled'
+  );
+
+  if(r.date>friendlyToday()) await renderFixturesV117();
+}
+
   window.startFriendlyRound=startFriendlyRoundV117;
 
   async function renderFixturesV117(){
@@ -4986,7 +5055,7 @@ function nlgsAdminEsc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;
           const id=g.id;
           const button=g.game_date===today?'START FRIENDLY GAME':'GAME SET UP';
           
-          const deleteButton=(g.game_date>today) ? '<button class="btn" style="margin-top:10px;background:#a33" onclick="event.stopPropagation();deleteScheduledFriendlyV120(\''+id+'\')">DELETE FIXTURE</button>' : '';
+          const deleteButton=(g.game_date>today) ? '<div style="display:flex;gap:8px;margin-top:10px"><button class="btn" onclick="event.stopPropagation();editScheduledFriendlyV121(\''+id+'\')">EDIT FIXTURE</button><button class="btn" style="background:#a33" onclick="event.stopPropagation();deleteScheduledFriendlyV120(\''+id+'\')">DELETE FIXTURE</button></div>' : '';
 
           return '<div class="card" onclick="startScheduledFriendlyV117(\''+id+'\')" style="cursor:pointer"><span class="pill">FRIENDLY</span><h3 style="margin:10px 0 4px">Friendly Game</h3><div class="big">'+dateLabel+'</div><div class="small" style="margin-top:5px">'+(g.course_name||'Golf course')+' • '+(g.format||'Stableford')+'</div>'+(players?'<div class="small" style="margin-top:8px">'+players+'</div>':'')+'<button class="btn" style="margin-top:14px" onclick="event.stopPropagation();startScheduledFriendlyV117(\''+id+'\')">'+button+'</button>'+deleteButton+'</div>';
         }).join('');
@@ -5060,6 +5129,137 @@ function nlgsAdminEsc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;
     }
   }
   window.startScheduledFriendlyV117=startScheduledFriendlyV117;
+
+let editingFriendlyFixtureId = null;
+
+
+
+async function editScheduledFriendlyV121(id) {
+  if (!id) return;
+
+  try {
+    const { data, error } = await sb.rpc('get_friendly_game', {
+      p_id: id
+    });
+    if (error) throw error;
+
+    const game = Array.isArray(data) ? data[0] : data;
+    if (!game) {
+      toast('Friendly fixture not found');
+      return;
+    }
+
+    if (game.game_date <= friendlyToday()) {
+      toast('Only future Friendly Games can be edited');
+      return;
+    }
+
+    
+    const { data: canEdit, error: checkError } = await sb.rpc(
+      'can_edit_friendly_fixture',
+      { p_id: id }
+    );
+
+    if (checkError) throw checkError;
+
+    if (!canEdit) {
+      toast('This fixture cannot be edited because it has started or scores have been saved');
+      return;
+    }
+
+
+    await ensureFriendlyDataLoaded();
+    await loadFriendlyMembers();
+
+    editingFriendlyFixtureId = id;
+
+    const course = document.getElementById('friendlyCourse');
+    course.value = game.course_id;
+    await applySelectedCourse();
+
+    const tee = document.getElementById('friendlyTee');
+    tee.value = game.tee_id;
+    applySelectedTee();
+
+    document.getElementById('friendlyDate').value = game.game_date;
+
+    setFriendlyFormat(game.format || 'Stableford');
+    setFriendlyAllowance(String(Number(game.allowance || 100)) + '%');
+
+    document.getElementById('friendly3s5s').checked =
+      !!game.include_3s5s;
+
+    const players = Array.isArray(game.players) ? game.players : [];
+    const playerData = Array.isArray(game.player_data)
+      ? game.player_data : [];
+
+    if (players.length < 1 || players.length > 4) {
+      editingFriendlyFixtureId = null;
+      toast('This fixture has an invalid player count');
+      return;
+    }
+
+    setFriendlyPlayerCount(players.length);
+
+    for (let i = 1; i <= 4; i++) {
+      const select = document.getElementById('friendlyM' + i);
+      const nameInput = document.getElementById('friendlyP' + i);
+      const hcpInput = document.getElementById('friendlyH' + i);
+      const overrideInput = document.getElementById('friendlyO' + i);
+
+      select.value = '';
+      nameInput.value = '';
+      hcpInput.value = '';
+      overrideInput.value = '';
+
+      if (i > players.length) continue;
+
+      
+      
+      const p = playerData[i - 1] || {};
+      const memberId = p.memberId || p.member_id || '';
+      const savedName = String(players[i - 1] || '')
+        .trim().toLowerCase();
+
+      const member =
+        nlgsFriendlyMembers.find(m =>
+          memberId && String(m.id) === String(memberId)
+        ) ||
+        nlgsFriendlyMembers.find(m =>
+          String(m.full_name || '').trim().toLowerCase() === savedName
+        );
+
+      if (member) {
+        select.value = member.id;
+        friendlyMemberChanged(i);
+      } else {
+        select.value = '__guest__';
+        friendlyMemberChanged(i);
+        nameInput.value = players[i - 1] || p.name || '';
+        hcpInput.value = p.handicapIndex ?? p.handicap_index ?? '';
+      }
+
+      if (p.override) {
+        overrideInput.value = p.playingHandicap ?? '';
+      }
+    }
+
+    refreshFriendlyHandicaps();
+    updateFriendlyStartButton();
+    show('friendly');
+
+    const button = document.getElementById('friendlyStartBtn');
+    if (button) button.textContent = 'SAVE FIXTURE CHANGES';
+
+    toast('Fixture loaded. Review your changes.');
+  } catch (e) {
+    console.error('Could not load Friendly fixture for editing', e);
+    editingFriendlyFixtureId = null;
+    toast('Could not load fixture: ' + (e.message || String(e)));
+  }
+}
+
+window.editScheduledFriendlyV121 = editScheduledFriendlyV121;
 
   async function deleteScheduledFriendlyV120(id){
     if(!id) return;
@@ -5523,7 +5723,7 @@ function nlgsAdminEsc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="nlgs-friendly-v15-patch.js?v=23"></script>
-<script src="nlgs-friendly-results-standalone.js?v=4"></script>
+<script src="nlgs-friendly-results-standalone.js?v=5"></script>
 <script src="nlgs-handicap-v3.js?v=31"></script>
   <script src="nlgs-central-roger-recovery.js?v=3"></script>
   
