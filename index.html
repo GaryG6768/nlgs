@@ -4372,13 +4372,14 @@ async function loadAdminCompetitions(){
           ' • '+status+'</div>'+
         '</div>'+
         '<div style="display:flex;gap:7px;align-items:center">'+
-                    (String(c.status||'').toLowerCase()==='draft'
-            ? '<button class="btn" style="width:auto;padding:9px 12px" onclick="openAdminCompetitionEdit(\''+c.id+'\')">EDIT</button>'
+             (String(c.status||'').toLowerCase()==='draft'
+            ? '<button class="btn" style="width:auto;padding:9px 12px" onclick="openAdminCompetitionEdit(\''+c.id+'\')">EDIT</button>'+
+              '<button class="btn" style="width:auto;padding:9px 12px;background:#b42318" onclick="deleteAdminCompetition(\''+c.id+'\',\''+escAdmin(c.name).replace(/'/g,'&#39;')+'\')">DELETE</button>'
             : '')+
           '<button class="btn" style="width:auto;padding:9px 12px" onclick="viewAdminCompetition(\''+c.id+'\')">VIEW</button>'+
-          (canDelete
+          (canDelete && String(c.status||'').toLowerCase()!=='draft'
             ? '<button class="btn" style="width:auto;padding:9px 12px;background:#b42318" onclick="deleteAdminCompetition(\''+c.id+'\',\''+escAdmin(c.name).replace(/'/g,'&#39;')+'\')">DELETE</button>'
-            : '')+
+            : '')+         
         '</div>'+
       '</div>';
 
