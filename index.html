@@ -3969,7 +3969,18 @@ async function openCompetitionScoring(id){
   }
   csHole=csFirstIncompleteHole();
   csPlayerId=null;
-  const c=csData.competition;
+    const c=csData.competition;
+  if(c.competition_date){
+    const d=String(c.competition_date).slice(0,10);
+    const now=new Date();
+    const today=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+    if(d>today){
+      csStopLiveRefresh();
+      show('home');
+      toast('Scoring opens on '+new Date(d+'T12:00:00').toLocaleDateString('en-GB'));
+      return;
+    }
+  }
   document.getElementById('csHeader').innerHTML='<b>'+escAdmin(c.name)+'</b><br>'+escAdmin(c.course_name)+' • '+escAdmin(c.tee_name)+' • '+({stableford:'Stableford',medal:'Medal',match_play:'Match Play',season_league:'Season League'}[c.format]||c.format)+' • '+c.allowance+'% allowance';
   csRenderGroupPicker();
   csRender();
