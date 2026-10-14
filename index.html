@@ -3717,7 +3717,7 @@ async function openCompetitionList(){
     wrap.innerHTML='<div class="card"><b>Could not load competitions.</b><div class="small" style="margin-top:6px">Please ask the competition administrator to open the competition from Admin.</div></div>';
     return;
   }
-  const rows=(r.data||[]).filter(c=>['draft','open','in_progress'].includes(c.status||'open'));
+  const rows=(r.data||[]).filter(c=>['open','in_progress'].includes(String(c.status||'').toLowerCase()));
   if(!rows.length){
     wrap.innerHTML='<div class="card"><b>No open competitions.</b><div class="small" style="margin-top:6px">The administrator has not opened a competition yet.</div></div>';
     return;
