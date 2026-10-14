@@ -4435,7 +4435,9 @@ async function openAdminCompetitionEdit(id){
   }
 
   await loadCompetitionBuilder();
-
+  document.getElementById('compPlayersList').closest('.card').style.display='none';
+  document.getElementById('compPrizeHole1').closest('.card').parentElement.closest('.card')?.style.setProperty('display','none');
+  document.getElementById('comp3s5sOption').style.display='none';
   document.getElementById('compName').value=c.name||'';
   document.getElementById('compDate').value=c.competition_date||'';
 
