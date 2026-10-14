@@ -4617,8 +4617,8 @@ function escAdmin(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&l
 async function viewAdminCompetition(id){
   // Open the normal Results screen first, then load the selected
   // completed competition into its existing final-results detail view.
-  show('leader');
-  await loadResults();
+    show('admin');
+  
   
   const detail=document.getElementById('adminCompetitionDetail');
   if(!detail)return;
