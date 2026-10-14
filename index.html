@@ -4435,7 +4435,27 @@ async function openAdminCompetitionEdit(id){
   }
 
   await loadCompetitionBuilder();
-  document.getElementById('compPlayersList').closest('.card').style.display='none';
+    const playerRows=await competitionRpc('get_admin_competition',{
+    p_competition_id:id
+  });
+
+  if(playerRows.error){
+    toast('Could not load existing players');
+    return;
+  }
+
+  const existingIds=(playerRows.data||[])
+    .map(p=>p.member_id)
+    .filter(Boolean)
+    .map(String);
+
+  document.querySelectorAll('#compPlayersList .comp-player')
+    .forEach(cb=>{
+      cb.checked=existingIds.includes(String(cb.value));
+    });
+
+  updateCompetitionPlayerCount();
+  updateCompetitionPlayingHandicaps();
     document.getElementById('compPrizeHole1').closest('.card').style.display='none';
   document.getElementById('comp3s5sOption').style.display='none';
   document.getElementById('compName').value=c.name||'';
