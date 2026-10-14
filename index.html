@@ -4619,7 +4619,7 @@ async function viewAdminCompetition(id){
   // completed competition into its existing final-results detail view.
   show('leader');
   await loadResults();
-  return viewResult(id);
+  
   const detail=document.getElementById('adminCompetitionDetail');
   if(!detail)return;
   detail.style.display='block';
