@@ -4354,10 +4354,13 @@ async function loadAdminCompetitions(){
     }[c.status]||c.status;
 
     const canDelete=
-      c.competition_date &&
-      c.competition_date < today &&
-      String(c.status||'').toLowerCase()!=='complete' &&
-      String(c.status||'').toLowerCase()!=='completed';
+  String(c.status||'').toLowerCase()==='draft' ||
+  (
+    c.competition_date &&
+    c.competition_date < today &&
+    String(c.status||'').toLowerCase()!=='complete' &&
+    String(c.status||'').toLowerCase()!=='completed'
+  );
 
     card.innerHTML=
       '<div class="row">'+
