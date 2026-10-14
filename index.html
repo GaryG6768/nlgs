@@ -5214,26 +5214,20 @@ async function editScheduledFriendlyV121(id) {
 
       if (i > players.length) continue;
 
+      
       const p = playerData[i - 1] || {};
       const memberId = p.memberId || p.member_id || '';
-      const member = nlgsFriendlyMembers.find(m =>
-        String(m.id) === String(memberId)
-      );
+      const savedName = String(players[i - 1] || '')
+        .trim().toLowerCase();
 
-      if (member) {
-        select.value = member.id;
-        friendlyMemberChanged(i);
-      } else {
-        select.value = '__guest__';
-        friendlyMemberChanged(i);
-        nameInput.value = players[i - 1];
-        hcpInput.value = p.handicapIndex ?? p.handicap_index ?? '';
-      }
+      const member =
+        nlgsFriendlyMembers.find(m =>
+          memberId && String(m.id) === String(memberId)
+        ) ||
+        nlgsFriendlyMembers.find(m =>
+          String(m.full_name || '').trim().toLowerCase() === savedName
+        );
 
-      if (p.override) {
-        overrideInput.value = p.playingHandicap ?? '';
-      }
-    }
 
     refreshFriendlyHandicaps();
     updateFriendlyStartButton();
