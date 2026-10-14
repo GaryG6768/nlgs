@@ -4462,6 +4462,90 @@ async function openAdminCompetitionEdit(id){
 
   toast('Draft loaded for editing');
 }
+  async function updateCompetitionDraft(){
+  const m=JSON.parse(sessionStorage.getItem('nlgsMember')||'null');
+
+  if(!m || m.role!=='admin' || !editingCompetitionId){
+    toast('No draft competition selected');
+    return;
+  }
+
+  const name=document.getElementById('compName')?.value.trim();
+  const date=document.getElementById('compDate')?.value;
+  const courseId=document.getElementById('compCourse')?.value;
+  const teeId=document.getElementById('compTee')?.value;
+
+  if(!name){toast('Enter a competition name');return;}
+  if(!date){toast('Choose a competition date');return;}
+  if(!courseId){toast('Choose a golf course');return;}
+  if(!teeId){toast('Choose the tees');return;}
+
+  const formatMap={
+    'Stableford':'stableford',
+    'Medal':'medal',
+    'Match Play':'match_play',
+    'Season League':'season_league'
+  };
+
+  const allowanceMap={
+    '100%':'100',
+    '85%':'85',
+    '75%':'75'
+  };
+
+  const format=formatMap[competitionFormat];
+  const allowance=allowanceMap[competitionAllowance];
+
+  if(!format || !allowance){
+    toast('Competition settings are invalid');
+    return;
+  }
+
+  const btn=document.getElementById('competitionBuilderSaveBtn');
+
+  if(btn){
+    btn.disabled=true;
+    btn.textContent='SAVING…';
+  }
+
+  try{
+    const r=await competitionRpc('update_admin_competition',{
+      p_member_id:m.id,
+      p_competition_id:editingCompetitionId,
+      p_name:name,
+      p_competition_date:date,
+      p_course_id:courseId,
+      p_tee_id:teeId,
+      p_format:format,
+      p_allowance:allowance
+    });
+
+    if(r.error)throw r.error;
+
+    editingCompetitionId=null;
+
+    toast('Competition updated successfully');
+
+    const heading=document.querySelector('#competitionBuilder h2');
+    if(heading)heading.textContent='Create Competition';
+
+    const description=document.querySelector('#competitionBuilder .small');
+    if(description)description.textContent='Set up the event, course, handicap allowance and players. Competition scoring will be the next stage.';
+
+    if(btn){
+      btn.textContent='CREATE COMPETITION';
+      btn.onclick=createCompetitionDraft;
+    }
+
+    show('admin');
+    await loadAdminCompetitions();
+
+  }catch(e){
+    toast(competitionError('Competition update failed',e).slice(0,110));
+  }finally{
+    if(btn)btn.disabled=false;
+  }
+}
 async function deleteAdminCompetition(id,name){
   if(!confirm('DELETE '+name+'?\\n\\nThis will permanently remove the competition and its saved competition data.')) return;
 
