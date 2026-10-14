@@ -5154,18 +5154,19 @@ async function editScheduledFriendlyV121(id) {
       return;
     }
 
-    const { data: submissions, error: submissionError } = await sb
-      .from('friendly_score_submissions')
-      .select('id')
-      .eq('friendly_game_id', id)
-      .limit(1);
+    
+    const { data: canEdit, error: checkError } = await sb.rpc(
+      'can_edit_friendly_fixture',
+      { p_id: id }
+    );
 
-    if (submissionError) throw submissionError;
+    if (checkError) throw checkError;
 
-    if (submissions && submissions.length) {
-      toast('This fixture cannot be edited because hole scores have been saved');
+    if (!canEdit) {
+      toast('This fixture cannot be edited because it has started or scores have been saved');
       return;
     }
+
 
     await ensureFriendlyDataLoaded();
     await loadFriendlyMembers();
