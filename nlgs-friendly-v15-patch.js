@@ -118,7 +118,8 @@
       return s;
     });
 
-    const incompleteScorers=scorers.filter(function(s){return s.completedHoles<18;});
+    const expectedCount = Math.max(1, Math.min(game.players.length, Number(game.scorerCount) || 1));
+const incompleteScorers = scorers.filter(function(s){return s.completedHoles < 18;});
     let agreed=0,disputes=0;
     for(let h=1;h<=18;h++){
       const hs=holeStatus(game,h);
