@@ -131,7 +131,9 @@
       scorerCount:scorers.length,
       agreed:agreed,
       disputes:disputes,
-      complete:scorers.length===game.players.length && incompleteScorers.length===0 && agreed===18 && disputes===0
+      
+complete:scorers.length>0 && incompleteScorers.length===0 && agreed===18 && disputes===0
+
     };
   }
 
