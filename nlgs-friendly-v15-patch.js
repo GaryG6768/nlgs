@@ -120,6 +120,7 @@
 
     const expectedCount = Math.max(1, Math.min(game.players.length, Number(game.scorerCount) || 1));
 const incompleteScorers = scorers.filter(function(s){return s.completedHoles < 18;});
+const missingScorers = Math.max(0, expectedCount - scorers.length);
     let agreed=0,disputes=0;
     for(let h=1;h<=18;h++){
       const hs=holeStatus(game,h);
@@ -133,7 +134,7 @@ const incompleteScorers = scorers.filter(function(s){return s.completedHoles < 1
       agreed:agreed,
       disputes:disputes,
       
-complete:scorers.length>0 && incompleteScorers.length===0 && agreed===18 && disputes===0
+complete:scorers.length===expectedCount && missingScorers===0 && incompleteScorers.length===0 && agreed===18 && disputes===0
 
     };
   }
@@ -478,8 +479,16 @@ complete:scorers.length>0 && incompleteScorers.length===0 && agreed===18 && disp
     }else{
       final.style.display='none';
       if(completion.incompleteScorers.length){
-        body.innerHTML+='<br><br><b>Round not complete</b><br>'+completion.incompleteScorers.length+' scorer'+(completion.incompleteScorers.length===1?'':'s')+' still have scores to enter for the full 18 holes.';
-      }
+    if(completion.missingScorers > 0 || completion.incompleteScorers.length > 0){
+  body.innerHTML+='<br><br><b>Round not complete — awaiting scorer</b><br>';
+  if(completion.missingScorers > 0){
+    body.innerHTML+=completion.missingScorers+' selected scorer'+(completion.missingScorers===1?' has':'s have')+' not submitted scores yet.<br>';
+  }
+  if(completion.incompleteScorers.length > 0){
+    body.innerHTML+=completion.incompleteScorers.length+' scorer'+(completion.incompleteScorers.length===1?' still has':'s still have')+' holes to complete.';
+  }
+}
+      
     }
   }
 
