@@ -1727,7 +1727,19 @@ function renderFriendlyScore(){
   }).filter(x=>x.count>0);
   rows.sort((a,b)=>r.format==='Medal'||r.format==='medal'?a.net-b.net:b.pts-a.pts);
   list.innerHTML=rows.map((x,i)=>'<div class="row" style="padding:9px 0;border-bottom:1px solid var(--line)"><div><b>'+(i+1)+'. '+x.p+'</b><div class="small">PH '+(x.pd.playingHandicap??'—')+' • '+x.count+'/18 holes'+(x.gross?' • Gross '+x.gross:'')+'</div></div><span class="pill">'+(r.format==='Medal'||r.format==='medal'?(x.gross?x.net:'—'):x.pts+' pts')+'</span></div>').join('') || '<div class="small">No scores entered yet.</div>';
-  const complete=r.players.length>0 && r.players.every(p=>Object.keys(r.scores[p]||{}).length>=18);
+  const complete=r.players.length>0 && r.players.every(p=>{
+    const scores=r.scores[p]||{};
+    for(let hole=1;hole<=18;hole++){
+      const score=Number(scores[hole]);
+      if(!Object.prototype.hasOwnProperty.call(scores,hole)||!Number.isInteger(score)||score<1||score>15)return false;
+    }
+    return true;
+  });
+  const finishBtn=document.getElementById('friendlyFinishRoundBtn');
+  if(finishBtn){
+    finishBtn.disabled=!complete;
+    finishBtn.textContent=complete?'FINISH ROUND':'FINISH ROUND — COMPLETE ALL 18 HOLES';
+  }
   const title=document.getElementById('friendlyLeaderboardTitle'), sub=document.getElementById('friendlyLeaderboardSub');
   if(title)title.textContent=complete?'FINAL LEADERBOARD':'LIVE LEADERBOARD';
   if(sub)sub.innerHTML=complete?'All 18 holes complete':'<span class="cs-live-dot"></span>Updates live';
