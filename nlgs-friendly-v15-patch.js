@@ -38,6 +38,13 @@
   }
   function scorerKey(r){return String(r.scorer_member_id||r.scorer_id||r.scorer_name||r.member_name||'');}
 
+  function rowsForScorerAtHole(key,h){
+    return (Array.isArray(multiStatus?.submissions)?multiStatus.submissions:[])
+      .filter(function(r){
+        return scorerKey(r)===key && Number(r.hole_no)===Number(h);
+      });
+  }
+
   function ownSubmission(p,h){
     const rows=rowsFor(p,h);
     if(exactScorerId){
@@ -124,20 +131,18 @@
       scorerCount:scorers.length,
       agreed:agreed,
       disputes:disputes,
-      complete:scorers.length>0 && agreed===18 && disputes===0
+      complete:scorers.length===game.players.length && incompleteScorers.length===0 && agreed===18 && disputes===0
     };
   }
 
+  
   function holeStatus(game,h){
     const conflicts=[];
+    const submissions=Array.isArray(multiStatus?.submissions)?multiStatus.submissions:[];
+    const expectedScorers=[...new Set(submissions.map(scorerKey).filter(Boolean))];
     const scorers=holeScorers(game,h);
-
-    if(!scorers.length){
-      return {missing:[],conflicts:[],agreed:false,scorerCount:0,incomplete:0};
-    }
-
-    const incomplete=scorers.filter(function(s){
-      return s.count<game.players.length;
+    const incomplete=expectedScorers.filter(function(key){
+      return rowsForScorerAtHole(key,h).length<game.players.length;
     }).length;
 
     game.players.forEach(function(player,index){
@@ -148,13 +153,15 @@
     });
 
     return {
-      missing:[],
+      missing:incomplete?['Missing score submissions']:[],
       conflicts:conflicts,
-      agreed:incomplete===0 && conflicts.length===0,
+      agreed:expectedScorers.length>0 && incomplete===0 &&
+        scorers.length===expectedScorers.length && conflicts.length===0,
       scorerCount:scorers.length,
       incomplete:incomplete
     };
   }
+
 
   function lockFinalisedRound(){
     if(String(multiStatus?.game_status||'').toLowerCase()!=='complete')return;
