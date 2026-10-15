@@ -1065,7 +1065,10 @@ let friendlyPlayerCount=4;
 function setFriendlyPlayerCount(count){
   count=Math.max(1,Math.min(4,Number(count)||4));
   friendlyPlayerCount=count;
-  for(let i=1;i<=4;i++){
+if(friendlyScorerCount > count){
+  setFriendlyScorerCount(count);
+}
+for(let i=1;i<=4;i++){
     const b=document.getElementById('fpc'+i);
     if(b)b.classList.toggle('on',i===count);
     const card=document.querySelector('#friendlyPlayerCards .player-card:nth-child('+i+')');
@@ -1524,6 +1527,7 @@ async function startFriendlyRound(){
     format:friendlyFormat,
     allowance:friendlyAllowance,
     playerCount:count,
+    scorerCount:friendlyScorerCount,
     courseRating:Number(selectedFriendlyTee.course_rating),
     slope:Number(selectedFriendlyTee.slope_rating),
     par:Number(selectedFriendlyTee.par),
