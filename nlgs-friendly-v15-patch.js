@@ -478,17 +478,16 @@ complete:scorers.length===expectedCount && missingScorers===0 && incompleteScore
       final.style.display='block';
     }else{
       final.style.display='none';
-      if(completion.incompleteScorers.length){
-    if(completion.missingScorers > 0 || completion.incompleteScorers.length > 0){
-  body.innerHTML+='<br><br><b>Round not complete — awaiting scorer</b><br>';
-  if(completion.missingScorers > 0){
-    body.innerHTML+=completion.missingScorers+' selected scorer'+(completion.missingScorers===1?' has':'s have')+' not submitted scores yet.<br>';
-  }
-  if(completion.incompleteScorers.length > 0){
-    body.innerHTML+=completion.incompleteScorers.length+' scorer'+(completion.incompleteScorers.length===1?' still has':'s still have')+' holes to complete.';
-  }
-}
       
+      if(completion.missingScorers > 0 || completion.incompleteScorers.length > 0){
+        body.innerHTML+='<br><br><b>Round not complete — awaiting scorer</b><br>';
+        if(completion.missingScorers > 0){
+          body.innerHTML+=completion.missingScorers+' selected scorer'+(completion.missingScorers===1?' has':'s have')+' not submitted scores yet.<br>';
+        }
+        if(completion.incompleteScorers.length > 0){
+          body.innerHTML+=completion.incompleteScorers.length+' scorer'+(completion.incompleteScorers.length===1?' still has':'s still have')+' holes to complete.';
+        }
+      }
     }
   }
 
