@@ -4103,7 +4103,9 @@ function csUpdateSaveAllState(){
 function csRenderLeaderboard(){
   const map=csScoreMap(), c=csData.competition, holes=csData.holes||[];
   const claimedIds=new Set((csGroupStatus||[]).filter(x=>x&&x.group_id).map(x=>String(x.competition_player_id)));
-  const leaderboardPlayers=(csData.players||[]).filter(p=>claimedIds.has(String(p.id)));
+  
+const leaderboardPlayers=(csData.players||[]);
+
   const rows=leaderboardPlayers.map(p=>{let gross=0,pts=0,count=0;holes.forEach(h=>{const sv=map.get(p.id+':'+h.hole_no);if(sv!==undefined){gross+=sv;pts+=c.format==='stableford'?csPoints(sv,h.par,csShotsOnHole(csPlayingHcp(p),h.stroke_index)):0;count++;}});return {...p,gross,pts,count,net:gross-csPlayingHcp(p)};});
   rows.sort((a,b)=>c.format==='stableford'?b.pts-a.pts:a.net-b.net);
   const wrap=document.getElementById('csLeaderboard');
