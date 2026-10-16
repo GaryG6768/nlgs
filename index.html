@@ -4995,7 +4995,24 @@ function nlgsAdminEsc(s){return String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;
         summary.innerHTML='<div class="label">COMPLETED SEASON LEAGUE EVENTS</div>'+
           (comps.length?comps.map(c=>'<div class="row" style="padding:9px 0;border-bottom:1px solid var(--line)"><div><b>'+esc(c.name)+'</b><div class="small">'+new Date(c.competition_date+'T00:00:00').toLocaleDateString('en-GB')+' • '+esc(c.course_name||'')+'</div></div><span class="pill">'+(fmt==='medal'?'MEDAL':'STABLEFORD')+'</span></div>').join(''):'<div class="small" style="margin-top:8px">None found for '+year+' yet.</div>');
       }
-      const resultSets=await Promise.all(comps.map(c=>competitionRpc('get_competition_results',{p_competition_id:c.id})));
+      
+const resultSets=await Promise.all(comps.map(async c=>{
+  const [results, exclusions]=await Promise.all([
+    competitionRpc('get_competition_results',{p_competition_id:c.id}),
+    competitionRpc('get_competition_season_exclusions',{p_competition_id:c.id})
+  ]);
+  if(results.error)throw results.error;
+  if(exclusions.error)throw exclusions.error;
+  const excluded=new Set((exclusions.data||[]).map(x=>String(x.competition_player_id)));
+  const data=results.data||{};
+  return {
+    data:{
+      ...data,
+      players:(data.players||[]).filter(p=>!excluded.has(String(p.competition_player_id)))
+    }
+  };
+}));
+
       const byName=new Map();
       resultSets.forEach((rr,i)=>{
         if(rr.error)throw rr.error;
