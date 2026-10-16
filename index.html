@@ -5006,7 +5006,8 @@ const resultSets=await Promise.all(comps.map(async c=>{
   const excluded=new Set((exclusions.data||[]).map(x=>String(x.competition_player_id)));
   const data=results.data||{};
   return {
-    data:{
+    error:null,
+data:{
       ...data,
       players:(data.players||[]).filter(p=>!excluded.has(String(p.competition_player_id)))
     }
