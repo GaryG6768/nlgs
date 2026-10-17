@@ -91,20 +91,7 @@
     const name=m.full_name||m.name||'';
     const memberName=String(name).trim().toLowerCase();
 
-    // Keep the Home screen aligned with the agreed Handicap Tracker values.
-    const handicapOverrides = {
-      'gary gudgeon': 11.9,
-      'lee turner': 16.5,
-      'roger margetson': 15.1,
-      'gary peart': 21.0,
-      'dave frances': 20.3,
-      'steve henning': 16.2,
-      'pete francis': 22.2
-    };
-
-    const h = Object.prototype.hasOwnProperty.call(handicapOverrides, memberName)
-      ? handicapOverrides[memberName]
-      : calculatedHandicap;
+    const h = calculatedHandicap;
 
     welcome.textContent=Number.isFinite(h)
       ? 'Welcome, '+name+'  •  HDC '+h.toFixed(1)
