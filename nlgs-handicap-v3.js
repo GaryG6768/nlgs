@@ -424,7 +424,7 @@ if(String(m && (m.id||m.member_id) || '')==='776a7e18-c032-42b0-a9ca-57a56a8531c
       recent.textContent='No rounds recorded.';
     }else{
       recent.innerHTML=x.r.slice().reverse().slice(0,5).map((v,i)=>{
-        let label=((v.verifiedRogerHistory||v.verifiedGaryGudgeonHistory)&&v.competitionName)?v.competitionName:'Manual entry';
+        let label=v.competitionName||'Manual entry';
 
         if(v.source==='competition')
           label=v.competitionName||'NLGS competition';
@@ -454,7 +454,7 @@ if(v.source==='individual')
 
   h.innerHTML=x.r.length
     ?x.r.slice().reverse().map((v,i)=>{
-      let label=((v.verifiedRogerHistory||v.verifiedGaryGudgeonHistory)&&v.competitionName)?v.competitionName:'Manual entry';
+      let label=v.competitionName||'Manual entry';
 
       if(v.source==='competition')
         label=v.competitionName||'NLGS competition';
@@ -1322,3 +1322,4 @@ correctKnownRoundDates();
     install();
 
 })();
+
