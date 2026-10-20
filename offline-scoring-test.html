@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>NLGS Offline Scoring — Isolated Test</title>
+<style>
+:root{font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:#18231d;background:#f4f6f4}body{margin:0;padding:16px;max-width:760px;margin-inline:auto}h1{font-size:1.35rem;margin:.2rem 0 .5rem}.notice{background:#fff4d6;border:1px solid #e8cd7b;padding:12px;border-radius:10px;margin:12px 0}.card{background:white;border:1px solid #d8dfda;border-radius:12px;padding:14px;margin:12px 0}label{display:block;font-size:.9rem;margin:8px 0 4px}input,select,button{font:inherit;padding:10px;border:1px solid #b9c5bd;border-radius:8px;max-width:100%}input{width:100%;box-sizing:border-box}button{background:#176b45;color:white;border:0;font-weight:650;margin:5px 5px 5px 0}button.secondary{background:#e7eee9;color:#173b2a;border:1px solid #c8d5cc}button:disabled{opacity:.5}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.small{font-size:.88rem;color:#536158}.status{font-weight:700}.ok{color:#126a3a}.bad{color:#a13c24}ul{padding-left:20px}li{margin:5px 0}.mono{font-family:ui-monospace,monospace;overflow-wrap:anywhere}.entry{border-top:1px solid #e1e7e2;padding:8px 0}.pill{display:inline-block;border-radius:20px;padding:3px 8px;background:#edf1ed;font-size:.8rem}#log{white-space:pre-wrap;font-family:ui-monospace,monospace;font-size:.82rem;background:#17231c;color:#e5f2e9;border-radius:8px;padding:10px;max-height:220px;overflow:auto}
+</style>
+</head>
+<body>
+<h1>NLGS Offline Scoring — isolated test</h1>
+<p class="small">Prototype only. This page does not connect to NLGS or Supabase and cannot alter live scores.</p>
+<div class="notice"><strong>Important:</strong> this test uses a simulated server so we can exercise local persistence, retries, verification and conflict handling safely before touching <code>index.html</code>.</div>
+<div class="card">
+<h2>1. Add a test score</h2>
+<div class="row"><div><label for="competition">Competition test ID</label><input id="competition" value="TEST-COMP-001"></div><div><label for="player">Competition-player test ID</label><input id="player" value="TEST-PLAYER-001"></div></div>
+<div class="row"><div><label for="hole">Hole</label><select id="hole"></select></div><div><label for="strokes">Strokes (1–15)</label><input id="strokes" type="number" min="1" max="15" value="5"></div></div>
+<button id="add">Save locally</button><button class="secondary" id="reload">Reload local queue</button>
+<p class="small">A score is written to IndexedDB before the interface reports it as locally saved. The queue remains in this browser after refresh/reopen (provided this browser retains this page's site storage).</p>
+</div>
+<div class="card">
+<h2>2. Simulate connection and sync</h2>
+<p>Network simulation: <span id="network" class="status bad">OFFLINE</span></p>
+<button id="offline" class="secondary">Go offline</button><button id="online" class="secondary">Go online</button>
+<button id="sync">Sync pending scores</button>
+<p class="small">Sync uses a simulated server, verifies the exact competition/player/hole/strokes after writing, and leaves entries pending if verification fails or a conflicting newer score is detected.</p>
+</div>
+<div class="card">
+<h2>3. Test conflict protection</h2>
+<p class="small">Create a newer simulated server score for the same player and hole. A queued offline score must not overwrite it silently.</p>
+<button id="serverNewer" class="secondary">Set newer server score (6)</button><button id="verifyFail" class="secondary">Simulate read-back failure once</button><button id="clearServer" class="secondary">Clear simulated server</button>
+</div>
+<div class="card"><h2>Local queue</h2><div id="queue" class="small">Loading…</div></div>
+<div class="card"><h2>Simulated server records</h2><div id="server" class="small">No records yet.</div></div>
+<div class="card"><h2>Test log</h2><div id="log">Ready. Start by saving a score locally while offline.</div><button id="clearLog" class="secondary">Clear log</button></div>
+<script>
+(()=>{'use strict';
+const DB_NAME='nlgs-offline-test-only-v1', STORE='queue', SERVER_KEY='nlgs-offline-test-server-v1';
+let db, online=false, failNextReadback=false, syncing=false;
+const $=id=>document.getElementById(id);
+for(let i=1;i<=18;i++){const o=document.createElement('option');o.value=String(i);o.textContent='Hole '+i;$('hole').appendChild(o)}
+function log(msg){const el=$('log');el.textContent=new Date().toLocaleTimeString()+' '+msg+'\n'+el.textContent}
+function keyOf(x){return [x.competitionId,x.playerId,x.hole].join('|')}
+function openDb(){return new Promise((resolve,reject)=>{const req=indexedDB.open(DB_NAME,1);req.onupgradeneeded=()=>{const d=req.result;if(!d.objectStoreNames.contains(STORE))d.createObjectStore(STORE,{keyPath:'key'})};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error)})}
+function txDone(tx){return new Promise((resolve,reject)=>{tx.oncomplete=()=>resolve();tx.onerror=()=>reject(tx.error);tx.onabort=()=>reject(tx.error||new Error('Transaction aborted'))})}
+async function allQueue(){return new Promise((resolve,reject)=>{const tx=db.transaction(STORE,'readonly'),req=tx.objectStore(STORE).getAll();req.onsuccess=()=>resolve(req.result||[]);req.onerror=()=>reject(req.error)})}
+async function putQueue(item){const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).put(item);await txDone(tx)}
+async function deleteQueue(key){const tx=db.transaction(STORE,'readwrite');tx.objectStore(STORE).delete(key);await txDone(tx)}
+function serverRows(){try{return JSON.parse(localStorage.getItem(SERVER_KEY)||'{}')}catch{return {}}}
+function saveServer(rows){localStorage.setItem(SERVER_KEY,JSON.stringify(rows))}
+function stamp(){return new Date().toISOString()}
+function setOnline(v){online=v;$('network').textContent=v?'ONLINE (simulated)':'OFFLINE (simulated)';$('network').className='status '+(v?'ok':'bad');log('Network set '+(v?'ONLINE':'OFFLINE')+' (simulated)')}
+async function addScore(){const competitionId=$('competition').value.trim(),playerId=$('player').value.trim(),hole=Number($('hole').value),strokes=Number($('strokes').value);if(!competitionId||!playerId||!Number.isInteger(hole)||hole<1||hole>18||!Number.isInteger(strokes)||strokes<1||strokes>15){alert('Enter test IDs, a hole from 1–18 and strokes from 1–15.');return}const item={competitionId,playerId,hole,strokes,key:keyOf({competitionId,playerId,hole}),status:'pending',createdAt:stamp(),updatedAt:stamp(),message:'Waiting to sync'};await putQueue(item);log('Saved locally in IndexedDB: '+item.key+' = '+strokes+' strokes');await render()}
+async function sync(){if(syncing)return;if(!online){log('Sync not started: simulated network is offline. Queue retained.');return}syncing=true;$('sync').disabled=true;try{const items=(await allQueue()).filter(x=>x.status==='pending');for(const item of items){if(!online){log('Connection lost; remaining entries retained.');break}const rows=serverRows(),current=rows[item.key];if(current&&Date.parse(current.updatedAt)>Date.parse(item.createdAt)){item.status='conflict';item.message='Server record is newer; not overwritten';item.updatedAt=stamp();await putQueue(item);log('CONFLICT — newer server score kept for '+item.key);continue}rows[item.key]={competitionId:item.competitionId,playerId:item.playerId,hole:item.hole,strokes:item.strokes,updatedAt:stamp(),source:'offline-test-sync'};saveServer(rows);log('Simulated write attempted for '+item.key);if(failNextReadback){failNextReadback=false;item.message='Read-back unavailable; will retry';await putQueue(item);log('Read-back failed; entry remains pending. No success reported.');continue}const read=serverRows()[item.key];if(read&&read.competitionId===item.competitionId&&read.playerId===item.playerId&&Number(read.hole)===Number(item.hole)&&Number(read.strokes)===Number(item.strokes)){await deleteQueue(item.key);log('VERIFIED — exact score read back; queue entry removed: '+item.key)}else{item.message='Verification mismatch; will retry';await putQueue(item);log('Verification mismatch; entry retained and not marked synced: '+item.key)}}}catch(e){log('Sync error; pending entries retained: '+String(e.message||e))}finally{syncing=false;$('sync').disabled=false;await render()}}
+async function render(){const q=await allQueue();$('queue').innerHTML=q.length?q.map(x=>`<div class="entry"><b>${esc(x.playerId)}</b> · hole ${x.hole} · <b>${x.strokes} strokes</b><br><span class="pill">${esc(x.status)}</span> <span class="small">${esc(x.message||'')}</span><br><span class="small mono">${esc(x.key)}</span></div>`).join(''):'No queued entries. Verified entries are removed; conflicts remain visible.';const s=serverRows();const vals=Object.values(s);$('server').innerHTML=vals.length?vals.map(x=>`<div class="entry">${esc(x.playerId)} · hole ${x.hole} · <b>${x.strokes} strokes</b><br><span class="small">${esc(x.updatedAt)}</span></div>`).join(''):'No simulated server records.'}
+function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+$('add').addEventListener('click',()=>addScore().catch(e=>log('Local save failed: '+e.message)));$('reload').addEventListener('click',()=>render().then(()=>log('Queue reloaded from IndexedDB.')).catch(e=>log('Reload failed: '+e.message)));$('offline').addEventListener('click',()=>setOnline(false));$('online').addEventListener('click',()=>setOnline(true));$('sync').addEventListener('click',sync);$('serverNewer').addEventListener('click',async()=>{const c=$('competition').value.trim(),p=$('player').value.trim(),h=Number($('hole').value);if(!c||!p)return;const k=keyOf({competitionId:c,playerId:p,hole:h}),rows=serverRows();rows[k]={competitionId:c,playerId:p,hole:h,strokes:6,updatedAt:new Date(Date.now()+60000).toISOString(),source:'manually-created-newer-test-record'};saveServer(rows);log('Created a newer simulated server score of 6 for '+k);await render()});$('verifyFail').addEventListener('click',()=>{failNextReadback=true;log('Next sync will simulate a failed read-back; the queue entry should remain pending.')});$('clearServer').addEventListener('click',async()=>{if(confirm('Clear only this test page’s simulated server records?')){localStorage.removeItem(SERVER_KEY);log('Simulated server cleared. IndexedDB queue was not changed.');await render()}});$('clearLog').addEventListener('click',()=>$('log').textContent='Log cleared.');
+(async()=>{if(!('indexedDB'in window)){ $('queue').textContent='IndexedDB is unavailable in this browser context. Open this test from a browser-served page rather than a file preview.';return}db=await openDb();setOnline(false);await render();log('IndexedDB ready. This test is isolated from the live app.')})().catch(e=>{$('queue').textContent='Could not open IndexedDB: '+e.message;log('IndexedDB error: '+e.message)});
+})();
+</script>
+</body>
+</html>
