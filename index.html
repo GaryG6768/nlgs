@@ -886,6 +886,14 @@ function startFriendlyRound(){
   friendlyRound.currentPlayer=0;
   friendlyRound.currentHole=1;
   localStorage.setItem('nlgsFriendlyRound',JSON.stringify(friendlyRound));
+  
+  localStorage.setItem('nlgsFriendlyFixture',JSON.stringify({
+    date:friendlyRound.date,
+    course:friendlyRound.course,
+    format:friendlyRound.format,
+    players:friendlyRound.players
+  }));
+
   show('friendlyScore');
   renderFriendlyScore();
 }
