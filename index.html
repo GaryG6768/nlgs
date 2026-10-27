@@ -967,17 +967,10 @@ function saveFriendlyScore(){
   renderFriendlyScore();
     
   
+  
   window.scrollTo({top:Math.max(0,document.getElementById('friendlyScore')?.offsetTop||0),behavior:'auto'});
-
-
-    requestAnimationFrame(()=>{
-      const target=document.getElementById('friendlyHoleInfo')||document.getElementById('friendlyHolePlayers');
-      if(target) target.scrollIntoView({behavior:'auto',block:'start'});
-    });
-  }else{
-    window.scrollTo({top:Math.max(0,document.getElementById('friendlyScore')?.offsetTop||0),behavior:'auto'});
-  }
 }
+
 </script>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
