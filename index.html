@@ -965,7 +965,14 @@ function saveFriendlyScore(){
   const btn=document.getElementById('friendlySaveAllBtn'); if(btn)btn.blur();
   if(r.currentHole<18){r.currentHole++;saveFriendlyState();}
   renderFriendlyScore();
-  window.scrollTo({top:Math.max(0,document.getElementById('friendlyScore')?.offsetTop||0),behavior:'auto'});
+    if(String(friendlyFormat||'')==='2 Ball Better Ball'){
+    requestAnimationFrame(()=>{
+      const target=document.getElementById('friendlyHoleInfo')||document.getElementById('friendlyHolePlayers');
+      if(target) target.scrollIntoView({behavior:'auto',block:'start'});
+    });
+  }else{
+    window.scrollTo({top:Math.max(0,document.getElementById('friendlyScore')?.offsetTop||0),behavior:'auto'});
+  }
 }
 </script>
 </div>
