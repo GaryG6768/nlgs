@@ -968,7 +968,16 @@ function saveFriendlyScore(){
     
   
   
-  window.scrollTo({top:Math.max(0,document.getElementById('friendlyScore')?.offsetTop||0),behavior:'auto'});
+  
+  requestAnimationFrame(()=>{
+    const scoring=document.getElementById('friendlyScore');
+    const header=document.querySelector('.top');
+    if(scoring){
+      const top=scoring.getBoundingClientRect().top+window.pageYOffset-(header?.offsetHeight||0);
+      window.scrollTo({top:Math.max(0,top),behavior:'auto'});
+    }
+  });
+
 }
 
 </script>
