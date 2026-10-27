@@ -1909,6 +1909,7 @@ function friendlyHandleScoreTouch(e,i){
   if(Math.abs(dx)>=35){if(e.cancelable)e.preventDefault();friendlySwipeScore(i,dx>0?1:-1);e.currentTarget.dataset.swiped='1';}
 }
 
+
 function saveFriendlyScore(){
   const r=getFriendlyRound(); if(!r)return;
   const inputs=[...document.querySelectorAll('.friendly-hole-score')];
@@ -1930,18 +1931,13 @@ function saveFriendlyScore(){
   toast('Hole '+r.currentHole+' saved');
   if(r.currentHole<18){r.currentHole++;saveFriendlyState();}
   renderFriendlyScore();
-  // Match Competition scoring behaviour: after saving, show the new hole from the top of the scoring screen.
-  requestAnimationFrame(()=>{
+  setTimeout(()=>{
     const scoring=document.getElementById('friendlyScore');
-    const header=document.querySelector('.top');
-    if(scoring){
-      const top=scoring.getBoundingClientRect().top + window.pageYOffset - (header?.offsetHeight||0);
-      window.scrollTo({top:Math.max(0,top),behavior:'auto'});
-    }else{
-      window.scrollTo({top:0,behavior:'auto'});
-    }
-  });
+    const topElement=scoring?.querySelector('.label');
+    if(topElement)topElement.scrollIntoView({behavior:'instant',block:'start'});
+  },50);
 }
+
 </script>
 
 
