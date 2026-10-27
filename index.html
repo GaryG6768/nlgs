@@ -966,7 +966,9 @@ function saveFriendlyScore(){
   if(r.currentHole<18){r.currentHole++;saveFriendlyState();}
   renderFriendlyScore();
     
+  
   window.scrollTo({top:Math.max(0,document.getElementById('friendlyScore')?.offsetTop||0),behavior:'auto'});
+
 
     requestAnimationFrame(()=>{
       const target=document.getElementById('friendlyHoleInfo')||document.getElementById('friendlyHolePlayers');
