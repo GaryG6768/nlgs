@@ -4956,19 +4956,8 @@ async function csSaveAllScores(){
       if(document.activeElement&&typeof document.activeElement.blur==='function')document.activeElement.blur();
       if(csHole<18){csHole++;csRender();}else csRender();
       const scoring=document.getElementById('competitionScoringNLGS');
-      // The old unconditional scroll-to-top ran after saving and could override
-      // the discrepancy scroll. Check for a visible discrepancy first, and only
-      // reset to the top when there is no discrepancy to review.
-      const warningPattern=/discrepanc|mismatch|not agreed|different scores|sync conflict|review needed|server score changed elsewhere/i;
-      const warningNodes=Array.from((scoring||document).querySelectorAll('[role=alert],.toast,.error,.warning,.notice,.status,.cs-score-status,.small,p,li,div,span'));
-      const warning=warningNodes.filter(el=>el.getClientRects().length&&warningPattern.test((el.innerText||el.textContent||'').trim()))
-        .sort((a,b)=>(a.innerText||a.textContent||'').trim().length-(b.innerText||b.textContent||'').trim().length)[0];
-      if(warning){
-        warning.scrollIntoView({behavior:'auto',block:'center',inline:'nearest'});
-      }else{
-        const topElement=scoring?.querySelector('.label');
-        if(topElement)topElement.scrollIntoView({behavior:'instant',block:'start'});
-      }
+      const topElement=scoring?.querySelector('.label');
+      if(topElement)topElement.scrollIntoView({behavior:'instant',block:'start'});
     },50);
   }catch(e){
     // Never discard the locally saved draft because the network is unavailable.
@@ -7090,4 +7079,42 @@ function friendlyJumpToScorecardHole(n){
 })();
 </script>
 
-<!-- No extra save-scroll listener: scrolling is handled in the save routine itself. -->
+
+
+<!-- NLGS scoring navigation fix: return to the top after saving group scores. -->
+<script>
+(function(){
+  if (window.__nlgsSaveGroupScrollFixInstalled) return;
+  window.__nlgsSaveGroupScrollFixInstalled = true;
+
+  function returnScoringScreenToTop(){
+    var competition = document.getElementById('competitionScoringNLGS');
+    var friendly = document.getElementById('friendlyScore');
+    var individual = document.getElementById('individualCompetitionScoring');
+    var active = [competition, friendly, individual].find(function(screen){
+      return screen && screen.classList.contains('active');
+    });
+    if (!active) return;
+
+    if (active === competition) {
+      active.scrollTop = 0;
+      active.scrollTo({top: 0, left: 0, behavior: 'auto'});
+      return;
+    }
+
+    var header = document.querySelector('.top');
+    var top = Math.max(0, active.getBoundingClientRect().top + window.pageYOffset - (header ? header.offsetHeight : 0));
+    window.scrollTo({top: top, left: 0, behavior: 'auto'});
+    document.documentElement.scrollTop = top;
+    document.body.scrollTop = top;
+  }
+
+  document.addEventListener('click', function(event){
+    var button = event.target && event.target.closest && event.target.closest('#csSaveAllBtn, #friendlySaveAllBtn, #individualScoringSaveBtn');
+    if (!button) return;
+    [80, 250, 500, 850].forEach(function(delay){
+      setTimeout(function(){ requestAnimationFrame(returnScoringScreenToTop); }, delay);
+    });
+  }, true);
+})();
+</script>
